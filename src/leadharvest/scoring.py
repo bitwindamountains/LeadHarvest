@@ -53,6 +53,8 @@ def score_lead(lead: Lead) -> tuple[int, list[str]]:
             flags.append("social_only")
     if lead.https_ok is False:
         flags.append("no_https")
+    if lead.mobile_viewport is False:
+        flags.append("no_mobile_viewport")
     if lead.email and lead.email.split("@", 1)[1] in FREE_EMAIL_DOMAINS:
         flags.append("free_email_provider")
     return min(score, 100), flags

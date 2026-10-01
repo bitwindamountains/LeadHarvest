@@ -14,7 +14,7 @@ OSM_ATTRIBUTION = (
 MANAGED_COLUMNS: tuple[str, ...] = (
     "lead_id", "business_name", "category", "phone", "phones_extra", "email", "emails_extra",
     "website", "facebook", "instagram", "linkedin", "tiktok", "address", "city", "score",
-    "flags", "opening_hours", "lat", "lon", "sources", "updated_at",
+    "flags", "tech", "opening_hours", "lat", "lon", "sources", "updated_at",
 )  # fmt: skip
 PHONE_COLUMNS = frozenset({"phone", "phones_extra"})
 NUMERIC_COLUMNS = frozenset({"lat", "lon", "score"})
@@ -48,6 +48,7 @@ def lead_to_row(lead: Lead, category: str) -> dict[str, str | float | int | None
         "city": lead.city,
         "score": lead.score,
         "flags": ", ".join(lead.flags),
+        "tech": ", ".join(lead.tech),
         "opening_hours": lead.opening_hours,
         "lat": lead.lat,
         "lon": lead.lon,

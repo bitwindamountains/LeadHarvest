@@ -36,6 +36,8 @@ Files land in `data/exports/`. Open the `.xlsx` in Excel. Excel mangles `+63…`
 | `runs` | List recent runs |
 | `categories` | List categories (edit `config/categories.yaml` to add more) |
 | `adapters` / `test-adapter NAME [--pages 1]` | List directory adapters / print 5 parsed records from one |
+| `batch jobs.csv` / `batch --from-sheet TAB` | Many categories × locations; re-run the same command to resume |
+| `monitor jobs.csv --to sheets` | Weekly refresh: fresh runs each ISO week plus a "New since last run" export |
 | `forget --domain x.com` / `--phone` / `--email` | Delete a business and suppress it from all future runs |
 | `purge --not-seen-days 180` | Retention: delete leads not seen for N days |
 
@@ -77,6 +79,39 @@ uv run streamlit run app/streamlit_app.py      # needs LH_UI_PASSWORD in .env
 ```
 
 If you deploy it (e.g. Streamlit Community Cloud), put the `.env` values in the app's secrets. The SQLite file is lost when the app restarts there, so download exports right away.
+
+## Batch mode and weekly monitoring
+
+**Batch.** Put one job per row in a CSV (or a tab of your Google Sheet) with the columns `category`, `location`, and optionally `limit` and `sources` (`osm;directory:NAME`). Rows starting with `#` are skipped. See [config/monitor.example.csv](config/monitor.example.csv).
+
+```bash
+uv run leadharvest batch jobs.csv --to sheets
+uv run leadharvest batch --from-sheet Jobs --to sheets   # reads the "Jobs" tab of GOOGLE_SHEET_ID
+```
+
+Every row becomes a normal run. If you stop a batch with Ctrl+C or a row fails, run the same command again: completed rows are skipped and unfinished ones resume. Rows are identified by their position, so add new rows at the end. Use `--rerun` to run completed rows again.
+
+**Monitor.** `leadharvest monitor jobs.csv --to sheets` runs the batch as fresh runs once per ISO week. It also exports the leads that the previous run of the same category and area did not have:
+- **Sheets:** a `<category> - <area> - new` tab. It is a running log with a `found_on` date column, and client columns there are kept too.
+- **Files:** `...-new.csv` and `...-new.xlsx`.
+
+The first run for an area counts every lead as new.
+
+**Website signals.** Enrichment records each site's platform in the `tech` column (WordPress, Shopify, Wix, Squarespace, Webflow, Joomla, Drupal, GoDaddy, Weebly, Blogger). Sites without a mobile viewport get the `no_mobile_viewport` flag. Combined with `no_https` and `no_website`, these make good prospect lists for web agencies.
+
+### Weekly monitoring on GitHub Actions
+
+[.github/workflows/monitor.yml](.github/workflows/monitor.yml) runs `monitor` every Monday at 01:00 UTC (09:00 Manila) and can also be started by hand.
+
+1. Commit your jobs as `config/monitor.csv` (copy the example).
+2. Add these repository secrets (Settings → Secrets and variables → Actions):
+   - `LH_USER_AGENT`
+   - `GOOGLE_SHEET_ID`
+   - `GOOGLE_SERVICE_ACCOUNT_JSON`: the whole JSON key file's contents
+   - `LH_DB_PASSPHRASE`: a long random passphrase
+3. Run the workflow once from the Actions tab.
+
+Between runs the lead database is kept as an **encrypted** workflow artifact (AES-256 with your passphrase, kept 90 days). Artifacts of public repositories are downloadable by any signed-in GitHub user, so never remove that encryption step. A private repository is better still. If you lose the passphrase, the next run starts fresh and reports every lead as new.
 
 ## How it stays polite and legal
 

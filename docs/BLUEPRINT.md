@@ -401,6 +401,16 @@ Timestamps are ISO 8601 UTC strings. JSON columns are TEXT containing JSON.
 
 Migrations live in `storage/migrations/NNN_name.sql` and are applied in order; existing databases upgrade on open.
 
+### Schema v3 (migration `003_website_signals.sql`)
+- `leads.tech TEXT (JSON)`: site platforms detected on the homepage (e.g. `["wordpress"]`).
+- `leads.mobile_viewport INTEGER (0/1)`: homepage declares `width=device-width`; 0 adds the `no_mobile_viewport` flag.
+
+### Batch and monitor runs (no extra tables)
+- A batch row is an ordinary run with `options = {"batch": <name>, "row": <n>}`; re-running the batch skips completed rows and resumes the rest.
+- `monitor` uses batch name `<name>@<ISO year>-W<week>`, so each week starts fresh runs and a re-run in the same week resumes.
+- "New since last run" = leads of this run not linked to the latest earlier **completed** run with the same category and area (`area_id`, else the location text). Exported to a `<tab> - new` Sheets history tab (`found_on` + managed columns, same header-mapped upsert) and `-new.csv/.xlsx` files.
+- On GitHub Actions the SQLite file is carried between weekly runs as an AES-256-encrypted artifact (passphrase secret), because artifacts of public repositories are readable by any signed-in user.
+
 ### geo_cache / robots_cache
 - `geo_cache(query_key TEXT PK, result JSON, cached_at)` — no expiry needed for city boundaries.
 - `robots_cache(origin TEXT PK, robots_txt TEXT, status INTEGER, fetched_at)` — keyed by `scheme://host:port`, 24-hour TTL.
@@ -814,9 +824,9 @@ Estimated time: **Phases 0–6 ≈ 7–9 focused days**, **Phase 7 ≈ 1 day**. 
 - [ ] 8.6 (P2) Google Places source — only if decision D1 clears
 
 ### Phase 9 — V2 *(only when a client pays for it)*
-- [ ] 9.1 (P3) Weekly monitoring workflow + "New since last run" tab (uses `--refresh-days` and derived `is_new`)
-- [ ] 9.2 (P3) Batch mode
-- [ ] 9.3 (P3) Website tech signals
+- [x] 9.1 (P3) Weekly monitoring workflow + "New since last run" tab (uses `--refresh-days` and derived `is_new`)
+- [x] 9.2 (P3) Batch mode
+- [x] 9.3 (P3) Website tech signals
 
 **Dependency summary:** Phase 1 blocks all. Phases 2, 3.1, 4.3, and 5 can proceed in parallel after Phase 1. Phase 6 needs 2–5. Phase 7 needs 6.
 

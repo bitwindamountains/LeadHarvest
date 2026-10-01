@@ -28,11 +28,18 @@ class XlsxExporter:
         self.export_dir = export_dir
 
     def export(self, leads: list[Lead], run: Run) -> ExportResult:
+        return self._write(leads, run, f"{export_basename(run)}.xlsx", "Leads")
+
+    def export_new(self, leads: list[Lead], run: Run) -> ExportResult:
+        """Monitoring: only the leads that are new since the previous run."""
+        return self._write(leads, run, f"{export_basename(run)}-new.xlsx", "New since last run")
+
+    def _write(self, leads: list[Lead], run: Run, filename: str, sheet: str) -> ExportResult:
         self.export_dir.mkdir(parents=True, exist_ok=True)
-        path = self.export_dir / f"{export_basename(run)}.xlsx"
+        path = self.export_dir / filename
         wb = Workbook()
         ws = wb.active
-        ws.title = "Leads"
+        ws.title = sheet
         ws.append(list(MANAGED_COLUMNS))
         for cell in ws[1]:
             cell.font = Font(bold=True)

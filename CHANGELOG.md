@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — 2026-10-01
+
+V2 (blueprint Phase 9 / F15–F17).
+
+- Website signals: the platform is detected from the homepage HTML and headers (`tech` column), and a missing mobile viewport adds the `no_mobile_viewport` flag. Schema v3.
+- Batch mode: `leadharvest batch jobs.csv` or `--from-sheet TAB`. Rows are resumable and skipped once completed; `--rerun` runs them again.
+- Weekly monitoring: `leadharvest monitor` (one batch per ISO week) exports "new since last run" leads to a `... - new` Sheets history tab (with `found_on`) and to `-new` CSV/XLSX files.
+- GitHub Actions workflow `monitor.yml`: a weekly schedule, with the lead database carried between runs as an AES-256-encrypted artifact.
+
 ## 0.2.0 — 2026-10-01
 
 V1 features (blueprint Phase 4.6 and Phase 8, except Google Places, which is on hold per decision D1).

@@ -90,6 +90,8 @@ class Lead(BaseModel):
     website: str | None = None
     final_url: str | None = None
     https_ok: bool | None = None
+    tech: list[str] = Field(default_factory=list)  # site platform(s), e.g. ["wordpress"]
+    mobile_viewport: bool | None = None
     domain: str | None = None
     facebook: str | None = None
     instagram: str | None = None

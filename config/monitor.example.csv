@@ -1,0 +1,5 @@
+category,location,limit,sources
+dentist,"Makati, Philippines",200,
+dentist,"Taguig, Philippines",200,
+# lines whose category starts with # are skipped,,,
+gym,"Pasig, Philippines",100,osm

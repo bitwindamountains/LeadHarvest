@@ -323,18 +323,37 @@ class Pipeline:
         mx = MxChecker(self.repo, self.mx_lookup) if use_mx else None
         return await run_score_step(self.repo, run, mx)
 
+    def new_since_previous(self, run: Run) -> tuple[list, Run | None]:
+        """Monitoring: leads in this run that the previous completed run of the same
+        category and area did not include. With no previous run, every lead is new."""
+        previous = self.repo.previous_run(run)
+        if previous is None:
+            return self.repo.leads_for_run(run.id), None
+        return self.repo.leads_not_in_run(run.id, previous.id), previous
+
     def export(self, run: Run, targets: list[str]) -> list[ExportResult]:
         leads = self.repo.leads_for_run(run.id)
+        monitor = bool(run.options.get("monitor"))
+        new_leads, previous = self.new_since_previous(run) if monitor else ([], None)
         results: list[ExportResult] = []
         failures: list[str] = []
         for target in targets:
             try:
                 exporter = self.exporter_factory(target)
                 results.append(exporter.export(leads, run))
+                export_new = getattr(exporter, "export_new", None)
+                if monitor and export_new is not None:
+                    results.append(export_new(new_leads, run))
             except Exception as exc:  # keep files already written; report the rest
                 log.error("Export to %s failed: %s", target, exc)
                 failures.append(f"{target}: {exc}")
-        self.repo.merge_run_stats(run.id, {"export_results": [r.model_dump() for r in results]})
+        stats: dict[str, Any] = {"export_results": [r.model_dump() for r in results]}
+        if monitor:
+            stats["monitor"] = {
+                "new_since_last_run": len(new_leads),
+                "previous_run": previous.id if previous else None,
+            }
+        self.repo.merge_run_stats(run.id, stats)
         if failures:
             raise ExportError("; ".join(failures))
         return results

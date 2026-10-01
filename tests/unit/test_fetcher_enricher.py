@@ -191,6 +191,8 @@ async def test_enricher_homepage_plus_contact_page(settings, repo, clock, client
     assert "+639187654321" in updated.phones_extra
     assert updated.facebook == "https://www.facebook.com/SmileClinicPH"
     assert updated.https_ok is True
+    assert updated.mobile_viewport is False  # the homepage has no viewport meta
+    assert updated.tech == []
     assert about.call_count == 0  # robots-disallowed extra page was skipped
 
 
@@ -206,7 +208,12 @@ async def test_enricher_records_failures_without_stopping(settings, repo, clock,
     respx.get("https://plain.ph/robots.txt").mock(side_effect=httpx.ConnectError("x"))
     respx.get("https://plain.ph/").mock(side_effect=httpx.ConnectError("x"))
     respx.get("http://plain.ph/robots.txt").mock(return_value=ALLOW_ALL)
-    respx.get("http://plain.ph/").respond(200, html="<p>Call 0917 123 4567</p>", headers=HTML)
+    respx.get("http://plain.ph/").respond(
+        200,
+        html='<link href="/wp-content/x.css"><meta name="viewport" content="width=device-width">'
+        "<p>Call 0917 123 4567</p>",
+        headers=HTML,
+    )
     leads = {
         name: _lead(repo, f"https://{name}/")
         for name in ("slow.ph", "nope.ph", "gone.ph", "plain.ph")
@@ -223,6 +230,7 @@ async def test_enricher_records_failures_without_stopping(settings, repo, clock,
     plain = repo.get_lead(leads["plain.ph"].lead_id)
     assert plain.https_ok is False
     assert plain.phone == "+639171234567"
+    assert plain.tech == ["wordpress"] and plain.mobile_viewport is True
     assert stats["attempted"] == 4
     # Nothing left pending → re-running enriches nothing (resume never re-fetches finished work)
     assert (await enricher.enrich_run("run-1"))["attempted"] == 0

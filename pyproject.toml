@@ -1,6 +1,6 @@
 [project]
 name = "leadharvest"
-version = "0.2.0"
+version = "0.3.0"
 description = "Find businesses by category and location, enrich them from their own websites, and export clean leads."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"

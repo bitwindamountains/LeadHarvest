@@ -14,6 +14,7 @@ from leadharvest.enrich.discovery import discover_contact_pages
 from leadharvest.enrich.extractors import Extracted, extract_all, rank_emails, text_length
 from leadharvest.enrich.fetcher import FetchError, PoliteFetcher
 from leadharvest.enrich.render import Renderer
+from leadharvest.enrich.signals import detect_tech, has_mobile_viewport
 from leadharvest.logging_setup import get_logger
 from leadharvest.models import EnrichStatus, Lead, utcnow_iso
 from leadharvest.storage.repository import Repository
@@ -138,7 +139,13 @@ class Enricher:
         ):
             await self._render_fallback(page.final_url, found)
         self.protected_emails += found.protected_emails
-        return apply_extraction(lead, found, page.final_url, self.suppressed)
+        enriched = apply_extraction(lead, found, page.final_url, self.suppressed)
+        return enriched.model_copy(
+            update={
+                "tech": detect_tech(page.text, page.headers),
+                "mobile_viewport": has_mobile_viewport(page.text),
+            }
+        )
 
     async def enrich_run(
         self,

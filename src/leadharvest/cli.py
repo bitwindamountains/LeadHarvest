@@ -6,6 +6,8 @@ import asyncio
 import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import date
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -20,6 +22,7 @@ from rich.progress import (
 from rich.table import Table
 
 from leadharvest import __version__
+from leadharvest.batch import BatchError, Job, read_jobs_csv, read_jobs_sheet, run_batch
 from leadharvest.categories import Category, UnknownCategory, load_categories, resolve_category
 from leadharvest.clean.normalize import (
     is_shared_domain,
@@ -192,7 +195,7 @@ def _progress() -> Progress:
     )
 
 
-def _execute(
+def _execute_run(
     settings: Settings,
     repo: Repository,
     run: Run,
@@ -201,6 +204,7 @@ def _execute(
     stop_after: str | None = None,
     any_country: bool = False,
 ) -> Run:
+    """Run the pipeline with progress bars and a per-run log. Errors propagate."""
     handler = attach_run_log(settings.log_dir, run.id)
     try:
         with _progress() as progress:
@@ -222,6 +226,26 @@ def _execute(
         current = repo.get_run(run.id)
         if current and current.status == "running":
             repo.update_run(run.id, status="partial", error="interrupted")
+        raise
+    finally:
+        detach_run_log(handler)
+
+
+def _execute(
+    settings: Settings,
+    repo: Repository,
+    run: Run,
+    category: Category,
+    *,
+    stop_after: str | None = None,
+    any_country: bool = False,
+) -> Run:
+    """_execute_run for single-run commands: friendly messages and exit codes."""
+    try:
+        return _execute_run(
+            settings, repo, run, category, stop_after=stop_after, any_country=any_country
+        )
+    except KeyboardInterrupt:
         console.print(
             f"\n[yellow]Interrupted.[/yellow] Resume with: leadharvest resume --run {run.id[:8]}"
         )
@@ -237,8 +261,6 @@ def _execute(
         raise _fail(
             f"Run failed: {type(exc).__name__}: {exc}. Details: {settings.log_dir}", 1
         ) from None
-    finally:
-        detach_run_log(handler)
 
 
 def print_summary(repo: Repository, run: Run) -> None:
@@ -288,6 +310,14 @@ def print_summary(repo: Repository, run: Run) -> None:
     dups = len(clean.get("possible_duplicates", [])) + len(enrich.get("possible_duplicates", []))
     if dups:
         table.add_row("Possible duplicates to review", f"{dups} (see run log)")
+    monitor = stats.get("monitor")
+    if monitor:
+        since = (
+            "first run for this area"
+            if not monitor.get("previous_run")
+            else (f"since run {monitor['previous_run'][:8]}")
+        )
+        table.add_row("New since last run", f"{monitor['new_since_last_run']} ({since})")
     for result in stats.get("export_results", []):
         table.add_row(
             f"Export: {result['exporter']}",
@@ -494,6 +524,135 @@ def export(
                 f"{result.exporter}: {result.target} "
                 f"({result.rows_appended} appended, {result.rows_updated} updated)"
             )
+
+
+def _load_jobs(settings: Settings, jobs_file: Path | None, from_sheet: str | None) -> list[Job]:
+    if (jobs_file is None) == (from_sheet is None):
+        raise _fail("Give a jobs CSV file or --from-sheet TAB (one of them).")
+    try:
+        if jobs_file is not None:
+            return read_jobs_csv(jobs_file)
+        settings.require_sheets()
+        import gspread
+
+        client = gspread.service_account(filename=str(settings.google_service_account_file))
+        try:
+            worksheet = client.open_by_key(settings.google_sheet_id).worksheet(from_sheet)
+        except gspread.WorksheetNotFound:
+            raise _fail(f"No tab named {from_sheet!r} in the Google Sheet.") from None
+        return read_jobs_sheet(worksheet)
+    except (BatchError, ConfigError) as exc:
+        raise _fail(str(exc)) from None
+
+
+def _batch_command(
+    *,
+    jobs_file: Path | None,
+    from_sheet: str | None,
+    name: str,
+    limit: int,
+    to: str,
+    sources: str,
+    js: bool,
+    mx: bool,
+    rerun: bool,
+    monitor: bool,
+) -> None:
+    settings = _settings()
+    try:
+        settings.require_network_identity()
+    except ConfigError as exc:
+        raise _fail(str(exc)) from None
+    targets = _parse_targets(to, settings)
+    default_sources = _parse_sources(sources)
+    options: dict[str, object] = {**_run_options(js, mx and settings.mx_check)}
+    if monitor:
+        options["monitor"] = True
+    job_list = _load_jobs(settings, jobs_file, from_sheet)
+    for job in job_list:  # validate per-row sources before anything runs
+        if job.sources:
+            _parse_sources(",".join(job.sources))
+    categories = load_categories(settings.categories_file)
+    console.print(f"Batch [bold]{name}[/bold]: {len(job_list)} job(s)")
+
+    def on_job(job: Job, action: str) -> None:
+        console.print(f"\n[bold]Row {job.row}[/bold]: {job.category} in {job.location} ({action})")
+
+    with _repository(settings) as repo:
+        pipeline = Pipeline(settings, repo, exporter_factory=exporter_factory(settings))
+        try:
+            results = run_batch(
+                name, job_list, repo=repo, pipeline=pipeline, categories=categories,
+                execute=lambda r, c: _execute_run(settings, repo, r, c),
+                default_limit=limit, targets=targets, default_sources=default_sources,
+                options=options, rerun=rerun, on_job=on_job,
+            )  # fmt: skip
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Interrupted.[/yellow] Run the same command again to "
+                          "continue; finished rows are skipped.")  # fmt: skip
+            raise typer.Exit(EXIT_INTERRUPTED) from None
+
+    table = Table("row", "category", "location", "status", "leads", "new", "run", "note",
+                  title=f"Batch {name}")  # fmt: skip
+    for res in results:
+        table.add_row(
+            str(res.job.row),
+            res.job.category,
+            res.job.location,
+            res.status,
+            str(res.leads),
+            str(res.new),
+            (res.run_id or "")[:8],
+            res.message[:60],
+        )
+    console.print(table)
+    if any(res.status not in ("completed", "skipped") for res in results):
+        raise typer.Exit(1)
+
+
+@app.command()
+def batch(
+    jobs_file: Annotated[
+        Path | None, typer.Argument(help="CSV with category,location[,limit,sources] columns.")
+    ] = None,
+    from_sheet: Annotated[str | None, typer.Option(help="Read jobs from this Sheet tab.")] = None,
+    name: Annotated[str | None, typer.Option(help="Batch name (default: file/tab name).")] = None,
+    limit: Annotated[int, typer.Option(min=1, max=5000, help="Default limit per job.")] = 200,
+    to: Annotated[str, typer.Option(help="Export targets: csv,xlsx,sheets,hubspot.")] = "csv,xlsx",
+    sources: Annotated[str, typer.Option(help="Default sources per job.")] = "osm",
+    js: Annotated[bool, typer.Option(help="Render near-empty JS sites.")] = False,
+    mx: Annotated[bool, typer.Option(help="Drop emails on dead domains.")] = True,
+    rerun: Annotated[bool, typer.Option(help="Run completed rows again.")] = False,
+) -> None:
+    """Many categories x locations in one go. Re-run the same command to resume a batch."""
+    base = name or (jobs_file.stem if jobs_file else from_sheet) or "batch"
+    _batch_command(jobs_file=jobs_file, from_sheet=from_sheet, name=base, limit=limit, to=to,
+                   sources=sources, js=js, mx=mx, rerun=rerun, monitor=False)  # fmt: skip
+
+
+def monitor_batch_name(base: str, today: date | None = None) -> str:
+    """One batch per ISO week, so a weekly schedule starts fresh runs and a re-run resumes."""
+    year, week, _ = (today or date.today()).isocalendar()
+    return f"{base}@{year}-W{week:02d}"
+
+
+@app.command()
+def monitor(
+    jobs_file: Annotated[
+        Path | None, typer.Argument(help="CSV with category,location[,limit,sources] columns.")
+    ] = None,
+    from_sheet: Annotated[str | None, typer.Option(help="Read jobs from this Sheet tab.")] = None,
+    name: Annotated[str | None, typer.Option(help="Monitor name (default: file/tab name).")] = None,
+    limit: Annotated[int, typer.Option(min=1, max=5000, help="Default limit per job.")] = 200,
+    to: Annotated[str, typer.Option(help="Export targets: csv,xlsx,sheets,hubspot.")] = "csv,xlsx",
+    sources: Annotated[str, typer.Option(help="Default sources per job.")] = "osm",
+    mx: Annotated[bool, typer.Option(help="Drop emails on dead domains.")] = True,
+) -> None:
+    """Weekly monitoring: fresh runs each ISO week plus a "New since last run" export."""
+    base = name or (jobs_file.stem if jobs_file else from_sheet) or "monitor"
+    _batch_command(jobs_file=jobs_file, from_sheet=from_sheet, name=monitor_batch_name(base),
+                   limit=limit, to=to, sources=sources, js=False, mx=mx, rerun=False,
+                   monitor=True)  # fmt: skip
 
 
 async def _sample_adapter(

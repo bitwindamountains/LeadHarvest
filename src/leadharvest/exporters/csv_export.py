@@ -35,8 +35,15 @@ class CsvExporter:
         self.export_dir = export_dir
 
     def export(self, leads: list[Lead], run: Run) -> ExportResult:
+        return self._write(leads, run, f"{export_basename(run)}.csv")
+
+    def export_new(self, leads: list[Lead], run: Run) -> ExportResult:
+        """Monitoring: only the leads that are new since the previous run."""
+        return self._write(leads, run, f"{export_basename(run)}-new.csv")
+
+    def _write(self, leads: list[Lead], run: Run, filename: str) -> ExportResult:
         self.export_dir.mkdir(parents=True, exist_ok=True)
-        path = self.export_dir / f"{export_basename(run)}.csv"
+        path = self.export_dir / filename
         with path.open("w", encoding="utf-8-sig", newline="") as fh:
             writer = csv.writer(fh)
             writer.writerow(MANAGED_COLUMNS)

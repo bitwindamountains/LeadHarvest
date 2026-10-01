@@ -17,9 +17,10 @@ LEAD_COLUMNS: tuple[str, ...] = (
     "email", "emails_extra", "website", "final_url", "https_ok", "domain", "facebook",
     "instagram", "linkedin", "tiktok", "opening_hours", "sources", "enrich_status",
     "enriched_at", "enrich_error", "score", "flags", "first_seen_run_id", "first_seen_at",
-    "last_seen_at", "updated_at",
+    "last_seen_at", "updated_at", "tech", "mobile_viewport",
 )  # fmt: skip
-_LEAD_JSON = {"categories", "phones_extra", "emails_extra", "sources", "flags"}
+_LEAD_JSON = {"categories", "phones_extra", "emails_extra", "sources", "flags", "tech"}
+_LEAD_BOOL = {"https_ok", "mobile_viewport"}
 
 _RUN_UPDATABLE = {
     "area_id", "area_kind", "bbox", "area_name", "export_targets", "status", "current_step",
@@ -76,6 +77,38 @@ class Repository:
             "SELECT id FROM runs WHERE id LIKE ? LIMIT 2", (ref.replace("%", "") + "%",)
         ).fetchall()
         return rows[0]["id"] if len(rows) == 1 else None
+
+    def find_batch_run(self, batch: str, row: int) -> Run | None:
+        """Latest run created for this batch row (see batch.py)."""
+        found = self.conn.execute(
+            "SELECT * FROM runs WHERE json_extract(options, '$.batch') = ? "
+            "AND json_extract(options, '$.row') = ? ORDER BY created_at DESC, rowid DESC LIMIT 1",
+            (batch, row),
+        ).fetchone()
+        return _row_to_run(found) if found else None
+
+    def previous_run(self, run: Run) -> Run | None:
+        """The latest earlier completed run of the same category over the same area."""
+        area_clause, params = "lower(location) = lower(?)", [run.location]
+        if run.area_kind == "area" and run.area_id is not None:
+            area_clause, params = "area_id = ?", [run.area_id]
+        found = self.conn.execute(
+            f"SELECT * FROM runs WHERE category = ? AND {area_clause} AND id != ? "
+            "AND status = 'completed' AND created_at <= ? "
+            "ORDER BY created_at DESC, rowid DESC LIMIT 1",
+            [run.category, *params, run.id, run.created_at],
+        ).fetchone()
+        return _row_to_run(found) if found else None
+
+    def leads_not_in_run(self, run_id: str, other_run_id: str) -> list[Lead]:
+        """Leads of `run_id` that `other_run_id` did not include, in run order."""
+        rows = self.conn.execute(
+            "SELECT l.* FROM leads l JOIN run_leads r ON r.lead_id = l.lead_id "
+            "WHERE r.run_id = ? AND l.lead_id NOT IN "
+            "(SELECT lead_id FROM run_leads WHERE run_id = ?) ORDER BY r.position",
+            (run_id, other_run_id),
+        ).fetchall()
+        return [_row_to_lead(r) for r in rows]
 
     def list_runs(self, limit: int = 20) -> list[Run]:
         rows = self.conn.execute(
@@ -410,7 +443,7 @@ def _lead_to_values(lead: Lead) -> list[Any]:
         value = data[col]
         if col in _LEAD_JSON:
             value = json.dumps(value or [], ensure_ascii=False)
-        elif col == "https_ok" and value is not None:
+        elif col in _LEAD_BOOL and value is not None:
             value = int(value)
         values.append(value)
     return values
@@ -420,8 +453,9 @@ def _row_to_lead(row: sqlite3.Row) -> Lead:
     data = {col: row[col] for col in LEAD_COLUMNS}
     for col in _LEAD_JSON:
         data[col] = json.loads(data[col] or "[]")
-    if data["https_ok"] is not None:
-        data["https_ok"] = bool(data["https_ok"])
+    for col in _LEAD_BOOL:
+        if data[col] is not None:
+            data[col] = bool(data[col])
     return Lead.model_validate(data)
 
 

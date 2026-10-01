@@ -1,0 +1,110 @@
+name: Weekly monitor
+
+# Runs `leadharvest monitor` every Monday and updates the client's Google Sheet, including the
+# "<category> - <area> - new" tab. Setup: README → "Weekly monitoring on GitHub Actions".
+#
+# The lead database is carried from week to week as an ENCRYPTED artifact (AES-256, passphrase
+# in the LH_DB_PASSPHRASE secret): artifacts of public repositories can be downloaded by any
+# signed-in GitHub user, and the database holds business contact data.
+
+on:
+  schedule:
+    - cron: "0 1 * * 1" # Mondays 01:00 UTC (09:00 in Manila)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read # to download last week's database artifact
+
+concurrency:
+  group: leadharvest-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      LH_USER_AGENT: ${{ secrets.LH_USER_AGENT }}
+      LH_DB_PASSPHRASE: ${{ secrets.LH_DB_PASSPHRASE }}
+      GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+      GOOGLE_SERVICE_ACCOUNT_FILE: secrets/service_account.json
+      LH_DB_PATH: data/leads.db
+      JOBS_FILE: config/monitor.csv
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check configuration
+        run: |
+          missing=""
+          for name in LH_USER_AGENT LH_DB_PASSPHRASE GOOGLE_SHEET_ID; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          [ -n "${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}" ] || missing="$missing GOOGLE_SERVICE_ACCOUNT_JSON"
+          if [ -n "$missing" ]; then echo "::error::Missing repository secrets:$missing"; exit 1; fi
+          if [ ! -f "$JOBS_FILE" ]; then
+            echo "::error::$JOBS_FILE not found (copy config/monitor.example.csv)"; exit 1
+          fi
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --locked --python 3.12
+
+      - name: Restore last week's database
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p data restore
+          # Newest earlier run that left a database artifact (even if some jobs failed).
+          for id in $(gh run list --workflow monitor.yml --limit 20 --json databaseId \
+                        --jq '.[].databaseId'); do
+            [ "$id" = "${{ github.run_id }}" ] && continue
+            if gh run download "$id" --name leads-db --dir restore 2>/dev/null; then
+              echo "Restored database from run $id"; break
+            fi
+          done
+          if [ -f restore/leads.db.enc ]; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:LH_DB_PASSPHRASE \
+              -in restore/leads.db.enc -out "$LH_DB_PATH"
+          else
+            echo "::warning::No earlier database found; this run starts fresh (every lead is new)."
+          fi
+
+      - name: Write service account key
+        env:
+          KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          mkdir -p secrets
+          umask 077
+          printf '%s' "$KEY" > "$GOOGLE_SERVICE_ACCOUNT_FILE"
+
+      - name: Monitor
+        run: uv run leadharvest monitor "$JOBS_FILE" --to sheets
+
+      - name: Encrypt database
+        if: always()
+        run: |
+          if [ -f "$LH_DB_PATH" ]; then
+            uv run python -c "import sqlite3,os; c=sqlite3.connect(os.environ['LH_DB_PATH']); c.execute('PRAGMA wal_checkpoint(TRUNCATE)'); c.close()"
+            openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 -pass env:LH_DB_PASSPHRASE \
+              -in "$LH_DB_PATH" -out leads.db.enc
+          fi
+
+      - name: Save database for next week
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: leads-db
+          path: leads.db.enc
+          retention-days: 90
+          if-no-files-found: ignore
+
+      # Run logs are not uploaded: they contain business URLs and would be readable on public
+      # repositories. The run summary printed above is enough to see what happened.
+
+      - name: Remove secrets from the runner
+        if: always()
+        run: rm -rf secrets data/leads.db restore

@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import re
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
@@ -51,6 +51,7 @@ class Page:
     content_type: str
     text: str
     truncated: bool = False
+    headers: dict[str, str] = field(default_factory=dict)
 
 
 def _decode(body: bytes, content_type: str) -> str:
@@ -118,7 +119,10 @@ class PoliteFetcher:
             content_type = response.headers.get("content-type", "").lower()
             if content_type and not content_type.startswith(_HTML_TYPES):
                 raise FetchError("failed", f"not HTML ({content_type}) at {current}", status)
-            return Page(url, current, status, content_type, _decode(body, content_type), truncated)
+            return Page(
+                url, current, status, content_type, _decode(body, content_type), truncated,
+                headers=dict(response.headers),
+            )  # fmt: skip
         raise FetchError("failed", f"more than {MAX_REDIRECTS} redirects from {url}")
 
     # ---- internals --------------------------------------------------------------------------

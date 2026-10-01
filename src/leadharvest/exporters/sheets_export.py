@@ -20,6 +20,8 @@ from leadharvest.exporters.base import MANAGED_COLUMNS, ExportError, lead_to_row
 from leadharvest.models import ExportResult, Lead, Run
 
 MAX_TAB_LEN = 100
+NEW_TAB_SUFFIX = " - new"
+NEW_TAB_COLUMNS: tuple[str, ...] = ("found_on", *MANAGED_COLUMNS)
 
 
 class WorksheetLike(Protocol):
@@ -68,8 +70,15 @@ def _runs(indices: list[int]) -> list[tuple[int, int]]:
     return runs
 
 
-def plan_upsert(grid: list[list[str]], rows: list[dict[str, object]]) -> SheetPlan:
+def plan_upsert(
+    grid: list[list[str]],
+    rows: list[dict[str, object]],
+    columns: tuple[str, ...] = MANAGED_COLUMNS,
+) -> SheetPlan:
     """Plan writes for `rows` (dicts keyed by managed column) against the current sheet values.
+
+    `columns` are the managed headers (must include lead_id); every other column is the
+    client's and is never written.
 
     Indices here are 0-based; ranges in the plan are A1 notation.
     """
@@ -77,7 +86,7 @@ def plan_upsert(grid: list[list[str]], rows: list[dict[str, object]]) -> SheetPl
     header = [h.strip() for h in grid[0]] if grid else []
     col_of: dict[str, int] = {}
     for idx, name in enumerate(header):
-        if name in MANAGED_COLUMNS and name not in col_of:
+        if name in columns and name not in col_of:
             col_of[name] = idx
 
     used_width = max((len(r) for r in grid), default=0)
@@ -86,7 +95,7 @@ def plan_upsert(grid: list[list[str]], rows: list[dict[str, object]]) -> SheetPl
         if any(c < len(r) and str(r[c]).strip() for r in grid):
             last_used = c
     next_col = last_used + 1
-    for name in MANAGED_COLUMNS:
+    for name in columns:
         if name not in col_of:
             col_of[name] = next_col
             plan.updates.append({"range": rowcol_to_a1(1, next_col + 1), "values": [[name]]})
@@ -111,8 +120,8 @@ def plan_upsert(grid: list[list[str]], rows: list[dict[str, object]]) -> SheetPl
             n_rows += 1
             plan.appended += 1
 
-    managed_cols = sorted(col_of[name] for name in MANAGED_COLUMNS)
-    name_at = {col_of[name]: name for name in MANAGED_COLUMNS}
+    managed_cols = sorted(col_of[name] for name in columns)
+    name_at = {col_of[name]: name for name in columns}
     for r_start, r_end in _runs(list(targets)):
         for c_start, c_end in _runs(managed_cols):
             values = [
@@ -176,13 +185,13 @@ class SheetsExporter:
     def _call(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         return self._retrying(fn, *args, **kwargs)
 
-    def export(self, leads: list[Lead], run: Run) -> ExportResult:
-        title = tab_title(run.category, run.area_name or run.location)
-        rows: list[dict[str, object]] = [lead_to_row(lead, run.category) for lead in leads]
+    def _upsert(
+        self, title: str, rows: list[dict[str, object]], columns: tuple[str, ...]
+    ) -> SheetPlan:
         try:
             ws = self._call(self.open_worksheet, title, len(rows) + 1)
             grid = self._call(ws.get_all_values)
-            plan = plan_upsert(grid, rows)
+            plan = plan_upsert(grid, rows, columns)
             if plan.required_rows > ws.row_count or plan.required_cols > ws.col_count:
                 self._call(
                     ws.resize,
@@ -196,6 +205,31 @@ class SheetsExporter:
             self._call(ws.set_basic_filter)
         except Exception as exc:
             raise ExportError(f"Google Sheets export failed: {exc}") from exc
+        return plan
+
+    def export(self, leads: list[Lead], run: Run) -> ExportResult:
+        title = tab_title(run.category, run.area_name or run.location)
+        rows: list[dict[str, object]] = [lead_to_row(lead, run.category) for lead in leads]
+        plan = self._upsert(title, rows, MANAGED_COLUMNS)
+        return ExportResult(
+            exporter=self.name,
+            target=f"{self.target_label} / {title}",
+            rows_updated=plan.updated,
+            rows_appended=plan.appended,
+        )
+
+    def export_new(self, leads: list[Lead], run: Run) -> ExportResult:
+        """Monitoring: upsert into a '<tab> - new' history tab with the date each lead was found.
+
+        Earlier weeks' rows stay, so the tab is a running log of new businesses.
+        """
+        base = tab_title(run.category, run.area_name or run.location)
+        title = base[: MAX_TAB_LEN - len(NEW_TAB_SUFFIX)] + NEW_TAB_SUFFIX
+        found_on = run.created_at[:10]
+        rows: list[dict[str, object]] = [
+            {"found_on": found_on, **lead_to_row(lead, run.category)} for lead in leads
+        ]
+        plan = self._upsert(title, rows, NEW_TAB_COLUMNS)
         return ExportResult(
             exporter=self.name,
             target=f"{self.target_label} / {title}",
