@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     )
     google_sheet_id: str = Field(default="", alias="GOOGLE_SHEET_ID")
 
+    mx_check: bool = True  # V1: drop emails on domains that cannot receive mail
+    hubspot_access_token: str = Field(default="", alias="HUBSPOT_ACCESS_TOKEN", repr=False)
+    ui_password: str = Field(default="", repr=False)
+
     @field_validator("default_region")
     @classmethod
     def _upper_region(cls, v: str) -> str:
@@ -75,6 +79,12 @@ class Settings(BaseSettings):
             )
         if not any(marker in ua for marker in ("mailto:", "@", "http")):
             raise ConfigError("LH_USER_AGENT must include a contact (mailto:, email, or URL).")
+
+    def require_hubspot(self) -> None:
+        if not self.hubspot_access_token:
+            raise ConfigError(
+                "--to hubspot needs HUBSPOT_ACCESS_TOKEN (a HubSpot private app token)."
+            )
 
     def require_sheets(self) -> None:
         if not self.google_sheet_id:

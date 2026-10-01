@@ -84,11 +84,16 @@ async def _instant(_: float) -> None:
     return None
 
 
+async def fake_mx(domain: str) -> bool | None:
+    return not domain.startswith("dead")
+
+
 def make_pipeline(settings, repo, source: FixtureSource) -> Pipeline:
     return Pipeline(
         settings, repo,
         exporter_factory=lambda name: CsvExporter(settings.export_dir),
-        sources_factory=lambda client: [source],
+        sources_factory=lambda client, run, fetcher: [source],
+        mx_lookup=fake_mx,
         resolver=fake_resolver,
         sleep=_instant,
     )  # fmt: skip
@@ -119,6 +124,11 @@ async def test_full_run_end_to_end(settings, repo) -> None:
     assert len(rows) == 7
     assert {r["lead_id"] for r in rows} == {lead.lead_id for lead in leads}
     assert rows[0]["phone"].startswith("+63")
+
+    score = result.stats["score"]
+    assert score["scored"] == 7 and score["mx_checked"] is True
+    assert all(lead.score is not None for lead in repo.leads_for_run(run.id))
+    assert "no_website" in score["flags"]
 
     # A second run over the same area re-uses every lead: nothing new.
     run2 = pipeline.create_run(cat, "Makati, Philippines", limit=100, targets=["csv"])
@@ -164,6 +174,44 @@ async def test_crash_during_enrich_then_resume(settings, repo, monkeypatch) -> N
     for site in SITES:  # finished leads were not fetched again
         assert routes[site].call_count == 1, (site, fetched_before[site])
     assert resumed.stats["clean"]["new"] == 7  # is_new survives the resume
+
+
+@respx.mock
+async def test_directory_source_through_default_factory(settings, repo, monkeypatch, tmp_path):
+    folder = tmp_path / "config" / "directories"
+    folder.mkdir(parents=True)
+    folder.joinpath("testdir.yaml").write_text(
+        read_fixture("directories", "testdir.yaml"), encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    respx.get("https://nominatim.test/search").respond(
+        200, text=read_fixture("nominatim", "makati.json")
+    )
+    respx.get("https://directory.test/robots.txt").respond(404)
+    respx.get(url__regex=r"^https://directory\.test/search\?q=[^&]+&where=Makati$").respond(
+        200, html=read_fixture("html", "directory_page1.html"), headers=HTML
+    )
+    respx.get(url__regex=r"^https://directory\.test/search\?.*page=2$").respond(
+        200, html=read_fixture("html", "directory_page2.html"), headers=HTML
+    )
+    pipeline = Pipeline(
+        settings,
+        repo,
+        exporter_factory=lambda n: CsvExporter(settings.export_dir),
+        mx_lookup=fake_mx,
+        resolver=fake_resolver,
+        sleep=_instant,
+    )
+    cat = load_categories()["dentist"]
+    run = pipeline.create_run(
+        cat, "Makati", limit=10, targets=["csv"], sources=["directory:testdir"]
+    )
+    result = await pipeline.execute(run.id, cat, stop_after="clean")
+    assert result.stats["search"]["directory:testdir_records"] == 3
+    assert result.stats["clean"]["leads"] == 3
+    leads = repo.leads_for_run(run.id)
+    assert {lead.sources[0] for lead in leads} == {"directory:testdir"}
+    assert any(lead.website == "https://www.smileclinic.com.ph/?ref=dir" for lead in leads)
 
 
 @respx.mock

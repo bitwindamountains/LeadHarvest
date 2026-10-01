@@ -28,14 +28,25 @@ from leadharvest.clean.normalize import (
     registered_domain,
 )
 from leadharvest.config import ConfigError, Settings, load_settings
+from leadharvest.enrich.fetcher import PoliteFetcher
+from leadharvest.enrich.render import playwright_installed
 from leadharvest.exporters.base import Exporter
 from leadharvest.exporters.csv_export import CsvExporter
+from leadharvest.exporters.hubspot_export import HubSpotExporter
 from leadharvest.exporters.sheets_export import SheetsExporter, gspread_opener
 from leadharvest.exporters.xlsx_export import XlsxExporter
 from leadharvest.geo.nominatim import LocationNotFound
+from leadharvest.http import make_client
 from leadharvest.logging_setup import attach_run_log, console, detach_run_log, setup_console_logging
-from leadharvest.models import Run
+from leadharvest.models import ResolvedArea, Run, SearchQuery
 from leadharvest.pipeline import Pipeline
+from leadharvest.sources.base import SourceError
+from leadharvest.sources.directory import (
+    DirectoryConfigError,
+    DirectorySource,
+    available_directories,
+    load_directory_config,
+)
 from leadharvest.storage.db import connect
 from leadharvest.storage.repository import Repository
 
@@ -45,7 +56,7 @@ app = typer.Typer(
     add_completion=False,
 )
 
-EXPORT_TARGETS = ("csv", "xlsx", "sheets")
+EXPORT_TARGETS = ("csv", "xlsx", "sheets", "hubspot")
 EXIT_USER_ERROR = 2
 EXIT_INTERRUPTED = 130
 
@@ -70,12 +81,39 @@ def _parse_targets(value: str, settings: Settings) -> list[str]:
     unknown = [t for t in targets if t not in EXPORT_TARGETS]
     if unknown or not targets:
         raise _fail(f"--to must be a comma list of {', '.join(EXPORT_TARGETS)}; got {value!r}")
-    if "sheets" in targets:
-        try:
+    try:
+        if "sheets" in targets:
             settings.require_sheets()
-        except ConfigError as exc:
-            raise _fail(str(exc)) from None
+        if "hubspot" in targets:
+            settings.require_hubspot()
+    except ConfigError as exc:
+        raise _fail(str(exc)) from None
     return list(dict.fromkeys(targets))
+
+
+def _parse_sources(value: str) -> list[str]:
+    """'osm', 'directory:<name>', or a comma list. Directory configs are validated now."""
+    sources = [s.strip() for s in value.split(",") if s.strip()]
+    if not sources:
+        raise _fail("--sources needs at least one source (osm or directory:<name>).")
+    for source in sources:
+        if source == "osm":
+            continue
+        if not source.startswith("directory:"):
+            raise _fail(f"Unknown source {source!r}. Use osm or directory:<name>.")
+        try:
+            load_directory_config(source.split(":", 1)[1])
+        except DirectoryConfigError as exc:
+            raise _fail(str(exc)) from None
+    return list(dict.fromkeys(sources))
+
+
+def _run_options(js: bool, mx: bool) -> dict[str, bool]:
+    if js and not playwright_installed():
+        raise _fail(
+            "--js needs Playwright: uv sync --extra js && uv run playwright install chromium"
+        )
+    return {"js": js, "mx": mx}
 
 
 def exporter_factory(settings: Settings):
@@ -89,6 +127,9 @@ def exporter_factory(settings: Settings):
             return SheetsExporter(
                 gspread_opener(settings.google_service_account_file, settings.google_sheet_id)
             )
+        if name == "hubspot":
+            settings.require_hubspot()
+            return HubSpotExporter(settings.hubspot_access_token)
         raise ValueError(f"unknown export target: {name}")
 
     return build
@@ -233,6 +274,17 @@ def print_summary(repo: Repository, run: Run) -> None:
         table.add_row("With phone", f"{with_phone} ({with_phone * 100 // len(leads)}%)")
     if enrich.get("protected_emails"):
         table.add_row("Protected emails (not decoded)", str(enrich["protected_emails"]))
+    if enrich.get("js_rendered"):
+        table.add_row("Pages rendered with --js", str(enrich["js_rendered"]))
+    score = stats.get("score", {})
+    if score.get("scored"):
+        table.add_row("Average score", str(score.get("average_score")))
+        flags = score.get("flags") or {}
+        if flags:
+            table.add_row("Flags", ", ".join(f"{k}: {v}" for k, v in sorted(flags.items())))
+        dropped = score.get("emails_dropped_dead_domain") or []
+        if dropped:
+            table.add_row("Emails dropped (dead domain)", str(len(dropped)))
     dups = len(clean.get("possible_duplicates", [])) + len(enrich.get("possible_duplicates", []))
     if dups:
         table.add_row("Possible duplicates to review", f"{dups} (see run log)")
@@ -283,10 +335,13 @@ def run(
     category: Annotated[str, typer.Option(help="Category key, e.g. dentist.")],
     location: Annotated[str, typer.Option(help='Area, e.g. "Makati, Philippines".')],
     limit: Annotated[int, typer.Option(min=1, max=5000, help="Max leads in this run.")] = 200,
-    to: Annotated[str, typer.Option(help="Export targets: csv,xlsx,sheets.")] = "csv,xlsx",
+    to: Annotated[str, typer.Option(help="Export targets: csv,xlsx,sheets,hubspot.")] = "csv,xlsx",
+    sources: Annotated[str, typer.Option(help="osm and/or directory:<name>, comma list.")] = "osm",
+    js: Annotated[bool, typer.Option(help="Render near-empty JS sites with Playwright.")] = False,
+    mx: Annotated[bool, typer.Option(help="Drop emails on domains without mail servers.")] = True,
     any_country: Annotated[bool, typer.Option(help="Don't restrict to LH_DEFAULT_REGION.")] = False,
 ) -> None:
-    """Full run: search → clean → enrich → export."""
+    """Full run: search → clean → enrich → score → export."""
     settings = _settings()
     try:
         settings.require_network_identity()
@@ -294,9 +349,13 @@ def run(
         raise _fail(str(exc)) from None
     cat = _category(category, settings)
     targets = _parse_targets(to, settings)
+    source_list = _parse_sources(sources)
+    options = _run_options(js, mx and settings.mx_check)
     with _repository(settings) as repo:
         pipeline = Pipeline(settings, repo, exporter_factory=exporter_factory(settings))
-        new_run = pipeline.create_run(cat, location, limit=limit, targets=targets)
+        new_run = pipeline.create_run(
+            cat, location, limit=limit, targets=targets, sources=source_list, options=options
+        )
         console.print(f"Run [bold]{new_run.id[:8]}[/bold]: {cat.label} in {location}")
         result = _execute(settings, repo, new_run, cat, any_country=any_country)
         print_summary(repo, result)
@@ -309,6 +368,7 @@ def search(
     category: Annotated[str, typer.Option(help="Category key, e.g. dentist.")],
     location: Annotated[str, typer.Option(help='Area, e.g. "Makati, Philippines".')],
     limit: Annotated[int, typer.Option(min=1, max=5000)] = 200,
+    sources: Annotated[str, typer.Option(help="osm and/or directory:<name>, comma list.")] = "osm",
     any_country: Annotated[bool, typer.Option()] = False,
 ) -> None:
     """Search only: resolve the location and save raw records (continue with 'resume')."""
@@ -318,9 +378,13 @@ def search(
     except ConfigError as exc:
         raise _fail(str(exc)) from None
     cat = _category(category, settings)
+    source_list = _parse_sources(sources)
     with _repository(settings) as repo:
         pipeline = Pipeline(settings, repo, exporter_factory=exporter_factory(settings))
-        new_run = pipeline.create_run(cat, location, limit=limit, targets=["csv", "xlsx"])
+        new_run = pipeline.create_run(
+            cat, location, limit=limit, targets=["csv", "xlsx"], sources=source_list,
+            options={"js": False, "mx": settings.mx_check},
+        )  # fmt: skip
         result = _execute(
             settings, repo, new_run, cat, stop_after="search", any_country=any_country
         )
@@ -430,6 +494,67 @@ def export(
                 f"{result.exporter}: {result.target} "
                 f"({result.rows_appended} appended, {result.rows_updated} updated)"
             )
+
+
+async def _sample_adapter(
+    settings: Settings, repo: Repository, source_name: str, query: SearchQuery, pages: int
+) -> list:
+    async with make_client(settings) as client:
+        fetcher = PoliteFetcher(settings, client, repo=repo)
+        source = DirectorySource(load_directory_config(source_name), fetcher)
+        return await source.search(query, max_pages=pages)
+
+
+@app.command("test-adapter")
+def test_adapter(
+    name: Annotated[str, typer.Argument(help="Adapter file name in config/directories/.")],
+    category: Annotated[str, typer.Option(help="Category key, e.g. dentist.")] = "dentist",
+    location: Annotated[str, typer.Option(help="City used for the {city} placeholder.")] = "Makati",
+    pages: Annotated[int, typer.Option(min=1, max=5)] = 1,
+) -> None:
+    """Fetch a directory adapter's first page(s) and print 5 parsed records (blueprint W4)."""
+    settings = _settings()
+    try:
+        settings.require_network_identity()
+        load_directory_config(name)
+    except (ConfigError, DirectoryConfigError) as exc:
+        raise _fail(str(exc)) from None
+    cat = _category(category, settings)
+    city = location.split(",")[0].strip()
+    query = SearchQuery(
+        category=cat.key, osm_tags=cat.osm_tags, location=location, limit=50,
+        area=ResolvedArea(kind="bbox", bbox=(0.0, 0.0, 0.0, 0.0), name=city),
+    )  # fmt: skip
+    with _repository(settings) as repo:
+        try:
+            records = asyncio.run(_sample_adapter(settings, repo, name, query, pages))
+        except SourceError as exc:
+            raise _fail(str(exc), 1) from None
+    console.print(f"Parsed {len(records)} record(s) from {pages} page(s).")
+    table = Table("source_ref", "name", "phone", "website", "address/street", "city")
+    for r in records[:5]:
+        table.add_row(
+            r.source_ref[:40],
+            r.name,
+            "; ".join(r.phones_raw),
+            r.website_raw or "",
+            r.street or "",
+            r.city or "",
+        )
+    console.print(table)
+    if not records:
+        console.print("No records: check the 'item' selector against the page HTML.")
+
+
+@app.command("adapters")
+def adapters() -> None:
+    """List configured directory adapters (config/directories/*.yaml)."""
+    names = available_directories()
+    console.print(
+        "\n".join(names)
+        if names
+        else "No adapters yet. Copy config/directories/_template.yaml to start one."
+    )
 
 
 @app.command()

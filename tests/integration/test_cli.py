@@ -105,6 +105,30 @@ def test_runs_export_forget_purge(env) -> None:
     assert runner.invoke(app, ["purge", "--not-seen-days", "30", "--yes"]).exit_code == 0
 
 
+def test_v1_options_validate_up_front(env, monkeypatch) -> None:
+    base = ["run", "--category", "dentist", "--location", "Makati"]
+    result = runner.invoke(app, [*base, "--to", "hubspot"])
+    assert result.exit_code == 2 and "HUBSPOT_ACCESS_TOKEN" in result.output
+    result = runner.invoke(app, [*base, "--sources", "directory:nope"])
+    assert result.exit_code == 2 and "No directory adapter" in result.output
+    result = runner.invoke(app, [*base, "--sources", "yelp"])
+    assert result.exit_code == 2
+    monkeypatch.setattr("leadharvest.cli.playwright_installed", lambda: False)
+    result = runner.invoke(app, [*base, "--js"])
+    assert result.exit_code == 2 and "playwright" in result.output.lower()
+
+
+def test_adapters_listing(env) -> None:
+    assert "No adapters yet" in runner.invoke(app, ["adapters"]).output
+    folder = env / "config" / "directories"
+    folder.mkdir(parents=True)
+    (folder / "_template.yaml").write_text("x: 1", encoding="utf-8")
+    (folder / "mydir.yaml").write_text("x: 1", encoding="utf-8")
+    assert runner.invoke(app, ["adapters"]).output.strip() == "mydir"
+    result = runner.invoke(app, ["test-adapter", "mydir"])
+    assert result.exit_code == 2 and "Invalid adapter" in result.output
+
+
 def test_resume_unknown_run(env) -> None:
     result = runner.invoke(app, ["resume", "--run", "nope"])
     assert result.exit_code == 2

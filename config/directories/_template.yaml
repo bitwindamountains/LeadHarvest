@@ -1,0 +1,35 @@
+# Directory adapter template (blueprint workflow W4).
+# 1. Copy this file to config/directories/<name>.yaml (no leading underscore).
+# 2. Confirm EVERY checklist item below yourself. The adapter refuses to load otherwise.
+# 3. Fill in the selectors, then check with:
+#      uv run leadharvest test-adapter <name> --category dentist --location "Makati" --pages 1
+
+label: Example business directory
+base_url: https://directory.example.ph
+
+checklist:                  # blueprint section 13: set each to true only after checking it
+  robots_allows: false      # robots.txt allows the listing paths below
+  tos_allows: false         # Terms of Service don't prohibit automated collection
+  public_no_login: false    # listings are public, no login needed
+  rate_ok: false            # you accept ≥ 2 s between requests to this site
+  user_agent_ok: false      # LH_USER_AGENT identifies you with a contact email
+
+# Placeholders: {category} (after category_map), {city} (resolved area name), {location} (as typed)
+start_urls:
+  - "https://directory.example.ph/search?q={category}&where={city}"
+
+category_map:               # optional: our category key → the directory's own term
+  dentist: dental-clinics
+
+item: ".listing"            # CSS selector matching one business card
+
+fields:                     # "selector" alone = element text; add attr: href/src/data-x for attributes
+  name: ".listing-title"
+  phone: ".listing-phone"
+  website: {selector: "a.listing-website", attr: "href"}
+  address: ".listing-address"
+  city: ".listing-city"
+  detail_url: {selector: "a.listing-title", attr: "href"}   # best stable ID for dedupe
+
+next_page: {selector: "a[rel=next]", attr: "href"}          # omit if there is no pagination
+max_pages: 5                # hard cap 50

@@ -129,7 +129,9 @@ class PoliteFetcher:
         if parts.scheme not in ("http", "https") or not parts.hostname:
             raise FetchError("failed", f"refusing non-http(s) URL: {url}")
 
-    async def _send(self, url: str) -> tuple[httpx.Response, bytes, bool]:
+    async def check_public(self, url: str) -> str:
+        """Scheme + breaker + SSRF checks for one URL; returns its lowercase host."""
+        self._check_scheme(url)
         parts = urlsplit(url)
         host = (parts.hostname or "").lower()
         if host in self.blocked_hosts:
@@ -141,6 +143,20 @@ class PoliteFetcher:
             raise FetchError("failed", str(exc)) from exc
         except OSError as exc:
             raise FetchError("connect", f"DNS lookup failed for {host}: {exc}") from exc
+        return host
+
+    async def admit(self, url: str) -> None:
+        """All politeness checks for a page fetched by something else (the JS renderer):
+        robots.txt, SSRF guard, circuit breaker, and the per-host delay."""
+        self._check_scheme(url)
+        if not await self.robots.allowed(url):
+            raise FetchError("robots_blocked", f"robots.txt disallows {url}")
+        host = await self.check_public(url)
+        await self._hosts.wait(host)
+        self.request_count += 1
+
+    async def _send(self, url: str) -> tuple[httpx.Response, bytes, bool]:
+        host = await self.check_public(url)
         limiter = self._hosts.for_key(host)
         await limiter.wait()
         async with self._semaphore:

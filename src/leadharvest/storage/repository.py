@@ -23,9 +23,9 @@ _LEAD_JSON = {"categories", "phones_extra", "emails_extra", "sources", "flags"}
 
 _RUN_UPDATABLE = {
     "area_id", "area_kind", "bbox", "area_name", "export_targets", "status", "current_step",
-    "error", "finished_at", "limit_n",
+    "error", "finished_at", "limit_n", "options",
 }  # fmt: skip
-_RUN_JSON = {"sources", "export_targets", "stats", "bbox"}
+_RUN_JSON = {"sources", "export_targets", "stats", "bbox", "options"}
 
 
 class Repository:
@@ -51,7 +51,7 @@ class Repository:
         data = run.model_dump()
         cols = [
             "id", "category", "location", "area_id", "area_kind", "bbox", "area_name", "sources",
-            "limit_n", "export_targets", "status", "current_step", "stats", "error",
+            "limit_n", "export_targets", "options", "status", "current_step", "stats", "error",
             "created_at", "finished_at",
         ]  # fmt: skip
         values = [
@@ -376,6 +376,24 @@ class Repository:
         if datetime.now(UTC) - fetched > timedelta(hours=max_age_hours):
             return None
         return row["robots_txt"], int(row["status"])
+
+    def mx_cache_get(self, domain: str, max_age_days: float = 30) -> bool | None:
+        row = self.conn.execute(
+            "SELECT has_mail, checked_at FROM mx_cache WHERE domain = ?", (domain,)
+        ).fetchone()
+        if not row:
+            return None
+        if datetime.now(UTC) - datetime.fromisoformat(row["checked_at"]) > timedelta(
+            days=max_age_days
+        ):
+            return None
+        return bool(row["has_mail"])
+
+    def mx_cache_put(self, domain: str, has_mail: bool) -> None:
+        self.conn.execute(
+            "INSERT OR REPLACE INTO mx_cache (domain, has_mail, checked_at) VALUES (?, ?, ?)",
+            (domain, int(has_mail), utcnow_iso()),
+        )
 
     def robots_cache_put(self, origin: str, robots_txt: str | None, status: int) -> None:
         self.conn.execute(

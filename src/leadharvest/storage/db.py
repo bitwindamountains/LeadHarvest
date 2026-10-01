@@ -6,10 +6,19 @@ import sqlite3
 from importlib import resources
 from pathlib import Path
 
-# (version, sql). Append new migrations; never edit applied ones.
-MIGRATIONS: list[tuple[int, str]] = [
-    (1, resources.files("leadharvest.storage").joinpath("schema.sql").read_text("utf-8")),
-]
+
+def _load_migrations() -> list[tuple[int, str]]:
+    """storage/migrations/NNN_name.sql, applied in order. Add files; never edit applied ones."""
+    folder = resources.files("leadharvest.storage.migrations")
+    found = []
+    for entry in folder.iterdir():
+        name = entry.name
+        if name.endswith(".sql") and name[:3].isdigit():
+            found.append((int(name[:3]), entry.read_text("utf-8")))
+    return sorted(found)
+
+
+MIGRATIONS: list[tuple[int, str]] = _load_migrations()
 
 
 def connect(path: Path | str) -> sqlite3.Connection:

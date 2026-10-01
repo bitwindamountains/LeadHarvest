@@ -123,6 +123,7 @@ class Run(BaseModel):
     sources: list[str] = Field(default_factory=lambda: ["osm"])
     limit_n: int = 200
     export_targets: list[str] = Field(default_factory=list)
+    options: dict[str, Any] = Field(default_factory=dict)  # e.g. {"js": True, "mx": True}
     status: RunStatus = "running"
     current_step: Step = "search"
     stats: dict[str, Any] = Field(default_factory=dict)

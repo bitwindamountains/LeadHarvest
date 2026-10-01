@@ -1,12 +1,13 @@
 [project]
 name = "leadharvest"
-version = "0.1.0"
+version = "0.2.0"
 description = "Find businesses by category and location, enrich them from their own websites, and export clean leads."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = { text = "Proprietary" }
 dependencies = [
     "beautifulsoup4>=4.12",
+    "dnspython>=2.6",
     "gspread>=6.1",
     "httpx>=0.27",
     "lxml>=5.2",
@@ -23,6 +24,7 @@ dependencies = [
 
 [project.optional-dependencies]
 js = ["playwright>=1.44"]
+ui = ["streamlit>=1.36"]
 
 [project.scripts]
 leadharvest = "leadharvest.cli:app"

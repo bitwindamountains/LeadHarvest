@@ -28,13 +28,14 @@ Files land in `data/exports/`. Open the `.xlsx` in Excel. Excel mangles `+63…`
 
 | Command | What it does |
 |---|---|
-| `run --category X --location "Y" [--limit N] [--to csv,xlsx,sheets]` | Full run: search, clean, enrich, export |
-| `search --category X --location "Y"` | Search only; continue later with `resume` |
+| `run --category X --location "Y" [--limit N] [--to csv,xlsx,sheets,hubspot] [--sources osm,directory:NAME] [--js] [--no-mx]` | Full run: search, clean, enrich, score, export |
+| `search --category X --location "Y" [--sources ...]` | Search only; continue later with `resume` |
 | `resume [--run ID]` | Continue an interrupted or partial run from its last step |
 | `enrich [--run ID] [--retry-failed] [--refresh-days N]` | (Re-)enrich a run's leads |
 | `export [--run ID] --to sheets,csv` | Export again, e.g. to refresh a client Sheet |
 | `runs` | List recent runs |
 | `categories` | List categories (edit `config/categories.yaml` to add more) |
+| `adapters` / `test-adapter NAME [--pages 1]` | List directory adapters / print 5 parsed records from one |
 | `forget --domain x.com` / `--phone` / `--email` | Delete a business and suppress it from all future runs |
 | `purge --not-seen-days 180` | Retention: delete leads not seen for N days |
 
@@ -51,6 +52,31 @@ Press **Ctrl+C** at any time. The run is marked `partial`, and `leadharvest resu
 5. Run with `--to sheets`.
 
 Each run writes to a tab named `{category} - {area}`. Columns are matched **by header name**, so clients can add, move, or reorder their own columns freely. Rows a client deletes reappear on the next export.
+
+## Optional features
+
+**Lead scoring (always on).** Every lead gets a 0–100 score (email 30, own-domain email +10, phone 20, website 15, social profile 10, street address 10, opening hours 5) and sales flags: `no_website`, `social_only`, `no_https`, `free_email_provider`. Filter by score in the Sheet. "No website" lists sell well to web design agencies.
+
+**Email domain check (on by default).** Emails whose domain has no mail server (no MX or A record, or a "null MX") are dropped before export. Results are cached for 30 days. Turn it off with `--no-mx` or `LH_MX_CHECK=false`.
+
+**JavaScript sites (`--js`).** Some sites render everything with JavaScript. With `--js`, a page that is nearly empty and yielded nothing is rendered in headless Chromium, under the same robots.txt, rate-limit and SSRF rules. One-time setup:
+
+```bash
+uv sync --extra js && uv run playwright install chromium
+```
+
+**Directory adapters (`--sources directory:NAME`).** Add a public business directory you're allowed to scrape: copy `config/directories/_template.yaml`, confirm every item on its scraping checklist (the adapter refuses to load otherwise), fill in CSS selectors, then check it with `leadharvest test-adapter NAME --pages 1`. Combine sources with `--sources osm,directory:NAME`.
+
+**HubSpot (`--to hubspot`).** Create a HubSpot private app with the `crm.objects.companies.read` and `.write` scopes and put its token in `HUBSPOT_ACCESS_TOKEN`. Companies are matched by domain (or exact name when there's no domain). Existing companies only get fields that are empty in HubSpot; your team's edits are never overwritten.
+
+**Web UI.** A password-protected Streamlit page for non-technical users: form → progress → table → download buttons.
+
+```bash
+uv sync --extra ui
+uv run streamlit run app/streamlit_app.py      # needs LH_UI_PASSWORD in .env
+```
+
+If you deploy it (e.g. Streamlit Community Cloud), put the `.env` values in the app's secrets. The SQLite file is lost when the app restarts there, so download exports right away.
 
 ## How it stays polite and legal
 

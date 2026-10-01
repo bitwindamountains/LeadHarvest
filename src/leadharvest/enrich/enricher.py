@@ -11,13 +11,16 @@ from urllib.parse import urlsplit
 from leadharvest.clean.normalize import registered_domain
 from leadharvest.config import Settings
 from leadharvest.enrich.discovery import discover_contact_pages
-from leadharvest.enrich.extractors import Extracted, extract_all, rank_emails
+from leadharvest.enrich.extractors import Extracted, extract_all, rank_emails, text_length
 from leadharvest.enrich.fetcher import FetchError, PoliteFetcher
+from leadharvest.enrich.render import Renderer
 from leadharvest.logging_setup import get_logger
 from leadharvest.models import EnrichStatus, Lead, utcnow_iso
 from leadharvest.storage.repository import Repository
 
 log = get_logger("enrich")
+
+JS_TEXT_THRESHOLD = 500  # visible characters below which a page is probably JS-rendered
 
 _STATUS_FOR_KIND: dict[str, EnrichStatus] = {
     "robots_blocked": "robots_blocked",
@@ -71,12 +74,43 @@ class Enricher:
         settings: Settings,
         repo: Repository,
         fetcher: PoliteFetcher,
+        renderer: Renderer | None = None,
     ) -> None:
         self.settings = settings
         self.repo = repo
         self.fetcher = fetcher
+        self.renderer = renderer
         self.suppressed = repo.suppressions()
         self.protected_emails = 0
+        self.rendered = 0
+
+    async def _fetch_extra(self, html: str, base_url: str, found: Extracted) -> None:
+        region = self.settings.default_region
+        for url in discover_contact_pages(html, base_url, self.settings.max_extra_pages):
+            try:
+                sub = await self.fetcher.get_page(url)
+            except FetchError as exc:
+                log.info("extra page skipped: %s (%s)", url, exc.kind)
+                continue
+            found.add(extract_all(sub.text, sub.final_url, region))
+            if found.emails and found.phones:
+                return
+
+    async def _render_fallback(self, url: str, found: Extracted) -> None:
+        """--js only: the page is nearly empty and nothing was found → render it with a browser."""
+        assert self.renderer is not None
+        try:
+            html = await self.renderer.render(url)
+        except FetchError as exc:
+            log.info("render skipped for %s (%s)", url, exc.kind)
+            return
+        except Exception as exc:  # browser errors must not fail the lead
+            log.warning("render failed for %s: %s", url, exc)
+            return
+        self.rendered += 1
+        found.add(extract_all(html, url, self.settings.default_region))
+        if not found.emails or not found.phones:
+            await self._fetch_extra(html, url, found)
 
     async def enrich_lead(self, lead: Lead) -> Lead:
         assert lead.website
@@ -93,19 +127,16 @@ class Enricher:
                     "updated_at": now,
                 }
             )
-        region = self.settings.default_region
-        found = extract_all(page.text, page.final_url, region)
+        found = extract_all(page.text, page.final_url, self.settings.default_region)
         if not found.emails or not found.phones:
-            extra = discover_contact_pages(page.text, page.final_url, self.settings.max_extra_pages)
-            for url in extra:
-                try:
-                    sub = await self.fetcher.get_page(url)
-                except FetchError as exc:
-                    log.info("extra page skipped: %s (%s)", url, exc.kind)
-                    continue
-                found.add(extract_all(sub.text, sub.final_url, region))
-                if found.emails and found.phones:
-                    break
+            await self._fetch_extra(page.text, page.final_url, found)
+        if (
+            self.renderer is not None
+            and not found.emails
+            and not found.phones
+            and text_length(page.text) < JS_TEXT_THRESHOLD
+        ):
+            await self._render_fallback(page.final_url, found)
         self.protected_emails += found.protected_emails
         return apply_extraction(lead, found, page.final_url, self.suppressed)
 
@@ -153,6 +184,7 @@ class Enricher:
             "attempted": total,
             "outcomes": dict(outcomes),
             "protected_emails": self.protected_emails,
+            "js_rendered": self.rendered,
             "requests": self.fetcher.request_count,
             "hosts_skipped": sorted(self.fetcher.blocked_hosts),
         }

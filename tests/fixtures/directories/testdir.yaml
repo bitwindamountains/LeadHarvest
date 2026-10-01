@@ -1,0 +1,22 @@
+label: Test directory (fixture)
+base_url: https://directory.test
+checklist:
+  robots_allows: true
+  tos_allows: true
+  public_no_login: true
+  rate_ok: true
+  user_agent_ok: true
+start_urls:
+  - "https://directory.test/search?q={category}&where={city}"
+category_map:
+  dentist: dental-clinics
+item: ".listing"
+fields:
+  name: ".listing-title"
+  phone: ".listing-phone"
+  website: {selector: "a.listing-website", attr: "href"}
+  address: ".listing-address"
+  city: ".listing-city"
+  detail_url: {selector: "a.listing-title", attr: "href"}
+next_page: "a[rel=next]"
+max_pages: 3

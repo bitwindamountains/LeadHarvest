@@ -150,6 +150,7 @@ Version 1.1 · October 2026 · Status: ready to build
 2. Complete the scraping checklist in section 13 (robots.txt, ToS, public data).
 3. Fill in selectors.
 4. Run `leadharvest test-adapter <name> --pages 1` to print 5 parsed records.
+5. Use it with `--sources osm,directory:<name>`. Start URLs and pagination must stay on the adapter's own site (checked by registered domain, or by hostname when the host has no known public suffix).
 
 ---
 
@@ -393,6 +394,12 @@ Timestamps are ISO 8601 UTC strings. JSON columns are TEXT containing JSON.
 | reason | TEXT | e.g. `removal request 2026-10-01` |
 | created_at | TEXT | |
 | | | PK(kind, value) |
+
+### Schema v2 (migration `002_run_options.sql`)
+- `runs.options TEXT (JSON)`: per-run switches such as `{"js": true, "mx": true}`, so `resume` keeps them.
+- `mx_cache(domain TEXT PK, has_mail INTEGER, checked_at)`: MX results, 30-day TTL. Unknown (DNS error) results are not cached.
+
+Migrations live in `storage/migrations/NNN_name.sql` and are applied in order; existing databases upgrade on open.
 
 ### geo_cache / robots_cache
 - `geo_cache(query_key TEXT PK, result JSON, cached_at)` — no expiry needed for city boundaries.
@@ -773,7 +780,7 @@ Estimated time: **Phases 0–6 ≈ 7–9 focused days**, **Phase 7 ≈ 1 day**. 
 - [x] 4.3 (P0) Extractors (emails incl. obfuscated + JSON-LD, phones, socials) + HTML fixture tests
 - [x] 4.4 (P0) Contact-page discovery (≤ 2 pages)
 - [x] 4.5 (P0) Enricher orchestrator + `leadharvest enrich [--retry-failed] [--refresh-days N]`; post-enrichment duplicate report
-- [ ] 4.6 (P1) Playwright fallback behind `--js`
+- [x] 4.6 (P1) Playwright fallback behind `--js`
 
 **Gate:** respx tests prove robots disallow (incl. after redirect) → zero page requests; private IPs never fetched; http-only site → `https_ok=0`.
 
@@ -799,11 +806,11 @@ Estimated time: **Phases 0–6 ≈ 7–9 focused days**, **Phase 7 ≈ 1 day**. 
 - [ ] 7.3 (P0) Push to public GitHub: no secrets, no real lead database
 
 ### Phase 8 — V1
-- [ ] 8.1 (P1) YAML-driven directory adapter + `_template.yaml` + `leadharvest test-adapter` + fixture tests
-- [ ] 8.2 (P1) Scoring + flags
-- [ ] 8.3 (P1) MX check
-- [ ] 8.4 (P1) Streamlit UI with password; per-session DB connection
-- [ ] 8.5 (P2) HubSpot exporter
+- [x] 8.1 (P1) YAML-driven directory adapter + `_template.yaml` + `leadharvest test-adapter` + fixture tests
+- [x] 8.2 (P1) Scoring + flags
+- [x] 8.3 (P1) MX check
+- [x] 8.4 (P1) Streamlit UI with password; per-session DB connection
+- [x] 8.5 (P2) HubSpot exporter
 - [ ] 8.6 (P2) Google Places source — only if decision D1 clears
 
 ### Phase 9 — V2 *(only when a client pays for it)*

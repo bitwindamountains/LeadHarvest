@@ -1,8 +1,9 @@
 import json
+import sqlite3
 from datetime import UTC, datetime, timedelta
 
 from leadharvest.models import Lead, RawBusiness, Run, new_lead_id, utcnow_iso
-from leadharvest.storage.db import connect, current_version
+from leadharvest.storage.db import MIGRATIONS, _split_sql, connect, current_version
 from leadharvest.storage.repository import Repository
 
 
@@ -24,13 +25,34 @@ def make_lead(run_id: str = "run-1", **kw: object) -> Lead:
 
 
 def test_migrations_and_pragmas(settings) -> None:
+    latest = MIGRATIONS[-1][0]
     conn = connect(settings.db_path)
-    assert current_version(conn) == 1
+    assert current_version(conn) == latest
     assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 1
     assert conn.execute("PRAGMA journal_mode").fetchone()[0].lower() == "wal"
     conn.close()
     conn = connect(settings.db_path)  # re-open: migrations are not re-applied
-    assert current_version(conn) == 1
+    assert current_version(conn) == latest
+
+
+def test_v1_database_upgrades_and_keeps_data(tmp_path) -> None:
+    path = tmp_path / "old.db"
+    raw = sqlite3.connect(path, isolation_level=None)
+    raw.execute("CREATE TABLE schema_version (version INTEGER NOT NULL)")
+    for statement in _split_sql(MIGRATIONS[0][1]):
+        raw.execute(statement)
+    raw.execute("INSERT INTO schema_version VALUES (1)")
+    raw.execute(
+        "INSERT INTO runs (id, category, location, sources, status, current_step, created_at) "
+        "VALUES ('old', 'dentist', 'Makati', '[\"osm\"]', 'completed', 'done', '2026-01-01')"
+    )
+    raw.close()
+    repo = Repository(connect(path))
+    assert current_version(repo.conn) == MIGRATIONS[-1][0]
+    old = repo.get_run("old")
+    assert old is not None and old.options == {}
+    repo.mx_cache_put("clinic.ph", True)
+    assert repo.mx_cache_get("clinic.ph") is True
 
 
 def test_run_roundtrip_and_resolve(repo: Repository) -> None:
