@@ -2,12 +2,13 @@
 
 ## Current task
 
-0.3.0 (V2) is built and verified offline. It is not committed yet, and is waiting on the owner's go-ahead.
+All code on the roadmap except Google Places is built and committed. What's left is the owner's live verification (Next steps 2–4) and Phase 7.
 
 ## Done (newest first)
 
+- 2026-10-01: Review of 0.3.0. Fixed `monitor`: "new since last run" compared against any earlier completed run of the same category and area. That included one-off `run`s and other monitors, so a client could get a wrong "new" list. Now it compares only against the same monitor (`Repository.previous_run`), and there is a regression test for it.
 - 2026-10-01: Session workflow (this file plus a CLAUDE.md update).
-- 2026-10-01: 0.3.0, uncommitted. 195 tests pass, lint is clean, coverage is 89%.
+- 2026-10-01: 0.3.0 (`6dc4508`). 195 tests pass, lint is clean, coverage is 89%.
   - **Tech signals:** `enrich/signals.py` and migration 003. Adds the `tech` export column and the `no_mobile_viewport` flag.
   - **Batch mode:** `batch.py` and the `batch` CLI command (CSV file or `--from-sheet`). It resumes on re-run, and one bad row doesn't stop the rest.
   - **Weekly monitor:** the `monitor` command. Exports "new since last run" to `-new` CSV/XLSX files and a `<tab> - new` Sheets tab.
@@ -18,7 +19,7 @@
 
 ## Next steps
 
-1. Commit 0.3.0, when the owner asks.
+1. Done: 0.3.0 is committed.
 2. Owner: put a real contact email in `LH_USER_AGENT` in `.env`, then:
    - run `uv run pytest -m live`;
    - do a live `run --limit 20` for Makati;

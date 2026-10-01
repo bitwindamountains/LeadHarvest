@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fix: `monitor` now computes "new since last run" against the same monitor's previous run only. Before, a one-off `run` or another monitor over the same area could be used as the baseline.
+
 ## 0.3.0 — 2026-10-01
 
 V2 (blueprint Phase 9 / F15–F17).

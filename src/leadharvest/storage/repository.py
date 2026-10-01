@@ -88,10 +88,22 @@ class Repository:
         return _row_to_run(found) if found else None
 
     def previous_run(self, run: Run) -> Run | None:
-        """The latest earlier completed run of the same category over the same area."""
+        """The latest earlier completed run of the same category over the same area.
+
+        For a monitor run, only earlier runs of the same monitor count, so a one-off `run` or
+        another client's monitor over the same area never becomes "last run"."""
         area_clause, params = "lower(location) = lower(?)", [run.location]
         if run.area_kind == "area" and run.area_id is not None:
             area_clause, params = "area_id = ?", [run.area_id]
+        batch = run.options.get("batch")
+        if run.options.get("monitor") and isinstance(batch, str) and "@" in batch:
+            # Monitor batches are named "<base>@YYYY-Www" (cli.monitor_batch_name): 9-char suffix.
+            area_clause += (
+                " AND json_extract(options, '$.monitor') = 1 AND "
+                "substr(json_extract(options, '$.batch'), 1, "
+                "length(json_extract(options, '$.batch')) - 9) = ?"
+            )
+            params.append(batch.rsplit("@", 1)[0])
         found = self.conn.execute(
             f"SELECT * FROM runs WHERE category = ? AND {area_clause} AND id != ? "
             "AND status = 'completed' AND created_at <= ? "

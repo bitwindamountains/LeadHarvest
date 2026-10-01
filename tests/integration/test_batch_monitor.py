@@ -206,6 +206,10 @@ def test_monitor_exports_new_since_last_run(settings, repo) -> None:
     )
     first = repo.get_run(week1[0].run_id)
     assert first.stats["monitor"] == {"new_since_last_run": 2, "previous_run": None}
+    # Later runs over the same area that are not this monitor never count as "last run".
+    run_batch("other@2026-W40", jobs,
+              **batch_kwargs(settings, repo, pipeline, options={"monitor": True}))  # fmt: skip
+    run_batch("one-off", jobs, **batch_kwargs(settings, repo, pipeline))
 
     source.extra = True  # a clinic opened during the week
     week2 = run_batch(
