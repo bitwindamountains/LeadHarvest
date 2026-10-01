@@ -1,0 +1,8 @@
+[
+  {
+    "place_id": 10, "osm_type": "way", "osm_id": 45678,
+    "lat": "14.5503", "lon": "121.0480", "category": "landuse", "type": "commercial",
+    "name": "Bonifacio Global City", "display_name": "Bonifacio Global City, Taguig, Metro Manila, Philippines",
+    "boundingbox": ["14.5380", "14.5640", "121.0400", "121.0590"]
+  }
+]

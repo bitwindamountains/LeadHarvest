@@ -1,0 +1,36 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API (fixture)",
+  "osm3s": {"copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."},
+  "elements": [
+    {
+      "type": "node", "id": 1001, "lat": 14.5547, "lon": 121.0244,
+      "tags": {
+        "amenity": "dentist", "name": "Smile Dental Clinic",
+        "phone": "0917 123 4567; (02) 8123-4567",
+        "website": "https://www.smileclinic.com.ph/?utm_source=osm",
+        "addr:housenumber": "12", "addr:street": "Ayala Ave.", "addr:city": "Makati City",
+        "opening_hours": "Mo-Sa 09:00-18:00", "contact:facebook": "https://www.facebook.com/SmileClinicPH"
+      }
+    },
+    {
+      "type": "way", "id": 2002, "center": {"lat": 14.5551, "lon": 121.0246},
+      "tags": {
+        "healthcare": "dentist", "name": "Smile Dental Clinic Inc.",
+        "contact:phone": "+63 917 123 4567", "email": "info@smileclinic.com.ph"
+      }
+    },
+    {
+      "type": "node", "id": 1003, "lat": 14.5600, "lon": 121.0300,
+      "tags": {"amenity": "dentist", "name": "Ngiti Dental Care", "website": "https://www.facebook.com/ngitidental"}
+    },
+    {
+      "type": "node", "id": 1004, "lat": 14.5610, "lon": 121.0310,
+      "tags": {"amenity": "dentist"}
+    },
+    {
+      "type": "node", "id": 1005, "lat": 14.5620, "lon": 121.0320,
+      "tags": {"amenity": "dentist", "name": "Bright Smile", "contact:mobile": "0918 765 4321", "url": "brightsmile.ph"}
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+# Category → OpenStreetMap tags (blueprint section 10.1).
+# Tags are "key=value". Synonyms help suggest the right category for typos or plurals.
+dentist:
+  label: Dental clinics
+  osm_tags: ["amenity=dentist", "healthcare=dentist"]
+  synonyms: [dental clinic, dentists, dental]
+restaurant:
+  label: Restaurants
+  osm_tags: ["amenity=restaurant"]
+  synonyms: [restaurants, food, dining]
+cafe:
+  label: Cafes and coffee shops
+  osm_tags: ["amenity=cafe"]
+  synonyms: [coffee shop, coffee, cafes]
+gym:
+  label: Gyms and fitness centers
+  osm_tags: ["leisure=fitness_centre"]
+  synonyms: [fitness, fitness center, gyms]
+salon:
+  label: Hair and beauty salons
+  osm_tags: ["shop=hairdresser", "shop=beauty"]
+  synonyms: [beauty salon, hair salon, barber, salons]
+law_firm:
+  label: Law offices
+  osm_tags: ["office=lawyer"]
+  synonyms: [lawyer, lawyers, attorney, law office]
+real_estate:
+  label: Real estate agencies
+  osm_tags: ["office=estate_agent"]
+  synonyms: [realtor, real estate agency, property]
+clinic:
+  label: Medical clinics
+  osm_tags: ["amenity=clinic", "healthcare=clinic"]
+  synonyms: [medical clinic, clinics, doctor]
+veterinary:
+  label: Veterinary clinics
+  osm_tags: ["amenity=veterinary"]
+  synonyms: [vet, veterinarian, animal clinic]
+hotel:
+  label: Hotels
+  osm_tags: ["tourism=hotel"]
+  synonyms: [hotels, lodging]
+accountant:
+  label: Accounting offices
+  osm_tags: ["office=accountant"]
+  synonyms: [accounting, bookkeeping, cpa]
+car_repair:
+  label: Car repair shops
+  osm_tags: ["shop=car_repair"]
+  synonyms: [auto repair, mechanic, car service]

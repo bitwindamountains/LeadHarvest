@@ -1,0 +1,7 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API (fixture)",
+  "elements": [
+    {"type": "count", "id": 0, "tags": {"nodes": "4", "ways": "1", "relations": "0", "total": "5"}}
+  ]
+}

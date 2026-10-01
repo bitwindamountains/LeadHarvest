@@ -1,0 +1,14 @@
+[
+  {
+    "place_id": 1, "osm_type": "relation", "osm_id": 1520040,
+    "lat": "14.5567", "lon": "121.0234", "category": "boundary", "type": "administrative",
+    "name": "Makati", "display_name": "Makati, Southern Manila District, Metro Manila, Philippines",
+    "boundingbox": ["14.5235", "14.5800", "120.9968", "121.0675"]
+  },
+  {
+    "place_id": 2, "osm_type": "node", "osm_id": 999,
+    "lat": "14.55", "lon": "121.02", "category": "place", "type": "suburb",
+    "name": "Makati Poblacion", "display_name": "Poblacion, Makati, Metro Manila, Philippines",
+    "boundingbox": ["14.56", "14.57", "121.03", "121.04"]
+  }
+]

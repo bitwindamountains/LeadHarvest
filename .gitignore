@@ -1,0 +1,16 @@
+# Local data and secrets — never commit
+data/
+secrets/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
