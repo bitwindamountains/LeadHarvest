@@ -14,3 +14,16 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+
+# Keep secrets and local files out of the public repo
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+.claude/settings.local.json
+*.log
+.DS_Store
+Thumbs.db
