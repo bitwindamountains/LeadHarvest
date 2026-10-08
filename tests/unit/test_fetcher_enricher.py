@@ -77,6 +77,31 @@ async def test_private_ip_never_fetched_directly_or_via_redirect(
     assert private.call_count == 0
 
 
+class PeerStream:
+    """Stands in for httpx's network_stream extension: the address actually connected to."""
+
+    def __init__(self, address: str) -> None:
+        self.address = address
+
+    def get_extra_info(self, info: str) -> object:
+        return (self.address, 443) if info == "server_addr" else None
+
+
+@respx.mock
+async def test_dns_rebinding_response_is_never_read(settings, repo, clock, client) -> None:
+    # Our resolver says public, but the connection landed on a private address.
+    respx.get("https://rebind.ph/robots.txt").mock(return_value=ALLOW_ALL)
+    respx.get("https://rebind.ph/").mock(return_value=httpx.Response(
+        200, html="secret", headers=HTML, extensions={"network_stream": PeerStream("10.0.0.5")}
+    ))  # fmt: skip
+    fetcher = fetcher_for(settings, repo, clock, client)
+    fetcher.via_proxy = False
+    with pytest.raises(FetchError, match=r"non-public 10.0.0.5"):
+        await fetcher.get_page("https://rebind.ph/")
+    fetcher.via_proxy = True  # behind a proxy the peer is the proxy, so it can't be judged
+    assert (await fetcher.get_page("https://rebind.ph/")).text == "secret"
+
+
 @respx.mock
 async def test_https_failure_falls_back_to_http(settings, repo, clock, client) -> None:
     respx.get("https://plain.ph/robots.txt").mock(side_effect=httpx.ConnectError("tls"))

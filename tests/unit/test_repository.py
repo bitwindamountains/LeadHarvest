@@ -2,6 +2,8 @@ import json
 import sqlite3
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from leadharvest.models import Lead, RawBusiness, Run, new_lead_id, utcnow_iso
 from leadharvest.storage.db import MIGRATIONS, _split_sql, connect, current_version
 from leadharvest.storage.repository import Repository
@@ -33,6 +35,20 @@ def test_migrations_and_pragmas(settings) -> None:
     conn.close()
     conn = connect(settings.db_path)  # re-open: migrations are not re-applied
     assert current_version(conn) == latest
+
+
+def test_transaction_takes_the_write_lock_up_front(settings, repo: Repository) -> None:
+    other = connect(settings.db_path)  # e.g. the UI while the CLI runs
+    other.execute("PRAGMA busy_timeout = 0")
+    try:
+        with repo.transaction():
+            repo.suppressions()  # read first, as find_match does before writing
+            with pytest.raises(sqlite3.OperationalError, match="locked"):
+                other.execute("INSERT INTO geo_cache VALUES ('k', '[]', 'now')")
+            repo.add_suppression("phone", "+639171234567")  # would fail with a plain BEGIN
+    finally:
+        other.close()
+    assert repo.is_suppressed("phone", "+639171234567")
 
 
 def test_v1_database_upgrades_and_keeps_data(tmp_path) -> None:
@@ -123,11 +139,25 @@ def test_forget_deletes_cascades_and_suppresses(repo: Repository) -> None:
     repo.insert_lead(lead)
     repo.add_lead_source("osm", "node/1", lead.lead_id)
     repo.link_run_lead("run-1", lead.lead_id, "dentist")
+    repo.save_raw("run-1", RawBusiness(source="osm", source_ref="node/1", name="Smile"))
+    repo.save_raw("run-1", RawBusiness(source="osm", source_ref="node/2", name="Other"))
     assert repo.forget("domain", "smile.ph", "request") == 1
     assert repo.get_lead(lead.lead_id) is None
     assert repo.lead_by_source_ref("osm", "node/1") is None
     assert repo.count_run_leads("run-1") == 0
+    assert [r.source_ref for r in repo.raw_for_run("run-1")] == ["node/2"]  # raw data gone too
     assert repo.is_suppressed("domain", "smile.ph")
+
+
+def test_forget_domain_matches_email_domain(repo: Repository) -> None:
+    make_run(repo)
+    no_site = make_lead(email="info@clinic.com.ph")
+    extra = make_lead(business_name="B", name_key="b", emails_extra=["dr@clinic.com.ph"])
+    other = make_lead(business_name="C", name_key="c", email="info@otherclinic.com.ph")
+    for lead in (no_site, extra, other):
+        repo.insert_lead(lead)
+    assert repo.forget("domain", "clinic.com.ph") == 2
+    assert repo.get_lead(other.lead_id) is not None
 
 
 def test_forget_by_extra_email_and_phone(repo: Repository) -> None:
@@ -147,8 +177,14 @@ def test_purge_by_last_seen(repo: Repository) -> None:
     repo.insert_lead(make_lead(last_seen_at=stale))
     fresh = make_lead(business_name="B", name_key="b")
     repo.insert_lead(fresh)
+    repo.save_raw("run-1", RawBusiness(source="osm", source_ref="node/old", name="A"))
+    repo.save_raw("run-1", RawBusiness(source="osm", source_ref="node/new", name="B"))
+    repo.conn.execute(
+        "UPDATE raw_records SET fetched_at = ? WHERE source_ref = ?", (stale, "node/old")
+    )
     assert repo.purge(180) == 1
     assert repo.get_lead(fresh.lead_id) is not None
+    assert [r.source_ref for r in repo.raw_for_run("run-1")] == ["node/new"]
 
 
 def test_leads_to_enrich_scopes_to_run_and_statuses(repo: Repository) -> None:

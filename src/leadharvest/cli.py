@@ -304,9 +304,11 @@ def print_summary(repo: Repository, run: Run) -> None:
         flags = score.get("flags") or {}
         if flags:
             table.add_row("Flags", ", ".join(f"{k}: {v}" for k, v in sorted(flags.items())))
-        dropped = score.get("emails_dropped_dead_domain") or []
+        dropped = score.get("emails_dropped_dead_domain") or 0
         if dropped:
-            table.add_row("Emails dropped (dead domain)", str(len(dropped)))
+            # Older runs stored the list of addresses.
+            count = len(dropped) if isinstance(dropped, list) else dropped
+            table.add_row("Emails dropped (dead domain)", str(count))
     dups = len(clean.get("possible_duplicates", [])) + len(enrich.get("possible_duplicates", []))
     if dups:
         table.add_row("Possible duplicates to review", f"{dups} (see run log)")

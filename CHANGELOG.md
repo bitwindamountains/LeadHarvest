@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Security: the `--js` renderer re-checks the page's final URL after redirects, which Playwright's route guard never sees, and the address that served it. The plain fetcher refuses to read a response from a non-public address (DNS rebinding). Neither check applies behind a proxy.
+- Privacy: `forget --domain` also deletes leads whose email is on that domain. `forget` deletes the lead's raw source records too, and `purge` deletes raw records older than the cutoff. Score stats store a count of dropped emails instead of the addresses.
+- Fix: the HubSpot export no longer creates two companies for two leads with the same domain. HubSpot search shows a new company only after a few seconds.
+- Fix: concurrent use (UI plus CLI) no longer fails with "database is locked", because transactions now take the write lock up front.
+- Politeness: a 429 response for robots.txt now means "disallow everything" instead of "allow everything".
+- Faster scoring: email-domain (MX) lookups for the whole run happen in one concurrent pass.
+- Fix: a batch row whose category or location was edited now starts a new run. Before, it was skipped as "already completed", or it resumed the old job.
 - Fix: `monitor` now computes "new since last run" against the same monitor's previous run only. Before, a one-off `run` or another monitor over the same area could be used as the baseline.
 
 ## 0.3.0 — 2026-10-01

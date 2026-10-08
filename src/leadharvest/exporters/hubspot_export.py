@@ -79,11 +79,7 @@ class HubSpotExporter:
             return response
         raise ExportError(f"HubSpot {method} {path} failed after {MAX_ATTEMPTS} attempts")
 
-    def find_company(self, props: dict[str, str]) -> dict[str, Any] | None:
-        if "domain" in props:
-            prop, value = "domain", props["domain"]
-        else:
-            prop, value = "name", props["name"]
+    def find_company(self, prop: str, value: str) -> dict[str, Any] | None:
         body = {
             "filterGroups": [
                 {"filters": [{"propertyName": prop, "operator": "EQ", "value": value}]}
@@ -99,11 +95,18 @@ class HubSpotExporter:
 
     def export(self, leads: list[Lead], run: Run) -> ExportResult:
         created = updated = 0
+        # HubSpot search shows new companies only after a few seconds, so remember the ones
+        # this export created: two leads with one domain must not create two companies.
+        made: dict[tuple[str, str], dict[str, Any]] = {}
         for lead in leads:
             props = lead_properties(lead)
-            existing = self.find_company(props)
+            key = ("domain", props["domain"]) if "domain" in props else ("name", props["name"])
+            existing = made.get(key) or self.find_company(*key)
             if existing is None:
-                self._request("POST", "/crm/v3/objects/companies", json={"properties": props})
+                company = self._request(
+                    "POST", "/crm/v3/objects/companies", json={"properties": props}
+                ).json()
+                made[key] = {"id": company["id"], "properties": props}
                 created += 1
                 continue
             current = existing.get("properties") or {}

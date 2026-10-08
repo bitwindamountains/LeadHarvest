@@ -196,6 +196,24 @@ def test_batch_interrupt_then_resume(settings, repo) -> None:
 
 
 @respx.mock
+def test_edited_row_is_a_new_job(settings, repo) -> None:
+    mock_nominatim()
+    pipeline = make_pipeline(settings, repo, AreaSource())
+    first = run_batch("e", parse_jobs([{"category": "dentist", "location": "Makati"}]),
+                      **batch_kwargs(settings, repo, pipeline))  # fmt: skip
+    edited = parse_jobs([{"category": "dentist", "location": "Taguig"}])
+    results = run_batch("e", edited, **batch_kwargs(settings, repo, pipeline))
+    assert results[0].status == "completed" and results[0].run_id != first[0].run_id
+    assert repo.get_run(results[0].run_id).location == "Taguig"
+
+    # An unfinished run for the old row is not resumed for the edited one either.
+    repo.update_run(results[0].run_id, status="partial")
+    makati = parse_jobs([{"category": "dentist", "location": "Makati"}])
+    again = run_batch("e", makati, **batch_kwargs(settings, repo, pipeline))
+    assert again[0].run_id not in (first[0].run_id, results[0].run_id)
+
+
+@respx.mock
 def test_monitor_exports_new_since_last_run(settings, repo) -> None:
     mock_nominatim()
     source = AreaSource()

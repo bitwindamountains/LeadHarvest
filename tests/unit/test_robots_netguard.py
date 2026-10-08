@@ -47,8 +47,8 @@ def test_allow_wins_ties_and_empty_disallow_allows() -> None:
 
 
 @pytest.mark.parametrize(
-    ("status", "allowed"), [(200, None), (404, True), (403, True), (410, True), (500, False),
-                            (503, False), (0, False)],
+    ("status", "allowed"), [(200, None), (404, True), (403, True), (410, True), (429, False),
+                            (500, False), (503, False), (0, False)],
 )  # fmt: skip
 def test_status_handling_rfc9309(status: int, allowed: bool | None) -> None:
     rules = rules_for_status(status, "User-agent: *\nDisallow: /x", "LeadHarvest")

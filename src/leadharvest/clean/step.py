@@ -52,9 +52,9 @@ class CleanStats:
 
 
 def _social_url(value: str | None, platform: str) -> str | None:
+    """OSM social tags hold either a profile URL or a bare handle ("@smile.ph", "SmilePH")."""
     if not value:
         return None
-    """OSM social tags hold either a profile URL or a bare handle ("@smile.ph", "SmilePH")."""
     value = value.strip()
     url = normalize_url(value) if "/" in value else None
     if url and social_platform(url) == platform:

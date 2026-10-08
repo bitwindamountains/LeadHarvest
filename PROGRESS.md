@@ -6,6 +6,17 @@ All code on the roadmap except Google Places is built and committed. What's left
 
 ## Done (newest first)
 
+- 2026-10-09: Audit fixes 5–9 (204 tests pass, lint clean):
+  - **HubSpot:** an export remembers the companies it created (keyed by domain, or by name when there is no domain), so the search index lag can't cause duplicates.
+  - **SQLite:** `Repository.transaction` uses `BEGIN IMMEDIATE`. The test fails with a plain `BEGIN`.
+  - **robots.txt:** a 429 now means disallow everything.
+  - **MX:** the score step looks up every email domain in the run in one concurrent pass.
+  - **Removed:** `upsert_lead` and `PlaywrightRenderer.rendered`. Also typed the `_record_status` limiter and fixed the `_social_url` docstring.
+- 2026-10-09: Full repo audit, then fixes 1–4 (200 tests pass, lint clean):
+  - **SSRF:** `render.py` re-checks the final URL, robots.txt and server address after `goto`. Verified that without it, Chromium follows a redirect to a private host and the page gets read. `PoliteFetcher.check_peer` rejects responses from non-public peers (DNS rebinding). It is skipped behind a proxy, and the GET is still sent (`ponytail:` note).
+  - **Privacy:** `forget --domain` matches email domains too. `forget` and `purge` delete `raw_records`. Stats keep only a count of dropped emails.
+  - **Batch:** an edited row (category or location) gets a new run instead of being skipped or resumed.
+
 - 2026-10-01: Review of 0.3.0. Fixed `monitor`: "new since last run" compared against any earlier completed run of the same category and area. That included one-off `run`s and other monitors, so a client could get a wrong "new" list. Now it compares only against the same monitor (`Repository.previous_run`), and there is a regression test for it.
 - 2026-10-01: Session workflow (this file plus a CLAUDE.md update).
 - 2026-10-01: 0.3.0 (`6dc4508`). 195 tests pass, lint is clean, coverage is 89%.

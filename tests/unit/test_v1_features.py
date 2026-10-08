@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Any
 
@@ -111,8 +112,26 @@ async def test_score_step_drops_dead_emails_and_reranks(repo) -> None:
     stats = await run_score_step(repo, run, MxChecker(repo, lookup))
     updated = repo.get_lead(item.lead_id)
     assert updated.email == "owner@gmail.com" and updated.emails_extra == []
-    assert stats["emails_dropped_dead_domain"] == ["info@old-domain.ph"]
+    assert stats["emails_dropped_dead_domain"] == 1  # a count, never the address
     assert updated.score == 45 and "free_email_provider" in updated.flags
+
+
+async def test_score_step_looks_up_all_leads_domains_concurrently(repo) -> None:
+    run = stored_run(repo)
+    store(repo, lead(email="info@a.ph"))
+    store(repo, lead(business_name="B", name_key="b", email="info@b.ph"))
+    in_flight, peak = 0, 0
+
+    async def lookup(domain: str) -> bool | None:
+        nonlocal in_flight, peak
+        in_flight += 1
+        peak = max(peak, in_flight)
+        await asyncio.sleep(0)
+        in_flight -= 1
+        return True
+
+    await run_score_step(repo, run, MxChecker(repo, lookup))
+    assert peak == 2  # both leads' domains at once, not lead by lead
 
 
 async def test_score_step_without_mx(repo) -> None:
@@ -377,7 +396,9 @@ def test_hubspot_creates_and_fills_only_empty_properties() -> None:
                 "name": "Bright Smile (edited in CRM)", "phone": "", "domain": "bright.ph"}}]}),
         ]
     )  # fmt: skip
-    create = respx.post("https://api.hubapi.com/crm/v3/objects/companies").respond(201, json={})
+    create = respx.post("https://api.hubapi.com/crm/v3/objects/companies").respond(
+        201, json={"id": "90"}
+    )
     patch = respx.patch("https://api.hubapi.com/crm/v3/objects/companies/77").respond(200, json={})
     leads = [
         lead(business_name="Smile", domain="smile.ph", phone="+639171234567"),
@@ -407,6 +428,28 @@ def test_hubspot_searches_by_name_without_domain_and_retries_429() -> None:
     assert '"propertyName":"name"' in body.replace(" ", "")
     assert (
         patch.calls[0].request.read().decode().replace(" ", "") == '{"properties":{"country":"PH"}}'
+    )
+
+
+@respx.mock
+def test_hubspot_same_domain_twice_creates_one_company() -> None:
+    # Search never shows the company created a moment ago (HubSpot's index lags).
+    search = respx.post("https://api.hubapi.com/crm/v3/objects/companies/search").respond(
+        200, json={"results": []}
+    )
+    create = respx.post("https://api.hubapi.com/crm/v3/objects/companies").respond(
+        201, json={"id": "90"}
+    )
+    patch = respx.patch("https://api.hubapi.com/crm/v3/objects/companies/90").respond(200, json={})
+    leads = [
+        lead(business_name="Smile Makati", domain="smile.ph"),
+        lead(business_name="Smile Taguig", domain="smile.ph", phone="+639171234567"),
+    ]
+    result = _hub().export(leads, _run())
+    assert (result.rows_appended, result.rows_updated) == (1, 1)
+    assert (search.call_count, create.call_count) == (1, 1)
+    assert patch.calls[0].request.read().decode().replace(" ", "") == (
+        '{"properties":{"phone":"+639171234567"}}'  # only what the first create left empty
     )
 
 

@@ -64,18 +64,20 @@ async def run_score_step(repo: Repository, run: Run, mx: MxChecker | None = None
     """Optionally drop emails on dead domains, then score every lead in the run."""
     leads = repo.leads_for_run(run.id)
     flag_counts: Counter[str] = Counter()
-    dropped: list[str] = []
+    dropped = 0
     total = 0
+    all_emails = [e for lead in leads for e in [lead.email, *lead.emails_extra] if e]
+    # One concurrent lookup over every domain in the run, not one lead at a time.
+    dead = set(await mx.dead_emails(all_emails)) if mx is not None else set()
     for lead in leads:
         emails = [e for e in [lead.email, *lead.emails_extra] if e]
-        if mx is not None and emails:
-            dead = await mx.dead_emails(emails)
-            if dead:
-                dropped.extend(dead)
-                ranked = rank_emails([e for e in emails if e not in dead], lead.domain)
-                lead = lead.model_copy(
-                    update={"email": ranked[0] if ranked else None, "emails_extra": ranked[1:]}
-                )
+        kept = [e for e in emails if e not in dead]
+        if len(kept) < len(emails):
+            dropped += len(emails) - len(kept)
+            ranked = rank_emails(kept, lead.domain)
+            lead = lead.model_copy(
+                update={"email": ranked[0] if ranked else None, "emails_extra": ranked[1:]}
+            )
         score, flags = score_lead(lead)
         flag_counts.update(flags)
         total += score
@@ -86,6 +88,6 @@ async def run_score_step(repo: Repository, run: Run, mx: MxChecker | None = None
         "scored": len(leads),
         "average_score": round(total / len(leads), 1) if leads else 0,
         "flags": dict(flag_counts),
-        "emails_dropped_dead_domain": dropped,
+        "emails_dropped_dead_domain": dropped,  # a count: stats outlive `forget`
         "mx_checked": mx is not None,
     }

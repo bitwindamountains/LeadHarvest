@@ -131,10 +131,12 @@ def run_batch(
             results.append(JobResult(job, "error", message=str(exc)))
             continue
         existing = repo.find_batch_run(name, job.row)
+        if existing and (existing.category, existing.location) != (category.key, job.location):
+            existing = None  # the row was edited since: it is a new job
         if existing and existing.status == "completed" and not rerun:
             results.append(_result(repo, job, existing, "skipped", "already completed"))
             continue
-        if existing and existing.status != "completed" and existing.category == category.key:
+        if existing and existing.status != "completed":
             run = existing
             action = f"resuming at {run.current_step}"
         else:

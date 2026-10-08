@@ -11,6 +11,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from urllib.parse import urljoin, urlsplit, urlunsplit
+from urllib.request import getproxies
 
 import httpx
 
@@ -19,10 +20,11 @@ from leadharvest.enrich.netguard import (
     BlockedAddress,
     Resolver,
     assert_public_host,
+    is_public_ip,
     system_resolver,
 )
 from leadharvest.enrich.robots import UNREACHABLE, RobotsChecker
-from leadharvest.http import Clock, PerKeyLimiter, Sleep, parse_retry_after
+from leadharvest.http import Clock, MinIntervalLimiter, PerKeyLimiter, Sleep, parse_retry_after
 from leadharvest.logging_setup import get_logger
 from leadharvest.storage.repository import Repository
 
@@ -87,6 +89,10 @@ class PoliteFetcher:
         self.blocked_hosts: set[str] = set()
         self.robots = RobotsChecker(repo, settings.ua_product, self._fetch_robots)
         self.request_count = 0
+        # Same proxy lookup httpx uses (urllib's getproxies); behind a proxy the peer is the proxy.
+        self.via_proxy = client.trust_env and any(
+            k in ("http", "https", "all") for k in getproxies()
+        )
 
     # ---- public API -------------------------------------------------------------------------
 
@@ -149,6 +155,16 @@ class PoliteFetcher:
             raise FetchError("connect", f"DNS lookup failed for {host}: {exc}") from exc
         return host
 
+    def check_peer(self, host: str, address: str | None) -> None:
+        """DNS can change between our check and the client's own lookup (DNS rebinding), so the
+        address actually connected to must be public too.
+
+        ponytail: this stops us reading the response, not sending the GET. Blocking the connect
+        itself needs a custom httpcore network backend; add one if blind requests matter.
+        """
+        if address and not self.via_proxy and not is_public_ip(address):
+            raise FetchError("failed", f"refusing {host}: connected to non-public {address}")
+
     async def admit(self, url: str) -> None:
         """All politeness checks for a page fetched by something else (the JS renderer):
         robots.txt, SSRF guard, circuit breaker, and the per-host delay."""
@@ -167,6 +183,9 @@ class PoliteFetcher:
             self.request_count += 1
             try:
                 async with self.client.stream("GET", url) as response:
+                    stream = response.extensions.get("network_stream")
+                    peer = stream.get_extra_info("server_addr") if stream is not None else None
+                    self.check_peer(host, peer[0] if peer else None)
                     body, truncated = await self._read_capped(response)
             except httpx.TimeoutException as exc:
                 raise FetchError("timeout", f"timeout fetching {url}") from exc
@@ -187,14 +206,16 @@ class PoliteFetcher:
                 return b"".join(chunks)[: self.max_bytes], True
         return b"".join(chunks), False
 
-    def _record_status(self, host: str, response: httpx.Response, limiter: object) -> None:
+    def _record_status(
+        self, host: str, response: httpx.Response, limiter: MinIntervalLimiter
+    ) -> None:
         status = response.status_code
         if status in (403, 429):
             self._strikes[host] = self._strikes.get(host, 0) + 1
             if status == 429:
                 wait = parse_retry_after(response.headers.get("Retry-After"))
                 if wait:
-                    limiter.push_back(wait)  # type: ignore[attr-defined]
+                    limiter.push_back(wait)
             if self._strikes[host] >= BREAKER_THRESHOLD:
                 self.blocked_hosts.add(host)
                 log.warning("Skipping %s for the rest of the run (repeated %s)", host, status)

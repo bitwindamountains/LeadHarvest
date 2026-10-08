@@ -4,6 +4,8 @@ Install with `uv sync --extra js && uv run playwright install chromium`.
 The browser obeys the same rules as the plain fetcher: the page URL passes robots.txt, the SSRF
 guard and the per-host delay; every sub-request passes the SSRF guard; images, media and fonts
 are not loaded; any main-frame navigation to another URL is re-checked against robots.txt.
+Redirects bypass the route handler, so the page's final URL and server address are re-checked
+before its content is read.
 """
 
 from __future__ import annotations
@@ -50,7 +52,6 @@ class PlaywrightRenderer:
         self._pw: Any = None
         self._browser: Any = None
         self._context: Any = None
-        self.rendered = 0
 
     async def __aenter__(self) -> PlaywrightRenderer:
         try:
@@ -103,20 +104,31 @@ class PlaywrightRenderer:
             return
         await route.continue_()
 
+    async def _check_landing(self, final_url: str, response: Any) -> None:
+        """The route guard never sees redirect hops, so re-check where the page landed and
+        the address that actually served it (DNS rebinding)."""
+        host = await self.fetcher.check_public(final_url)
+        if not await self.fetcher.robots.allowed(final_url):
+            raise FetchError("robots_blocked", f"robots.txt disallows {final_url}")
+        addr = await response.server_addr() if response is not None else None
+        self.fetcher.check_peer(host, addr["ipAddress"] if addr else None)
+
     async def render(self, url: str) -> str:
         await self.fetcher.admit(url)
         async with self._semaphore:
             page = await self._context.new_page()
             try:
                 await page.route("**/*", lambda route: self._guard(route, url))
+                timeout = RENDER_TIMEOUT_S * 1000
+                response = await page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+                await self._check_landing(page.url, response)
                 try:
-                    await page.goto(url, wait_until="networkidle", timeout=RENDER_TIMEOUT_S * 1000)
+                    await page.wait_for_load_state("networkidle", timeout=timeout)
                 except Exception as exc:
                     # Pages that keep polling never go idle; use what has rendered so far.
                     if "Timeout" not in type(exc).__name__:
                         raise
                     log.info("render timed out waiting for idle on %s; using partial DOM", url)
-                self.rendered += 1
                 return await page.content()
             finally:
                 await page.close()

@@ -38,7 +38,9 @@ class Repository:
         if self.conn.in_transaction:
             yield
             return
-        self.conn.execute("BEGIN")
+        # IMMEDIATE takes the write lock up front. A plain BEGIN reads first, and in WAL mode it
+        # fails at once with "database is locked" if another process wrote in between.
+        self.conn.execute("BEGIN IMMEDIATE")
         try:
             yield
         except BaseException:
@@ -245,12 +247,6 @@ class Repository:
             [*values[1:], values[0]],
         )
 
-    def upsert_lead(self, lead: Lead) -> None:
-        if lead.lead_id and self.get_lead(lead.lead_id):
-            self.update_lead(lead)
-        else:
-            self.insert_lead(lead)
-
     def add_lead_source(self, source: str, source_ref: str, lead_id: str) -> None:
         self.conn.execute(
             "INSERT OR IGNORE INTO lead_sources (source, source_ref, lead_id) VALUES (?, ?, ?)",
@@ -357,8 +353,14 @@ class Repository:
 
     def find_leads_for_forget(self, kind: str, value: str) -> list[str]:
         if kind == "domain":
-            sql = "SELECT lead_id FROM leads WHERE domain = ?"
-            params: tuple[str, ...] = (value,)
+            # Website domain or email domain, as the clean step's suppression check matches.
+            sql = (
+                "SELECT lead_id FROM leads WHERE domain = ? "
+                "OR substr(email, instr(email, '@') + 1) = ? OR EXISTS "
+                "(SELECT 1 FROM json_each(leads.emails_extra) "
+                "WHERE substr(value, instr(value, '@') + 1) = ?)"
+            )
+            params: tuple[str, ...] = (value, value, value)
         elif kind == "phone":
             sql = (
                 "SELECT lead_id FROM leads WHERE phone = ? OR EXISTS "
@@ -376,14 +378,21 @@ class Repository:
         return [r["lead_id"] for r in self.conn.execute(sql, params)]
 
     def delete_leads(self, lead_ids: list[str]) -> int:
+        """Delete leads and the raw source records they came from (those hold the same data)."""
         deleted = 0
         for lead_id in lead_ids:
+            self.conn.execute(
+                "DELETE FROM raw_records WHERE (source, source_ref) IN "
+                "(SELECT source, source_ref FROM lead_sources WHERE lead_id = ?)",
+                (lead_id,),
+            )
             cur = self.conn.execute("DELETE FROM leads WHERE lead_id = ?", (lead_id,))
             deleted += cur.rowcount
         return deleted
 
     def forget(self, kind: str, value: str, reason: str | None = None) -> int:
-        """Delete matching leads and suppress the value so future runs don't re-collect it."""
+        """Delete matching leads (and their raw records) and suppress the value so future runs
+        don't re-collect it."""
         with self.transaction():
             lead_ids = self.find_leads_for_forget(kind, value)
             deleted = self.delete_leads(lead_ids)
@@ -391,8 +400,12 @@ class Repository:
         return deleted
 
     def purge(self, not_seen_days: int) -> int:
+        """Delete leads not seen for N days, and raw records fetched before then (raw records
+        are only needed to resume a run's clean step)."""
         cutoff = (datetime.now(UTC) - timedelta(days=not_seen_days)).isoformat(timespec="seconds")
-        cur = self.conn.execute("DELETE FROM leads WHERE last_seen_at < ?", (cutoff,))
+        with self.transaction():
+            self.conn.execute("DELETE FROM raw_records WHERE fetched_at < ?", (cutoff,))
+            cur = self.conn.execute("DELETE FROM leads WHERE last_seen_at < ?", (cutoff,))
         return cur.rowcount
 
     # ---- caches -----------------------------------------------------------------------------

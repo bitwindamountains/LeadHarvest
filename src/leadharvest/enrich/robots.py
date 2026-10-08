@@ -2,7 +2,8 @@
 
 - Group selection: the group whose user-agent matches our product token, else `*`.
 - Rule selection: the longest matching path wins; on a tie, `allow` wins.
-- Status: 2xx → parse; any 4xx → everything allowed; 5xx/unreachable → everything disallowed.
+- Status: 2xx → parse; 4xx → everything allowed; 429, 5xx and unreachable → everything
+  disallowed (429 means "slow down", never "go ahead", as Google treats it).
 """
 
 from __future__ import annotations
@@ -90,7 +91,7 @@ def parse_robots(text: str, product: str) -> RobotsRules:
 def rules_for_status(status: int, text: str | None, product: str) -> RobotsRules:
     if 200 <= status < 300:
         return parse_robots(text or "", product)
-    if 400 <= status < 500:
+    if 400 <= status < 500 and status != 429:
         return RobotsRules(allow_all=True)
     return RobotsRules(disallow_all=True)
 
