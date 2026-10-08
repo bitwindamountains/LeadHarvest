@@ -6,6 +6,23 @@ All code on the roadmap except Google Places is built and committed. What's left
 
 ## Done (newest first)
 
+- 2026-10-09: UI/UX review and redesign of the Streamlit app (211 tests pass, lint clean). Reviewed in a real browser at desktop and phone widths, against a seeded throwaway DB with no network.
+  - **Problems found:**
+    - results lived only in session state, so a reload lost them and there was no history;
+    - paused runs could only be resumed from the CLI;
+    - any click mid-run killed the run and left it stuck as "running";
+    - Enter didn't sign in;
+    - progress bar was misleading;
+    - raw export ids sat in red chips;
+    - wide table full of "None";
+    - phone layout put the fields out of order.
+  - **Built:** `app/streamlit_app.py` rewritten: sign-in form; sidebar run history (`st.radio` with captions); a collapsible "New search" form; `st.status` progress; results with metrics, downloads, a Sheets link and a column-configured table; a Resume button.
+  - **Shared logic:** testable logic lives in `ui_support.py` (`run_labels`, `result_rows`, `mark_interrupted`, `can_resume`, formatting).
+  - **Config:** theme and toolbar settings live in `.streamlit/config.toml`.
+  - **Gotchas found:**
+    - Streamlit (1.64) tells radio options apart by their label, so `run_labels` adds `#<id>` when labels repeat.
+    - Streamlit's rerun and stop exceptions are `BaseException`s that the pipeline doesn't catch, hence `mark_interrupted`.
+  - **Not done:** running pipelines in a background thread, so a run would survive clicks and reloads. It's the bigger fix if interruptions turn out to be common.
 - 2026-10-09: Audit fixes 5–9 (204 tests pass, lint clean):
   - **HubSpot:** an export remembers the companies it created (keyed by domain, or by name when there is no domain), so the search index lag can't cause duplicates.
   - **SQLite:** `Repository.transaction` uses `BEGIN IMMEDIATE`. The test fails with a plain `BEGIN`.

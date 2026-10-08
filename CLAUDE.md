@@ -15,6 +15,7 @@ Full spec: docs/BLUEPRINT.md. Read the relevant section before changing code.
 - Sources: `sources/osm_overpass.py`, YAML directory adapters (`config/directories/`); area resolution in `geo/nominatim.py`.
 - Schema changes: add `storage/migrations/NNN_*.sql` (applied in order by `storage/db.py`).
 - Exporters (`exporters/`) share `MANAGED_COLUMNS` in `base.py`; Sheets only touches managed columns.
+- UI: `app/streamlit_app.py` is layout only; put logic in `ui_support.py` (tested in `tests/integration/test_ui.py` with AppTest and a fake `Pipeline.execute`). Theme lives in `.streamlit/config.toml`, so launch from the repo root. Radio and select options need unique labels.
 
 ## Rules
 - Work only on the task I name. Stop and summarize when done.

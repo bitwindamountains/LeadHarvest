@@ -71,12 +71,14 @@ uv sync --extra js && uv run playwright install chromium
 
 **HubSpot (`--to hubspot`).** Create a HubSpot private app with the `crm.objects.companies.read` and `.write` scopes and put its token in `HUBSPOT_ACCESS_TOKEN`. Companies are matched by domain (or exact name when there's no domain). Existing companies only get fields that are empty in HubSpot; your team's edits are never overwritten.
 
-**Web UI.** A password-protected Streamlit page for non-technical users: form → progress → table → download buttons.
+**Web UI.** A password-protected Streamlit page for non-technical users. Start a search with live progress, then browse the results: lead counts, a table sorted by score, and download buttons. **Recent runs** in the sidebar reopens any earlier run, including after a page reload. A paused run, for example one stopped by an Overpass error or by clicking around mid-run, gets a **Resume run** button.
 
 ```bash
 uv sync --extra ui
-uv run streamlit run app/streamlit_app.py      # needs LH_UI_PASSWORD in .env
+uv run streamlit run app/streamlit_app.py      # from the repo root; needs LH_UI_PASSWORD in .env
 ```
+
+Run it from the repo root so Streamlit picks up `.streamlit/config.toml`. That file sets the colour theme, hides the developer toolbar and turns off Streamlit's usage statistics.
 
 If you deploy it (e.g. Streamlit Community Cloud), put the `.env` values in the app's secrets. The SQLite file is lost when the app restarts there, so download exports right away.
 

@@ -1,0 +1,13 @@
+# Streamlit settings for app/streamlit_app.py. Read from the folder you launch from (repo root).
+
+[theme]
+# Harvest green instead of Streamlit's default red, which reads as an error on chips and buttons.
+primaryColor = "#2f7d4a"
+
+[client]
+# Hide the developer toolbar ("Deploy" and friends) from people using the app.
+toolbarMode = "minimal"
+
+[browser]
+# Don't send Streamlit usage statistics.
+gatherUsageStats = false

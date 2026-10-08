@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Web UI redesign:
+  - **Recent runs** sidebar: reopen any run, even after a reload.
+  - **Resume run** button for paused runs. A click while a run is in progress used to leave it stuck as "running"; now the run is marked paused.
+  - Live progress, one line per step, with a website counter.
+  - Results first: lead counts, a table sorted by score with readable flags and links, download buttons, and a link to the Google Sheet.
+  - Sign-in by pressing Enter.
+  - Readable export names, advanced options folded away, a phone-friendly field order, and a green theme without the developer toolbar.
+  - Fix: runs of the same search could not be told apart in the run list.
 - Security: the `--js` renderer re-checks the page's final URL after redirects, which Playwright's route guard never sees, and the address that served it. The plain fetcher refuses to read a response from a non-public address (DNS rebinding). Neither check applies behind a proxy.
 - Privacy: `forget --domain` also deletes leads whose email is on that domain. `forget` deletes the lead's raw source records too, and `purge` deletes raw records older than the cutoff. Score stats store a count of dropped emails instead of the addresses.
 - Fix: the HubSpot export no longer creates two companies for two leads with the same domain. HubSpot search shows a new company only after a few seconds.
