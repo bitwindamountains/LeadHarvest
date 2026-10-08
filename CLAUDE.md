@@ -17,6 +17,25 @@ Full spec: docs/BLUEPRINT.md. Read the relevant section before changing code.
 - Exporters (`exporters/`) share `MANAGED_COLUMNS` in `base.py`; Sheets only touches managed columns.
 - UI: `app/streamlit_app.py` is layout only; put logic in `ui_support.py` (tested in `tests/integration/test_ui.py` with AppTest and a fake `Pipeline.execute`). Theme lives in `.streamlit/config.toml`, so launch from the repo root. Radio and select options need unique labels.
 
+## Status and roadmap
+Details, history and the full roadmap are in PROGRESS.md; keep this summary in sync with it.
+- **Built:** blueprint phases 0–6, 8 (except 8.6 Google Places) and 9, plus the 2026-10-09 audit fixes and UI redesign. On `main` and pushed. 211 tests pass.
+- **Now (owner, live):**
+  - CI green on GitHub;
+  - `pytest -m live`;
+  - a live Makati `run --limit 100` (DoD item 1), then tune D5;
+  - Ctrl+C then `resume` on Windows (DoD item 8);
+  - a real Sheets/HubSpot export, and one live UI run.
+- **Next:** Phase 7, meaning README screenshots and real hit rate, the 90-second demo, and confirming the GitHub repo has no secrets or real data.
+- **Before selling:** decide D1 and D2 (blueprint section 23), set up the monitor workflow secrets and `config/monitor.csv`.
+- **Backlog:**
+  - raise the Streamlit version floor and run `uv lock`;
+  - background runs in the UI;
+  - block SSRF at connect time;
+  - Google Places (blocked on D1);
+  - more directory adapters;
+  - D4 (rows a client deletes).
+
 ## Rules
 - Work only on the task I name. Stop and summarize when done.
 - Don't add dependencies without asking.

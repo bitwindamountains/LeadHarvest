@@ -2,7 +2,9 @@
 
 ## Current task
 
-All code on the roadmap except Google Places is built and committed. What's left is the owner's live verification (Next steps 2–4) and Phase 7.
+**Status (2026-10-09):** 0.3.0 plus the audit fixes and the UI redesign are on `main` and pushed (`8db28b6`). 211 tests pass and lint is clean. Blueprint phases 0–6, 8 (except 8.6 Google Places) and 9 are built.
+
+**What's left:** live verification by the owner (two "Definition of done" items are still open), Phase 7 packaging, and decisions D1/D2 before selling. See the Roadmap below.
 
 ## Done (newest first)
 
@@ -45,20 +47,38 @@ All code on the roadmap except Google Places is built and committed. What's left
 - 2026-10-01: 0.1.0 MVP (`6c30c8a`): OSM search, clean and dedupe, polite enrichment, CSV/XLSX/Sheets export, resume.
 - 2026-10-01: Blueprint review and v1.1 fixes (`docs/planning/02_*`; the spec is `docs/BLUEPRINT.md`). Production plan in `docs/planning/03_*`.
 
-## Next steps
+## Roadmap
 
-1. Done: 0.3.0 is committed.
-2. Owner: put a real contact email in `LH_USER_AGENT` in `.env`, then:
-   - run `uv run pytest -m live`;
-   - do a live `run --limit 20` for Makati;
-   - test a real Sheets export, and HubSpot if it's used.
-3. Owner: check Ctrl+C by hand on Windows. This is the last open Definition of Done item.
-4. To use the monitor workflow:
-   - push the repo;
-   - add the `LH_USER_AGENT`, `LH_DB_PASSPHRASE`, `GOOGLE_SHEET_ID` and `GOOGLE_SERVICE_ACCOUNT_JSON` secrets;
-   - commit `config/monitor.csv`.
-5. Phase 7: record the demo and publish the repo.
-6. Google Places source: blocked on decision D1.
+Blueprint section 18 has the phase list; section 19 has the Definition of Done (DoD).
+
+### Now: live verification (owner; needs a real contact email in `LH_USER_AGENT` in `.env`)
+1. **CI:** check that GitHub Actions passed for `879d552` (audit fixes) and `8db28b6` (UI). This is the first CI run of the new real-browser tests on Ubuntu and Windows.
+2. **Live tests:** run `uv run pytest -m live`.
+3. **DoD item 1:** a live `leadharvest run --category dentist --location "Makati, Philippines" --limit 100`. It is also the first real-world test of the SSRF checks, the MX batching and HubSpot (if used). Afterwards, tune decision D5 (phone radius and shared-phone threshold) from what it finds.
+4. **DoD item 8:** press Ctrl+C mid-run on Windows, then `resume`. Completed work must not be fetched again.
+5. **Real exports:** check a Google Sheet export (client columns kept, re-export updates rows) and HubSpot if a client uses it.
+6. **UI:** do one live run in the Streamlit UI, including Resume after a deliberate interruption.
+
+### Next: Phase 7, portfolio packaging
+7. **README (7.1):** add screenshots or a GIF (the UI, the Sheet), redacted sample output, and an honest email/phone hit rate taken from the live Makati run.
+8. **Demo (7.2):** record the 90-second demo (blueprint section 21). Blur emails and phones.
+9. **Publish (7.3):** the repo is on GitHub (`bitwindamountains/LeadHarvest`). Confirm its visibility is what you want, and that it contains no secrets or real lead data.
+
+### Before selling
+10. **Decide D1** (Google Places storage terms) and **D2** (ODbL share-alike for client lists). Both are in blueprint section 23.
+11. **Weekly monitor for a client:**
+    - add the secrets `LH_USER_AGENT`, `LH_DB_PASSPHRASE`, `GOOGLE_SHEET_ID` and `GOOGLE_SERVICE_ACCOUNT_JSON`;
+    - commit `config/monitor.csv`;
+    - trigger `monitor.yml` once by hand.
+12. **Go to market:** follow blueprint section 22 (platforms, pricing, honesty rule).
+
+### Backlog (build only when needed)
+- **Streamlit version floor:** `pyproject.toml` says `streamlit>=1.36`, but the UI uses newer APIs (tested on 1.64). Raise the floor and run `uv lock`.
+- **Background runs in the UI:** a run would then survive clicks and page reloads. Today a click pauses the run, and Resume recovers it.
+- **SSRF:** block the connection itself, not just the reading of the response (a custom httpcore network backend; see the `ponytail:` note in `enrich/fetcher.py`).
+- **F14, Google Places source (8.6):** blocked on D1.
+- **F18, more directory adapters:** build per client request.
+- **D4:** remember rows a client deletes from the Sheet, so they are not appended again.
 
 ## Notes / decisions
 
