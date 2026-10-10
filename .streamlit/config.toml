@@ -16,7 +16,8 @@ buttonRadius = "0.6rem"
 font = "Geist:https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap"
 headingFont = "Outfit:https://fonts.googleapis.com/css2?family=Outfit:wght@500;600&display=swap"
 codeFont = "'Geist Mono':https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap"
-headingFontSizes = ["2.1rem", "1.55rem", "1.3rem", "1.1rem", "0.98rem", "0.9rem"]
+# One H1 per page (the page or run name); H2 for sections, kept compact (docs/UI.md).
+headingFontSizes = ["2rem", "1.12rem", "1rem", "0.95rem", "0.9rem", "0.85rem"]
 headingFontWeights = [600, 600, 600, 600, 600, 600]
 metricValueFontSize = "1.9rem"
 metricValueFontWeight = 600

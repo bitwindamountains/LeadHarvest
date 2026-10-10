@@ -260,7 +260,7 @@ def test_ui_new_run_opens_its_results(ui_env, monkeypatch) -> None:
     assert not at.exception
     run_id = at.sidebar.radio[0].value
     assert run_id is not None  # the new run is selected in the history
-    assert at.subheader[0].value == "Dental clinics in Makati, Philippines"
+    assert at.title[0].value == "Dental clinics in Makati, Philippines"  # the page H1
 
 
 def test_ui_location_not_found_suggests_names(ui_env, monkeypatch) -> None:

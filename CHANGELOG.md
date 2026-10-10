@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Web UI engineering pass:
+  - **Headings:** each page has one H1 (the page or run name) and H2 sections, with no skipped levels.
+  - **Empty segment:** choosing a segment with no matching leads shows a note instead of an empty table.
+  - **Code:** the app is split into one module per screen under `app/views/`.
+  - **Design contract:** `docs/UI.md` records the screens, their states and the responsive rules.
+  - **Widths checked:** 320, 768, 1024 and 1440 px.
 - Web UI redesign:
   - **Look:** a calmer, more polished workspace. Text is set in Geist with Outfit headings, on a light green-tinted canvas with a dark sidebar, and harvest green is the only accent. Every emoji is replaced by a Material icon.
   - **Sign-in:** a split screen, with a brand panel beside a sign-in card. On phones only the card shows.

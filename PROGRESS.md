@@ -8,6 +8,16 @@
 
 ## Done (newest first)
 
+- 2026-10-11: Frontend engineering pass on the Streamlit UI (230 tests pass, lint clean). Checked in a browser at 320, 768, 1024 and 1440 px; 320 px has no horizontal scroll.
+  - **Split:** `app/streamlit_app.py` (50 lines) now routes to `app/views/` (signin, sidebar, search, run, common), each under 200 lines. Ruff `known-local-folder = ["views"]`.
+  - **Headings:** one H1 per page. `headingFontSizes` keeps H2 compact. The brand panel's headline is a styled `<p>`.
+  - **Contract:** `docs/UI.md`, the design contract: screens, primary actions, required states, responsive rules, rejected patterns.
+  - **Empty segment:** a segment with no leads gets an info note.
+  - **Known Streamlit limits:**
+    - Material icons are announced by screen readers by their ligature name ("login Sign in").
+    - The sidebar opens over the page on phones after sign-in.
+    - At 320 px the number cards mostly stack one per row.
+
 - 2026-10-11: UI/UX redesign of the Streamlit app (230 tests pass, lint clean). Checked in a browser at 1366 px and 390 px against the seeded demo DB.
   - **Theme:** `.streamlit/config.toml`. Fonts load as Google Fonts through `font`, `headingFont` and `codeFont`, plus softened semantic colours, `[theme.sidebar]` dark colours, radii, and the dataframe header colour.
   - **Assets:** `app/assets/` holds `logo.svg` and `mark.svg` (`st.logo`, `page_icon`) and `brand_panel.html` for the sign-in panel. `st.html` strips svg and data images, so the panel is pure CSS.
