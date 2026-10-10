@@ -2,11 +2,20 @@
 
 ## Current task
 
-**Status (2026-10-09):** 0.3.0 plus the audit fixes and the UI redesign are on `main` and pushed (`8db28b6`). 211 tests pass and lint is clean. Blueprint phases 0–6, 8 (except 8.6 Google Places) and 9 are built.
+**Status (2026-10-11):** 0.3.0 plus the audit fixes, the UI redesign and the review fixes are on `main` (review fixes committed locally, not pushed yet). 214 tests pass and lint is clean. Blueprint phases 0–6, 8 (except 8.6 Google Places) and 9 are built.
 
 **What's left:** live verification by the owner (two "Definition of done" items are still open), Phase 7 packaging, and decisions D1/D2 before selling. See the Roadmap below.
 
 ## Done (newest first)
+
+- 2026-10-11: Five-axis review of `879d552` and `8db28b6`, then fixes (214 tests pass, lint clean; each fix mutation-checked against its test):
+  - **One copy of a run at a time:** `Repository.claim_run` sets a run running with one conditional UPDATE, and `Pipeline.execute` raises `RunInProgress` if it is already running. `create_run` now stores new runs as `partial`. `force=True` takes over a run left "running" by a crash: in the UI the button is **Take over and resume**, in the CLI it is `resume --force`. A batch row whose run is still running fails, and the rest of the batch goes on.
+  - **purge** keeps the raw records of `partial` and `running` runs.
+  - **HubSpot:** companies that were found or patched during an export are cached with their updated properties, so a third lead with the same domain can't overwrite fields.
+  - **Suppression:** a suppressed domain also matches email subdomains, in `forget` (SQL: `'.'||host LIKE '%.'||domain`), in the clean step and in the enricher (`registered_domain` of the email host).
+  - **Sign-in:** a wrong password waits one second.
+  - **render.py:** a `ponytail:` note says the redirect GET to a private host is still sent; blocking it would need a proxy.
+  - **Not done:** stale-run detection (a heartbeat column) instead of a manual take-over. Add it if crashed runs turn out to be common.
 
 - 2026-10-09: UI/UX review and redesign of the Streamlit app (211 tests pass, lint clean). Reviewed in a real browser at desktop and phone widths, against a seeded throwaway DB with no network.
   - **Problems found:**

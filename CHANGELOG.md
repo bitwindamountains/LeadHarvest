@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Fix: a run can't be executed twice at once. Resuming a run that another tab or the CLI is still running used to start a second copy, which visited every website twice and exported twice. Now it is refused. The UI offers **Take over and resume** and the CLI offers `resume --force` for a run left "running" by a crash. New runs start as paused until they begin.
+- Fix: `purge` keeps the raw records of unfinished runs, so a paused run can still resume.
+- Fix: the HubSpot export no longer lets a third lead with the same domain overwrite fields the second one filled.
+- Privacy: `forget --domain` and suppressions now also match email addresses on subdomains (`info@mail.smile.ph` for `smile.ph`).
+- Security: a wrong UI password waits one second before answering, to slow guessing.
 - Web UI redesign:
   - **Recent runs** sidebar: reopen any run, even after a reload.
   - **Resume run** button for paused runs. A click while a run is in progress used to leave it stuck as "running"; now the run is marked paused.

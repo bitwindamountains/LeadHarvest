@@ -109,13 +109,15 @@ class HubSpotExporter:
                 made[key] = {"id": company["id"], "properties": props}
                 created += 1
                 continue
-            current = existing.get("properties") or {}
+            current = existing.setdefault("properties", {})
             missing = {k: v for k, v in props.items() if not current.get(k)}
             if missing:
                 self._request(
                     "PATCH", f"/crm/v3/objects/companies/{existing['id']}",
                     json={"properties": missing},
                 )  # fmt: skip
+                current.update(missing)  # a later lead must not overwrite what this one filled
+            made[key] = existing
             updated += 1
         return ExportResult(
             exporter=self.name,

@@ -140,6 +140,14 @@ class Repository:
         ]
         self.conn.execute(f"UPDATE runs SET {assignments} WHERE id = ?", [*values, run_id])
 
+    def claim_run(self, run_id: str, *, force: bool = False) -> bool:
+        """Mark a run running unless it already is. One atomic UPDATE, so two processes can't
+        both claim it. `force` takes over a run left "running" by a crash."""
+        sql = "UPDATE runs SET status = 'running', error = NULL, finished_at = NULL WHERE id = ?"
+        if not force:
+            sql += " AND status != 'running'"
+        return self.conn.execute(sql, (run_id,)).rowcount == 1
+
     def update_run_step(self, run_id: str, step: Step) -> None:
         self.update_run(run_id, current_step=step)
 
@@ -353,12 +361,13 @@ class Repository:
 
     def find_leads_for_forget(self, kind: str, value: str) -> list[str]:
         if kind == "domain":
-            # Website domain or email domain, as the clean step's suppression check matches.
+            # Website domain, or an email host that is the domain or a subdomain of it, as the
+            # clean step's suppression check matches ('.' prefix: notsmile.ph != smile.ph).
             sql = (
                 "SELECT lead_id FROM leads WHERE domain = ? "
-                "OR substr(email, instr(email, '@') + 1) = ? OR EXISTS "
+                "OR '.' || substr(email, instr(email, '@') + 1) LIKE '%.' || ? OR EXISTS "
                 "(SELECT 1 FROM json_each(leads.emails_extra) "
-                "WHERE substr(value, instr(value, '@') + 1) = ?)"
+                "WHERE '.' || substr(value, instr(value, '@') + 1) LIKE '%.' || ?)"
             )
             params: tuple[str, ...] = (value, value, value)
         elif kind == "phone":
@@ -401,10 +410,14 @@ class Repository:
 
     def purge(self, not_seen_days: int) -> int:
         """Delete leads not seen for N days, and raw records fetched before then (raw records
-        are only needed to resume a run's clean step)."""
+        are only needed to resume a run's clean step, so unfinished runs keep theirs)."""
         cutoff = (datetime.now(UTC) - timedelta(days=not_seen_days)).isoformat(timespec="seconds")
         with self.transaction():
-            self.conn.execute("DELETE FROM raw_records WHERE fetched_at < ?", (cutoff,))
+            self.conn.execute(
+                "DELETE FROM raw_records WHERE fetched_at < ? AND run_id NOT IN "
+                "(SELECT id FROM runs WHERE status IN ('partial', 'running'))",
+                (cutoff,),
+            )
             cur = self.conn.execute("DELETE FROM leads WHERE last_seen_at < ?", (cutoff,))
         return cur.rowcount
 

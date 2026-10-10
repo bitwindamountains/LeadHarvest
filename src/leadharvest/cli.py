@@ -42,7 +42,7 @@ from leadharvest.geo.nominatim import LocationNotFound
 from leadharvest.http import make_client
 from leadharvest.logging_setup import attach_run_log, console, detach_run_log, setup_console_logging
 from leadharvest.models import ResolvedArea, Run, SearchQuery
-from leadharvest.pipeline import Pipeline
+from leadharvest.pipeline import Pipeline, RunInProgress
 from leadharvest.sources.base import SourceError
 from leadharvest.sources.directory import (
     DirectoryConfigError,
@@ -203,6 +203,7 @@ def _execute_run(
     *,
     stop_after: str | None = None,
     any_country: bool = False,
+    force: bool = False,
 ) -> Run:
     """Run the pipeline with progress bars and a per-run log. Errors propagate."""
     handler = attach_run_log(settings.log_dir, run.id)
@@ -220,6 +221,7 @@ def _execute_run(
                     category,
                     stop_after=stop_after,  # type: ignore[arg-type]
                     any_country=any_country,
+                    force=force,
                 )
             )
     except KeyboardInterrupt:
@@ -239,12 +241,20 @@ def _execute(
     *,
     stop_after: str | None = None,
     any_country: bool = False,
+    force: bool = False,
 ) -> Run:
     """_execute_run for single-run commands: friendly messages and exit codes."""
     try:
         return _execute_run(
-            settings, repo, run, category, stop_after=stop_after, any_country=any_country
-        )
+            settings, repo, run, category, stop_after=stop_after, any_country=any_country,
+            force=force,
+        )  # fmt: skip
+    except RunInProgress:
+        raise _fail(
+            f"Run {run.id[:8]} is marked as running. If nothing else is running it (for example "
+            f"the process was killed), take it over with: leadharvest resume --run {run.id[:8]} "
+            "--force"
+        ) from None
     except KeyboardInterrupt:
         console.print(
             f"\n[yellow]Interrupted.[/yellow] Resume with: leadharvest resume --run {run.id[:8]}"
@@ -432,6 +442,9 @@ def resume(
     run_ref: Annotated[
         str, typer.Option("--run", help="Run id, id prefix, or 'latest'.")
     ] = "latest",
+    force: Annotated[
+        bool, typer.Option(help="Take over a run still marked running (after a crash).")
+    ] = False,
 ) -> None:
     """Resume a partial or interrupted run from its current step."""
     settings = _settings()
@@ -451,7 +464,7 @@ def resume(
             _parse_targets("sheets", settings)
         cat = _category(existing.category, settings)
         console.print(f"Resuming run {run_id[:8]} at step '{existing.current_step}'")
-        result = _execute(settings, repo, existing, cat)
+        result = _execute(settings, repo, existing, cat, force=force)
         print_summary(repo, result)
         if result.status != "completed":
             raise typer.Exit(1)

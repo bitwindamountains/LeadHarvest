@@ -39,7 +39,8 @@ def apply_extraction(
     emails = [
         e
         for e in found.emails
-        if e not in suppressed["email"] and e.split("@", 1)[1] not in suppressed["domain"]
+        if e not in suppressed["email"]
+        and registered_domain(e.split("@", 1)[1]) not in suppressed["domain"]
     ]
     phones = [p for p in found.phones if p not in suppressed["phone"]]
     site_domain = lead.domain or registered_domain(final_url)

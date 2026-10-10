@@ -67,6 +67,10 @@ RendererFactory = Callable[[PoliteFetcher], AbstractAsyncContextManager[Renderer
 PAUSING_ERRORS = (SourceError, GeoError, ExportError, RenderUnavailable, DirectoryConfigError)
 
 
+class RunInProgress(Exception):
+    """The run is already marked running: by another tab or process, or by a crash."""
+
+
 def default_sources(settings: Settings, sleep: Sleep = asyncio.sleep) -> SourcesFactory:
     """Build the run's sources: "osm" and/or "directory:<name>"."""
 
@@ -141,6 +145,7 @@ class Pipeline:
             export_targets=targets,
             options=options or {},
             created_at=utcnow_iso(),
+            status="partial",  # not started yet; execute() claims it
         )
         self.repo.create_run(run)
         return run
@@ -164,9 +169,13 @@ class Pipeline:
         *,
         stop_after: Step | None = None,
         any_country: bool = False,
+        force: bool = False,
     ) -> Run:
-        """Run from the run's current_step to the end (or through `stop_after`)."""
-        self.repo.update_run(run_id, status="running", error=None, finished_at=None)
+        """Run from the run's current_step to the end (or through `stop_after`).
+
+        Raises RunInProgress if the run is already running; `force` takes it over anyway."""
+        if not self.repo.claim_run(run_id, force=force):
+            raise RunInProgress(f"run {run_id[:8]} is already running")
         try:
             async with self.client_factory() as client:
                 # One fetcher per execution: per-host delays and the circuit breaker are

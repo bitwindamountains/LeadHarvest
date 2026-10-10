@@ -444,10 +444,12 @@ def test_hubspot_same_domain_twice_creates_one_company() -> None:
     leads = [
         lead(business_name="Smile Makati", domain="smile.ph"),
         lead(business_name="Smile Taguig", domain="smile.ph", phone="+639171234567"),
+        lead(business_name="Smile BGC", domain="smile.ph", phone="+639180000000"),
     ]
     result = _hub().export(leads, _run())
-    assert (result.rows_appended, result.rows_updated) == (1, 1)
+    assert (result.rows_appended, result.rows_updated) == (1, 2)
     assert (search.call_count, create.call_count) == (1, 1)
+    assert patch.call_count == 1  # the third lead must not overwrite the phone the second set
     assert patch.calls[0].request.read().decode().replace(" ", "") == (
         '{"properties":{"phone":"+639171234567"}}'  # only what the first create left empty
     )

@@ -30,7 +30,7 @@ Files land in `data/exports/`. Open the `.xlsx` in Excel. Excel mangles `+63…`
 |---|---|
 | `run --category X --location "Y" [--limit N] [--to csv,xlsx,sheets,hubspot] [--sources osm,directory:NAME] [--js] [--no-mx]` | Full run: search, clean, enrich, score, export |
 | `search --category X --location "Y" [--sources ...]` | Search only; continue later with `resume` |
-| `resume [--run ID]` | Continue an interrupted or partial run from its last step |
+| `resume [--run ID] [--force]` | Continue an interrupted or partial run from its last step. A run still marked running is refused; `--force` takes it over after a crash |
 | `enrich [--run ID] [--retry-failed] [--refresh-days N]` | (Re-)enrich a run's leads |
 | `export [--run ID] --to sheets,csv` | Export again, e.g. to refresh a client Sheet |
 | `runs` | List recent runs |

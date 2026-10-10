@@ -154,9 +154,10 @@ def test_forget_domain_matches_email_domain(repo: Repository) -> None:
     no_site = make_lead(email="info@clinic.com.ph")
     extra = make_lead(business_name="B", name_key="b", emails_extra=["dr@clinic.com.ph"])
     other = make_lead(business_name="C", name_key="c", email="info@otherclinic.com.ph")
-    for lead in (no_site, extra, other):
+    sub = make_lead(business_name="D", name_key="d", emails_extra=["hr@mail.clinic.com.ph"])
+    for lead in (no_site, extra, other, sub):
         repo.insert_lead(lead)
-    assert repo.forget("domain", "clinic.com.ph") == 2
+    assert repo.forget("domain", "clinic.com.ph") == 3
     assert repo.get_lead(other.lead_id) is not None
 
 
@@ -172,19 +173,31 @@ def test_forget_by_extra_email_and_phone(repo: Repository) -> None:
 
 
 def test_purge_by_last_seen(repo: Repository) -> None:
-    make_run(repo)
+    make_run(repo, status="completed")
+    make_run(repo, "paused", status="partial")
     stale = (datetime.now(UTC) - timedelta(days=200)).isoformat(timespec="seconds")
     repo.insert_lead(make_lead(last_seen_at=stale))
     fresh = make_lead(business_name="B", name_key="b")
     repo.insert_lead(fresh)
     repo.save_raw("run-1", RawBusiness(source="osm", source_ref="node/old", name="A"))
     repo.save_raw("run-1", RawBusiness(source="osm", source_ref="node/new", name="B"))
+    repo.save_raw("paused", RawBusiness(source="osm", source_ref="node/old", name="A"))
     repo.conn.execute(
         "UPDATE raw_records SET fetched_at = ? WHERE source_ref = ?", (stale, "node/old")
     )
     assert repo.purge(180) == 1
     assert repo.get_lead(fresh.lead_id) is not None
     assert [r.source_ref for r in repo.raw_for_run("run-1")] == ["node/new"]
+    # A paused run still needs its raw records to resume.
+    assert [r.source_ref for r in repo.raw_for_run("paused")] == ["node/old"]
+
+
+def test_claim_run_once_unless_forced(repo: Repository) -> None:
+    make_run(repo, status="partial")
+    assert repo.claim_run("run-1")
+    assert not repo.claim_run("run-1")  # another tab or process already runs it
+    assert repo.claim_run("run-1", force=True)
+    assert repo.get_run("run-1").status == "running"
 
 
 def test_leads_to_enrich_scopes_to_run_and_statuses(repo: Repository) -> None:

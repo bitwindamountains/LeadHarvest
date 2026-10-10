@@ -259,3 +259,17 @@ async def test_enricher_records_failures_without_stopping(settings, repo, clock,
     assert stats["attempted"] == 4
     # Nothing left pending → re-running enriches nothing (resume never re-fetches finished work)
     assert (await enricher.enrich_run("run-1"))["attempted"] == 0
+
+
+def test_suppressed_domain_covers_email_subdomains(repo) -> None:
+    from leadharvest.clean.step import is_suppressed
+    from leadharvest.enrich.enricher import apply_extraction
+    from leadharvest.enrich.extractors import Extracted
+
+    suppressed = {"domain": {"clinic.ph"}, "email": set(), "phone": set()}
+    lead = _lead(repo, "https://other.ph")
+    assert is_suppressed(lead.model_copy(update={"email": "hr@mail.clinic.ph"}), suppressed)
+    assert not is_suppressed(lead.model_copy(update={"email": "a@notclinic.ph"}), suppressed)
+    found = Extracted(emails=["hr@mail.clinic.ph", "info@other.ph"])
+    enriched = apply_extraction(lead, found, "https://other.ph/", suppressed)
+    assert [enriched.email, *enriched.emails_extra] == ["info@other.ph"]

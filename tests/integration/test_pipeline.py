@@ -15,7 +15,7 @@ from leadharvest.enrich.enricher import Enricher
 from leadharvest.exporters.csv_export import CsvExporter
 from leadharvest.geo.nominatim import LocationNotFound
 from leadharvest.models import RawBusiness, SearchQuery
-from leadharvest.pipeline import Pipeline
+from leadharvest.pipeline import Pipeline, RunInProgress
 from tests.conftest import fake_resolver, read_fixture
 
 HTML = {"content-type": "text/html; charset=utf-8"}
@@ -245,3 +245,15 @@ async def test_source_error_marks_partial_and_resume_finishes(settings, repo) ->
     result = await pipeline.execute(run.id, cat)
     assert result.status == "partial" and result.current_step == "search"
     assert "Overpass" in (result.error or "")
+
+
+async def test_execute_refuses_a_run_already_running(settings, repo) -> None:
+    source = FixtureSource()
+    pipeline = make_pipeline(settings, repo, source)
+    cat = load_categories()["dentist"]
+    run = pipeline.create_run(cat, "Makati, Philippines", limit=100, targets=["csv"])
+    assert repo.get_run(run.id).status == "partial"  # created, not started
+    repo.claim_run(run.id)  # another tab or process is running it
+    with pytest.raises(RunInProgress):
+        await pipeline.execute(run.id, cat)
+    assert (source.calls, repo.get_run(run.id).status) == (0, "running")  # left untouched

@@ -121,7 +121,8 @@ def is_suppressed(cand: Lead, suppressed: dict[str, set[str]]) -> bool:
     emails = {e for e in [cand.email, *cand.emails_extra] if e}
     if phones & suppressed["phone"] or emails & suppressed["email"]:
         return True
-    return any(e.split("@", 1)[1] in suppressed["domain"] for e in emails)
+    # registered_domain: forgetting smile.ph also covers info@mail.smile.ph
+    return any(registered_domain(e.split("@", 1)[1]) in suppressed["domain"] for e in emails)
 
 
 def run_clean_step(repo: Repository, run: Run, settings: Settings) -> dict[str, Any]:

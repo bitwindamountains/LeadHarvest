@@ -6,6 +6,7 @@ Run locally:  uv sync --extra ui && uv run streamlit run app/streamlit_app.py
 from __future__ import annotations
 
 import asyncio
+import time
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +19,7 @@ from leadharvest.exporters.base import OSM_ATTRIBUTION
 from leadharvest.geo.nominatim import LocationNotFound
 from leadharvest.logging_setup import attach_run_log, detach_run_log
 from leadharvest.models import Run
-from leadharvest.pipeline import Pipeline
+from leadharvest.pipeline import Pipeline, RunInProgress
 from leadharvest.storage.db import connect
 from leadharvest.storage.repository import Repository
 from leadharvest.ui_support import (
@@ -95,6 +96,8 @@ def sign_in(settings: Settings) -> None:
                 if password_ok(settings, attempt):
                     st.session_state["authed"] = True
                     st.rerun()
+                # Slows guessing; a new session per guess gets the same delay.
+                time.sleep(1)
                 st.error("Wrong password.")
     st.stop()
 
@@ -202,7 +205,9 @@ def run_form(settings: Settings, repo: Repository, categories: dict[str, Categor
     execute(settings, repo, run, request.category)
 
 
-def execute(settings: Settings, repo: Repository, run: Run, category: Category) -> None:
+def execute(
+    settings: Settings, repo: Repository, run: Run, category: Category, *, force: bool = False
+) -> None:
     """Run (or resume) a run with live progress, then rerun the page to show the result."""
     box = st.status(run_title(run, {category.key: category}), expanded=True)
     pipeline = Pipeline(
@@ -210,7 +215,11 @@ def execute(settings: Settings, repo: Repository, run: Run, category: Category) 
     )
     handler = attach_run_log(settings.log_dir, run.id)
     try:
-        asyncio.run(pipeline.execute(run.id, category))
+        asyncio.run(pipeline.execute(run.id, category, force=force))
+    except RunInProgress:
+        box.update(label="Already running", state="error", expanded=False)
+        st.error("This run was started somewhere else (another tab or the CLI) just now.")
+        return
     except LocationNotFound as exc:
         box.update(label="Location not found", state="error", expanded=False)
         select_run(None)  # nothing to show for this run
@@ -309,22 +318,28 @@ def status_banner(
     if not can_resume(run):
         return
     step = STEP_LABELS.get(run.current_step, run.current_step).lower()
-    if run.status == "running":
+    running = run.status == "running"
+    if running:
         st.warning(
-            "This run is marked as running. If it isn't running in another tab (for example, "
-            "the app restarted mid-run), resume it here."
+            f"This run is marked as running (**{step}**). It may still be running in another "
+            "tab or in the CLI; resuming it here too would visit every website twice. Take it "
+            "over only if it stopped, for example because the app restarted mid-run."
         )
     else:
-        reason = "The run was interrupted." if run.error == "interrupted" else f"{run.error}."
+        reason = {"interrupted": "The run was interrupted.", None: ""}.get(
+            run.error, f"{run.error}."
+        )
         st.warning(
             f"Paused while **{step}**. {reason}  \n"
             "Resuming continues where it stopped; finished work is kept."
         )
     category = categories.get(run.category)
+    label = "Take over and resume" if running else "Resume run"
     if category is None:
         st.caption(f"Category '{run.category}' is no longer configured, so it can't resume.")
-    elif st.button("Resume run", type="primary", icon=":material/play_arrow:"):
-        execute(settings, repo, run, category)
+    elif st.button(label, type="secondary" if running else "primary",
+                   icon=":material/play_arrow:"):  # fmt: skip
+        execute(settings, repo, run, category, force=running)
 
 
 def exports(settings: Settings, run: Run) -> None:
