@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Segments, the lists agencies buy: `no-website`, `facebook-only`, `website-upgrade`, `no-booking` and `business-email`.
+  - **Command line:** `export --segment NAME` writes each as its own CSV/XLSX.
+  - **Web UI:** a **Show** picker filters the results table to a segment and downloads it as CSV. It replaces the "Only leads with an email" toggle, which lives on as "Has an email".
 - New sales flags, read from the homepage already fetched (no extra requests):
   - `stale_site`: the footer copyright is 3 or more years old.
   - `no_analytics`: no Google Analytics, Tag Manager, Meta or TikTok pixel.

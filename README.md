@@ -115,6 +115,15 @@ Combined with `no_https` and `no_website`, these give web and marketing agencies
 
 It's a heuristic label, not verification.
 
+**Segments.** These are the lists agencies buy:
+- `no-website`
+- `facebook-only`
+- `website-upgrade`: no HTTPS, not mobile-friendly, or an old site.
+- `no-booking`
+- `business-email`: has an email that isn't a person's name.
+
+`leadharvest export --run latest --segment no-website` writes them as extra files, for example `dentist-makati-1a2b3c4d-no-website.csv`, next to the full list. In the web UI, the **Show** picker above the results table filters to a segment and offers a CSV download of it.
+
 **Summary.** Each CSV's `.about.txt` and each XLSX `About` sheet list the run's hit rates: with email, phone, website and social profiles. They also count personal-name emails, duplicates merged, suppressed businesses and websites skipped by robots.txt.
 
 ### Weekly monitoring on GitHub Actions

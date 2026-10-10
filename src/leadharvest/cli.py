@@ -43,6 +43,7 @@ from leadharvest.http import make_client
 from leadharvest.logging_setup import attach_run_log, console, detach_run_log, setup_console_logging
 from leadharvest.models import ResolvedArea, Run, SearchQuery
 from leadharvest.pipeline import Pipeline, RunInProgress
+from leadharvest.segments import SEGMENTS
 from leadharvest.sources.base import SourceError
 from leadharvest.sources.directory import (
     DirectoryConfigError,
@@ -528,17 +529,29 @@ def export(
         str, typer.Option("--run", help="Run id, id prefix, or 'latest'.")
     ] = "latest",
     to: Annotated[str, typer.Option(help="Export targets: csv,xlsx,sheets.")] = "csv,xlsx",
+    segment: Annotated[
+        str | None,
+        typer.Option(help=f"Only a segment, as extra CSV/XLSX files: {', '.join(SEGMENTS)}."),
+    ] = None,
 ) -> None:
     """Export a run's leads. Sheets upserts by lead_id and never touches client columns."""
     settings = _settings()
     targets = _parse_targets(to, settings)
+    if segment is not None:
+        if segment not in SEGMENTS:
+            raise _fail(f"Unknown segment {segment!r}. Choose one of: {', '.join(SEGMENTS)}.")
+        if set(targets) - {"csv", "xlsx"}:
+            raise _fail("Segments export to csv and xlsx only (--to csv,xlsx).")
     with _repository(settings) as repo:
         run_id = _run_id(repo, run_ref)
         existing = repo.get_run(run_id)
         assert existing is not None
         pipeline = Pipeline(settings, repo, exporter_factory=exporter_factory(settings))
         try:
-            results = pipeline.export(existing, targets)
+            if segment is None:
+                results = pipeline.export(existing, targets)
+            else:
+                results = pipeline.export_segment(existing, targets, segment)
         except Exception as exc:
             raise _fail(str(exc), 1) from None
         for result in results:

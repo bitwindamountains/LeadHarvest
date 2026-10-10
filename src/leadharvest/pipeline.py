@@ -30,6 +30,7 @@ from leadharvest.http import Clock, Sleep, make_client
 from leadharvest.logging_setup import get_logger
 from leadharvest.models import STEPS, ExportResult, Run, SearchQuery, Step, new_run_id, utcnow_iso
 from leadharvest.scoring import run_score_step
+from leadharvest.segments import apply_segment
 from leadharvest.sources.base import Source, SourceError
 from leadharvest.sources.directory import (
     DirectoryConfigError,
@@ -347,6 +348,15 @@ class Pipeline:
         if previous is None:
             return self.repo.leads_for_run(run.id), None
         return self.repo.leads_not_in_run(run.id, previous.id), previous
+
+    def export_segment(self, run: Run, targets: list[str], segment: str) -> list[ExportResult]:
+        """A named subset (segments.py) as extra files. The run's recorded exports stay the
+        full list, so the UI's downloads don't change."""
+        leads = apply_segment(segment, self.repo.leads_for_run(run.id))
+        return [
+            self.exporter_factory(target).export(leads, run, f"-{segment}")  # type: ignore[call-arg]
+            for target in targets
+        ]
 
     def export(self, run: Run, targets: list[str]) -> list[ExportResult]:
         leads = self.repo.leads_for_run(run.id)

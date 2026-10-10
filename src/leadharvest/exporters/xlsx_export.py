@@ -28,8 +28,9 @@ class XlsxExporter:
     def __init__(self, export_dir: Path) -> None:
         self.export_dir = export_dir
 
-    def export(self, leads: list[Lead], run: Run) -> ExportResult:
-        return self._write(leads, run, f"{export_basename(run)}.xlsx", "Leads")
+    def export(self, leads: list[Lead], run: Run, suffix: str = "") -> ExportResult:
+        """`suffix` names a subset next to the full list, e.g. '-no-website'."""
+        return self._write(leads, run, f"{export_basename(run)}{suffix}.xlsx", "Leads")
 
     def export_new(self, leads: list[Lead], run: Run) -> ExportResult:
         """Monitoring: only the leads that are new since the previous run."""

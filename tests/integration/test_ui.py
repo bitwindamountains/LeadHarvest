@@ -14,8 +14,10 @@ from leadharvest.models import Lead, Run, new_lead_id, utcnow_iso
 from leadharvest.storage.db import connect
 from leadharvest.storage.repository import Repository
 from leadharvest.ui_support import (
+    SHOW_OPTIONS,
     ago,
     can_resume,
+    csv_download,
     display_phone,
     duration_text,
     export_choices,
@@ -26,6 +28,7 @@ from leadharvest.ui_support import (
     setup_problems,
     share,
     short_time,
+    shown_leads,
     validate_request,
     viewer_tz,
 )
@@ -113,6 +116,15 @@ def test_presentation_helpers() -> None:
     rows = result_rows(leads, "dentist")
     assert [r["lead_id"] for r in rows] == ["L1", "L0", "L2"]  # best first, unscored last
     assert rows[0]["flags"] == "No HTTPS, custom"  # readable; unknown flags pass through
+    with_email = leads[0].model_copy(update={"email": "info@b0.ph"})
+    assert shown_leads([with_email, *leads[1:]], "has-email") == [with_email]
+    assert shown_leads(leads, "all") == leads
+    assert shown_leads(leads, "no-website") == leads  # none has a website
+    assert set(SHOW_OPTIONS) >= {"all", "has-email", "no-website", "business-email"}
+    risky = leads[0].model_copy(update={"business_name": "=HYPERLINK(1)"})
+    data = csv_download([risky], "dentist")
+    assert data.startswith(b"\xef\xbb\xbf")  # BOM: Excel reads UTF-8
+    assert "'=HYPERLINK(1)" in data.decode("utf-8-sig")  # same formula guard as the export
 
 
 def test_mark_interrupted_only_touches_running_runs(tmp_path) -> None:

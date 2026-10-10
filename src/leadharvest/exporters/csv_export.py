@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 from pathlib import Path
+from typing import TextIO
 
 from leadharvest.exporters.base import (
     MANAGED_COLUMNS,
@@ -29,28 +30,34 @@ def escape_cell(column: str, value: object) -> str:
     return text
 
 
+def write_rows(fh: TextIO, leads: list[Lead], category: str) -> None:
+    """Header plus one escaped row per lead (also used for the UI's in-memory downloads)."""
+    writer = csv.writer(fh)
+    writer.writerow(MANAGED_COLUMNS)
+    for lead in leads:
+        row = lead_to_row(lead, category)
+        writer.writerow([escape_cell(col, row[col]) for col in MANAGED_COLUMNS])
+
+
 class CsvExporter:
     name = "csv"
 
     def __init__(self, export_dir: Path) -> None:
         self.export_dir = export_dir
 
-    def export(self, leads: list[Lead], run: Run) -> ExportResult:
-        return self._write(leads, run, f"{export_basename(run)}.csv")
+    def export(self, leads: list[Lead], run: Run, suffix: str = "") -> ExportResult:
+        """`suffix` names a subset next to the full list, e.g. '-no-website'."""
+        return self._write(leads, run, f"{export_basename(run)}{suffix}.csv")
 
     def export_new(self, leads: list[Lead], run: Run) -> ExportResult:
         """Monitoring: only the leads that are new since the previous run."""
-        return self._write(leads, run, f"{export_basename(run)}-new.csv")
+        return self.export(leads, run, "-new")
 
     def _write(self, leads: list[Lead], run: Run, filename: str) -> ExportResult:
         self.export_dir.mkdir(parents=True, exist_ok=True)
         path = self.export_dir / filename
         with path.open("w", encoding="utf-8-sig", newline="") as fh:
-            writer = csv.writer(fh)
-            writer.writerow(MANAGED_COLUMNS)
-            for lead in leads:
-                row = lead_to_row(lead, run.category)
-                writer.writerow([escape_cell(col, row[col]) for col in MANAGED_COLUMNS])
+            write_rows(fh, leads, run.category)
         path.with_suffix(".about.txt").write_text(
             f"{attribution(run, leads)}\nCategory: {run.category}\nLocation: {run.location}\n"
             f"Run ID: {run.id}\n"

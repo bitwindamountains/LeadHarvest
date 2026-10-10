@@ -15,7 +15,7 @@ import streamlit as st
 from leadharvest.categories import Category, load_categories
 from leadharvest.cli import exporter_factory
 from leadharvest.config import ConfigError, Settings, load_settings
-from leadharvest.exporters.base import OSM_ATTRIBUTION, attribution
+from leadharvest.exporters.base import OSM_ATTRIBUTION, attribution, export_basename
 from leadharvest.geo.nominatim import LocationNotFound
 from leadharvest.logging_setup import attach_run_log, detach_run_log
 from leadharvest.models import Run
@@ -24,6 +24,7 @@ from leadharvest.storage.db import connect
 from leadharvest.storage.repository import Repository
 from leadharvest.ui_support import (
     MAX_UI_LIMIT,
+    SHOW_OPTIONS,
     SOURCE_LABELS,
     STATUS_ICONS,
     STATUS_LABELS,
@@ -32,6 +33,7 @@ from leadharvest.ui_support import (
     TARGET_LABELS,
     ago,
     can_resume,
+    csv_download,
     duration_text,
     export_choices,
     mark_interrupted,
@@ -44,6 +46,7 @@ from leadharvest.ui_support import (
     share,
     sheet_url,
     short_time,
+    shown_leads,
     source_choices,
     validate_request,
     viewer_tz,
@@ -292,9 +295,21 @@ def show_run(
         )
     exports(settings, run)
 
-    rows = result_rows(leads, run.category)
-    if st.toggle("Only leads with an email", key=f"email-only-{run.id}"):
-        rows = [r for r in rows if r["email"]]
+    show = st.selectbox(
+        "Show", list(SHOW_OPTIONS), format_func=SHOW_OPTIONS.__getitem__, key=f"show-{run.id}",
+        help="Segments agencies buy, e.g. businesses with no website. Each can be downloaded.",
+    )  # fmt: skip
+    shown = shown_leads(leads, show)
+    rows = result_rows(shown, run.category)
+    if show != "all":
+        # Button on the left: the table's own toolbar appears top right on hover.
+        with st.container(horizontal=True, vertical_alignment="center"):
+            st.download_button(
+                f"Download these {len(shown)} (CSV)", csv_download(shown, run.category),
+                file_name=f"{export_basename(run)}-{show}.csv", icon=":material/download:",
+                disabled=not shown, key=f"download-shown-{run.id}",
+            )  # fmt: skip
+            st.caption(f"{len(shown)} of {len(leads)} leads, all columns")
     st.dataframe(
         rows,
         hide_index=True,

@@ -8,6 +8,12 @@
 
 ## Done (newest first)
 
+- 2026-10-11: Value plan step D, segments (230 tests pass, lint clean, checked in a browser).
+  - **Code:** `segments.py` (`SEGMENTS`, `apply_segment`) and `Pipeline.export_segment`. It writes CSV/XLSX with a `-<segment>` suffix and doesn't touch the run's recorded exports. CSV/XLSX `export()` take a `suffix`.
+  - **CLI:** `export --segment`, csv/xlsx only.
+  - **UI:** the **Show** selectbox and a "Download these N (CSV)" button (`ui_support.csv_download`, reusing `csv_export.write_rows`). The button sits on the left because Streamlit's own table toolbar appears top right on hover.
+  - **Not done:** segment tabs in Google Sheets.
+
 - 2026-10-11: Value plan step C (228 tests pass, lint clean, each rule mutation-checked).
   - **Website facts:** `enrich/signals.site_signals` records facts such as `copyright:2018`, `analytics:google`, `pixel:meta` and `booking:seriousmd`. They are stored in `leads.site_signals` (migration 004), which is NULL until the homepage was read. A separate nullable JSON path in the repository keeps NULL and `[]` distinct.
   - **Flags:** `scoring.site_flags` derives `stale_site` (3 years or more), `no_analytics`, and `no_online_booking` (only for `APPOINTMENT_CATEGORIES`).

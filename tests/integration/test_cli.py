@@ -132,3 +132,23 @@ def test_adapters_listing(env) -> None:
 def test_resume_unknown_run(env) -> None:
     result = runner.invoke(app, ["resume", "--run", "nope"])
     assert result.exit_code == 2
+
+
+def test_export_segment_writes_extra_files_only(env) -> None:
+    seed(env / "leads.db")  # one lead, with a website
+    result = runner.invoke(app, ["export", "--run", "latest", "--segment", "no-website"])
+    assert result.exit_code == 0, result.output
+    assert (env / "exports" / "dentist-makati-12345678-no-website.csv").is_file()
+    assert (env / "exports" / "dentist-makati-12345678-no-website.xlsx").is_file()
+    rows = (
+        (env / "exports" / "dentist-makati-12345678-no-website.csv")
+        .read_text(encoding="utf-8-sig")
+        .splitlines()
+    )
+    assert len(rows) == 1  # header only: the lead has a website
+    full = runner.invoke(app, ["export", "--run", "latest", "--segment", "business-email"])
+    assert full.exit_code == 0
+    bad = runner.invoke(app, ["export", "--segment", "nope"])
+    assert bad.exit_code != 0 and "no-website" in bad.output
+    sheets = runner.invoke(app, ["export", "--segment", "no-website", "--to", "csv,hubspot"])
+    assert sheets.exit_code != 0

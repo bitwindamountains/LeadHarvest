@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hmac
+import io
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, tzinfo
@@ -14,7 +15,9 @@ from leadharvest.categories import Category
 from leadharvest.config import ConfigError, Settings
 from leadharvest.enrich.render import playwright_installed
 from leadharvest.exporters.base import lead_to_row
+from leadharvest.exporters.csv_export import write_rows
 from leadharvest.models import Lead, Run
+from leadharvest.segments import SEGMENTS, apply_segment
 from leadharvest.sources.overture import duckdb_installed
 from leadharvest.storage.repository import Repository
 
@@ -216,6 +219,29 @@ def run_seconds(run: Run) -> float:
 def duration_text(seconds: float) -> str:
     minutes, secs = divmod(round(seconds), 60)
     return f"{minutes} min {secs} s" if minutes else f"{secs} s"
+
+
+# "Show" picker over the results table: everything, anything with an email, or a segment.
+SHOW_OPTIONS = {
+    "all": "All leads",
+    "has-email": "Has an email",
+    **{key: segment.label for key, segment in SEGMENTS.items()},
+}
+
+
+def shown_leads(leads: list[Lead], show: str) -> list[Lead]:
+    if show == "all":
+        return leads
+    if show == "has-email":
+        return [lead for lead in leads if lead.email]
+    return apply_segment(show, leads)
+
+
+def csv_download(leads: list[Lead], category: str) -> bytes:
+    """The same CSV as an export (escaped cells, UTF-8 with BOM for Excel), in memory."""
+    buffer = io.StringIO()
+    write_rows(buffer, leads, category)
+    return buffer.getvalue().encode("utf-8-sig")
 
 
 def result_rows(leads: list[Lead], category: str) -> list[dict[str, object]]:

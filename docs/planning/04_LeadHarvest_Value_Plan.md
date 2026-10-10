@@ -86,7 +86,7 @@ Value is what it adds to what you can sell. Cost is build effort for this codeba
 
 ## 5. Suggested order
 
-**Status (2026-10-11):** steps B (Overture) and C (signals, email labels, quality report) are built. Step A's live run and step D's demo need the owner.
+**Status (2026-10-11):** steps B (Overture), C (signals, email labels, quality report) and D's segments are built. Step A's live run and step D's demo video need the owner.
 
 | Step | Work | Gate |
 |---|---|---|
