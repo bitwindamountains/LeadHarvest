@@ -1,7 +1,8 @@
 """Website signals for agency sales (V2, F17). Pure functions over the homepage we already fetched.
 
-Detects the site platform (WordPress, Shopify, Wix, ...) and whether the page declares a mobile
-viewport. Only markers visible in the HTML and response headers are used — no extra requests.
+Detects the site platform (WordPress, Shopify, Wix, ...), whether the page declares a mobile
+viewport, and site facts (copyright year, analytics and ad pixels, online booking). Only markers
+visible in the HTML and response headers are used — no extra requests.
 """
 
 from __future__ import annotations
@@ -66,3 +67,41 @@ def detect_tech(html: str, headers: Mapping[str, str] | None = None) -> list[str
 def has_mobile_viewport(html: str) -> bool:
     """True if the page declares <meta name="viewport" content="width=device-width ...">."""
     return any(_WIDTH.search(tag) for tag in _VIEWPORT.findall(html))
+
+
+# "© 2017", "Copyright 2015-2019", "&copy; 2012 &ndash; 2018": the last year is when it was
+# touched. \u2013 is an en dash.
+_COPYRIGHT = re.compile(
+    r"(?:©|&copy;|&#169;|\bcopyright\b)\s*(?:\d{4}\s*(?:-|\u2013|&ndash;|to)\s*)?(\d{4})", re.I
+)
+# fact → HTML patterns. Script hosts and init calls only, like _SIGNATURES above.
+_FACTS: dict[str, tuple[str, ...]] = {
+    "analytics:google": (
+        r"googletagmanager\.com/gtag/js", r"google-analytics\.com/(?:analytics|ga)\.js",
+        r"googletagmanager\.com/gtm\.js",
+    ),
+    "pixel:meta": (r"connect\.facebook\.net/[^\"']*/fbevents\.js", r"\bfbq\(\s*['\"]init"),
+    "pixel:tiktok": (r"analytics\.tiktok\.com/",),
+    # Booking platforms, PH ones (SeriousMD, NowServing) included.
+    "booking:calendly": (r"calendly\.com/",),
+    "booking:seriousmd": (r"seriousmd\.com",),
+    "booking:nowserving": (r"nowserving\.ph",),
+    "booking:fresha": (r"fresha\.com/",),
+    "booking:setmore": (r"setmore\.com",),
+    "booking:simplybook": (r"simplybook\.(?:me|it|asia)",),
+    "booking:booksy": (r"booksy\.com/",),
+    "booking:acuity": (r"acuityscheduling\.com",),
+    "booking:square": (r"squareup\.com/appointments", r"square\.site/book"),
+}  # fmt: skip
+
+
+def site_signals(html: str, current_year: int) -> list[str]:
+    """Facts for sales flags: 'copyright:2017', 'analytics:google', 'pixel:meta', 'booking:…'.
+
+    Stored as facts, not flags, so the flag rules (scoring.py) can change without refetching.
+    """
+    facts = [name for name, pats in _FACTS.items() if any(re.search(p, html, re.I) for p in pats)]
+    years = [int(y) for y in _COPYRIGHT.findall(html) if 1990 <= int(y) <= current_year]
+    if years:
+        facts.insert(0, f"copyright:{max(years)}")
+    return facts

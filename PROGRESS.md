@@ -8,6 +8,16 @@
 
 ## Done (newest first)
 
+- 2026-10-11: Value plan step C (228 tests pass, lint clean, each rule mutation-checked).
+  - **Website facts:** `enrich/signals.site_signals` records facts such as `copyright:2018`, `analytics:google`, `pixel:meta` and `booking:seriousmd`. They are stored in `leads.site_signals` (migration 004), which is NULL until the homepage was read. A separate nullable JSON path in the repository keeps NULL and `[]` distinct.
+  - **Flags:** `scoring.site_flags` derives `stale_site` (3 years or more), `no_analytics`, and `no_online_booking` (only for `APPOINTMENT_CATEGORIES`).
+  - **Email labels:** `exporters/base.email_kind` (role words, business-name words, first.last and dr-prefix patterns) fills the new `email_kind` managed column.
+  - **Summary:** `run_summary` is written into the CSV about file and the XLSX About sheet. Sheets gets no summary; its header note holds the attribution only.
+  - **Not done:**
+    - Messenger, WhatsApp and Viber chat-link detection.
+    - A `--no-personal-emails` export option; the `email_kind` column is enough to filter in the Sheet.
+    - Leads enriched before migration 004 get the new flags only after re-enrichment (`enrich --refresh-days`).
+
 - 2026-10-11: Value plan step B, the Overture Maps source (223 tests pass, lint clean, filters mutation-checked).
   - **Live data check** (anonymous read of Overture's public bucket): about 40 s for a Makati-sized bounding box. It had 868 dental places in the box (which also covers parts of Pasay, Taguig and Manila): 90% with a phone, 53% with an email, almost all with a Facebook page, and 28% with a website. Meta supplies about 95% of the records.
   - **Code:** `sources/overture.py`.

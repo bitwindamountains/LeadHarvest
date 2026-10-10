@@ -586,7 +586,7 @@ Per lead with a website (only leads linked to the current run):
 | Street address | 10 |
 | Opening hours | 5 |
 
-Capped at 100. Flags: `no_website`, `no_https` (from `https_ok=0` after enrichment, never from the URL text), `social_only`, `free_email_provider`.
+Capped at 100. Flags: `no_website`, `no_https` (from `https_ok=0` after enrichment, never from the URL text), `social_only`, `free_email_provider`. From homepage facts (`leads.site_signals`, migration 004, only when the homepage was read): `stale_site` (footer copyright year 3+ years old), `no_analytics` (no Google Analytics/Tag Manager, Meta or TikTok pixel), `no_online_booking` (appointment categories without a booking-platform link).
 
 ---
 

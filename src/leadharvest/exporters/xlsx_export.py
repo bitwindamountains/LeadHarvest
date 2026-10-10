@@ -15,6 +15,7 @@ from leadharvest.exporters.base import (
     attribution,
     export_basename,
     lead_to_row,
+    run_summary,
 )
 from leadharvest.models import ExportResult, Lead, Run, utcnow_iso
 
@@ -70,7 +71,7 @@ class XlsxExporter:
             ("Location", run.location),
             ("Run ID", run.id),
             ("Exported at (UTC)", utcnow_iso()),
-            ("Rows", str(len(leads))),
+            *run_summary(run, leads),
         ):
             about.append(row)
         about.column_dimensions["A"].width = 20

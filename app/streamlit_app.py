@@ -307,6 +307,9 @@ def show_run(
                 "Score", min_value=0, max_value=100, format="%d"
             ),
             "email": "Email",
+            "email_kind": st.column_config.TextColumn(
+                "Email type", help="business, personal (a person's name) or unknown"
+            ),
             "phone": "Phone",
             # Show the domain; the link keeps the full URL.
             "website": st.column_config.LinkColumn(

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- New sales flags, read from the homepage already fetched (no extra requests):
+  - `stale_site`: the footer copyright is 3 or more years old.
+  - `no_analytics`: no Google Analytics, Tag Manager, Meta or TikTok pixel.
+  - `no_online_booking`: appointment-based businesses with no booking platform, PH ones included (SeriousMD, NowServing).
+- New `email_kind` export column: `business` (a role mailbox or the business's name), `personal` (looks like a person's name, so personal data under RA 10173) or `unknown`. It also shows as "Email type" in the UI table.
+- Each CSV `.about.txt` and XLSX `About` sheet now has a quality summary: hit rates for email, phone, website and social profiles, plus counts of personal-name emails, duplicates merged, suppressed businesses and websites skipped by robots.txt.
 - New source, **Overture Maps** (`--sources overture`, or "Data sources" in the UI's advanced options; install with `uv sync --extra overture`):
   - **What it is:** open places data, mostly from Facebook pages, with phones, emails, websites and social links. A Makati check found about 800 dental clinics, against a few dozen in OpenStreetMap.
   - **Licence:** CDLA Permissive 2.0, Apache 2.0 or CC0 depending on the provider. It holds no OpenStreetMap data, so an Overture-only list has no ODbL share-alike.

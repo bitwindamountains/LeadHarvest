@@ -128,10 +128,13 @@ FLAG_LABELS = {
     "no_https": "No HTTPS",
     "no_mobile_viewport": "Not mobile-friendly",
     "free_email_provider": "Free email address",
+    "stale_site": "Old website",
+    "no_analytics": "No analytics or ad pixel",
+    "no_online_booking": "No online booking",
 }
 # Columns shown in the results table, in order; the rest stay in the downloads.
 TABLE_COLUMNS = (
-    "business_name", "score", "email", "phone", "website", "facebook", "instagram", "address",
+    "business_name", "score", "email", "email_kind", "phone", "website", "facebook", "instagram", "address",
     "city", "flags", "tech", "opening_hours",
 )  # fmt: skip
 

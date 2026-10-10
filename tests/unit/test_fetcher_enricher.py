@@ -218,6 +218,7 @@ async def test_enricher_homepage_plus_contact_page(settings, repo, clock, client
     assert updated.https_ok is True
     assert updated.mobile_viewport is False  # the homepage has no viewport meta
     assert updated.tech == []
+    assert updated.site_signals is not None  # the homepage was read
     assert about.call_count == 0  # robots-disallowed extra page was skipped
 
 

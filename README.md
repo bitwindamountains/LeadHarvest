@@ -101,7 +101,21 @@ Every row becomes a normal run. If you stop a batch with Ctrl+C or a row fails, 
 
 The first run for an area counts every lead as new.
 
-**Website signals.** Enrichment records each site's platform in the `tech` column (WordPress, Shopify, Wix, Squarespace, Webflow, Joomla, Drupal, GoDaddy, Weebly, Blogger). Sites without a mobile viewport get the `no_mobile_viewport` flag. Combined with `no_https` and `no_website`, these make good prospect lists for web agencies.
+**Website signals.** Enrichment records each site's platform in the `tech` column (WordPress, Shopify, Wix, Squarespace, Webflow, Joomla, Drupal, GoDaddy, Weebly, Blogger). Sites without a mobile viewport get the `no_mobile_viewport` flag. From the same homepage, with no extra requests:
+- `stale_site`: the footer's copyright year is 3 or more years old.
+- `no_analytics`: no Google Analytics, Tag Manager, Meta pixel or TikTok pixel.
+- `no_online_booking`: dentists, clinics, salons, gyms, vets and car repair shops with no booking platform such as SeriousMD, NowServing, Calendly or Fresha.
+
+Combined with `no_https` and `no_website`, these give web and marketing agencies a concrete opening line.
+
+**Email type.** The `email_kind` column labels each main email:
+- `business`: a role mailbox like info@ or appointments@, or an address named after the business.
+- `personal`: looks like a person's name, such as maria.santos@ or dr.reyes@. That is personal data under RA 10173, so clients may want to filter it out.
+- `unknown`: anything else.
+
+It's a heuristic label, not verification.
+
+**Summary.** Each CSV's `.about.txt` and each XLSX `About` sheet list the run's hit rates: with email, phone, website and social profiles. They also count personal-name emails, duplicates merged, suppressed businesses and websites skipped by robots.txt.
 
 ### Weekly monitoring on GitHub Actions
 

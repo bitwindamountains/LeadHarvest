@@ -14,7 +14,7 @@ from leadharvest.enrich.discovery import discover_contact_pages
 from leadharvest.enrich.extractors import Extracted, extract_all, rank_emails, text_length
 from leadharvest.enrich.fetcher import FetchError, PoliteFetcher
 from leadharvest.enrich.render import Renderer
-from leadharvest.enrich.signals import detect_tech, has_mobile_viewport
+from leadharvest.enrich.signals import detect_tech, has_mobile_viewport, site_signals
 from leadharvest.logging_setup import get_logger
 from leadharvest.models import EnrichStatus, Lead, utcnow_iso
 from leadharvest.storage.repository import Repository
@@ -145,6 +145,7 @@ class Enricher:
             update={
                 "tech": detect_tech(page.text, page.headers),
                 "mobile_viewport": has_mobile_viewport(page.text),
+                "site_signals": site_signals(page.text, int(utcnow_iso()[:4])),
             }
         )
 

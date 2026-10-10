@@ -17,9 +17,10 @@ LEAD_COLUMNS: tuple[str, ...] = (
     "email", "emails_extra", "website", "final_url", "https_ok", "domain", "facebook",
     "instagram", "linkedin", "tiktok", "opening_hours", "sources", "enrich_status",
     "enriched_at", "enrich_error", "score", "flags", "first_seen_run_id", "first_seen_at",
-    "last_seen_at", "updated_at", "tech", "mobile_viewport",
+    "last_seen_at", "updated_at", "tech", "mobile_viewport", "site_signals",
 )  # fmt: skip
 _LEAD_JSON = {"categories", "phones_extra", "emails_extra", "sources", "flags", "tech"}
+_LEAD_JSON_OR_NULL = {"site_signals"}  # NULL means "not checked", unlike an empty list
 _LEAD_BOOL = {"https_ok", "mobile_viewport"}
 
 _RUN_UPDATABLE = {
@@ -481,6 +482,8 @@ def _lead_to_values(lead: Lead) -> list[Any]:
         value = data[col]
         if col in _LEAD_JSON:
             value = json.dumps(value or [], ensure_ascii=False)
+        elif col in _LEAD_JSON_OR_NULL and value is not None:
+            value = json.dumps(value, ensure_ascii=False)
         elif col in _LEAD_BOOL and value is not None:
             value = int(value)
         values.append(value)
@@ -491,6 +494,9 @@ def _row_to_lead(row: sqlite3.Row) -> Lead:
     data = {col: row[col] for col in LEAD_COLUMNS}
     for col in _LEAD_JSON:
         data[col] = json.loads(data[col] or "[]")
+    for col in _LEAD_JSON_OR_NULL:
+        if data[col] is not None:
+            data[col] = json.loads(data[col])
     for col in _LEAD_BOOL:
         if data[col] is not None:
             data[col] = bool(data[col])

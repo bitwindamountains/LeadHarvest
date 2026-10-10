@@ -68,6 +68,7 @@ def test_csv_export_bom_and_injection(tmp_path) -> None:
     assert rows[2][1] == "Niño Dental"
     about = (tmp_path / "dentist-makati-abcdef12.about.txt").read_text(encoding="utf-8")
     assert "OpenStreetMap contributors" in about
+    assert "With email: 0 (0%)" in about and "Leads: 2" in about  # the quality summary
 
 
 def test_xlsx_export_text_phones_and_about_sheet(tmp_path) -> None:

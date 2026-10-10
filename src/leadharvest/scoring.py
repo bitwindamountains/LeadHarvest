@@ -20,6 +20,11 @@ POINTS = {
     "street_address": 10,
     "opening_hours": 5,
 }
+STALE_AFTER_YEARS = 3  # a footer year this old suggests nobody has touched the site
+# Businesses that take appointments, where "no online booking" is a sales opening.
+APPOINTMENT_CATEGORIES = frozenset(
+    {"dentist", "clinic", "salon", "gym", "veterinary", "car_repair"}
+)
 
 
 def own_domain_email(lead: Lead) -> bool:
@@ -28,7 +33,24 @@ def own_domain_email(lead: Lead) -> bool:
     return registered_domain(lead.email.split("@", 1)[1]) == lead.domain
 
 
-def score_lead(lead: Lead) -> tuple[int, list[str]]:
+def site_flags(lead: Lead, year: int) -> list[str]:
+    """Flags from the homepage facts (enrich/signals.py); none if the site wasn't read."""
+    facts = lead.site_signals
+    if facts is None:
+        return []
+    flags = []
+    years = [int(f.split(":", 1)[1]) for f in facts if f.startswith("copyright:")]
+    if years and years[0] <= year - STALE_AFTER_YEARS:
+        flags.append("stale_site")
+    if not any(f.startswith(("analytics:", "pixel:")) for f in facts):
+        flags.append("no_analytics")
+    booking = any(f.startswith("booking:") for f in facts)
+    if not booking and APPOINTMENT_CATEGORIES.intersection(lead.categories):
+        flags.append("no_online_booking")
+    return flags
+
+
+def score_lead(lead: Lead, year: int | None = None) -> tuple[int, list[str]]:
     has_social = any((lead.facebook, lead.instagram, lead.linkedin, lead.tiktok))
     score = 0
     if lead.email:
@@ -57,6 +79,7 @@ def score_lead(lead: Lead) -> tuple[int, list[str]]:
         flags.append("no_mobile_viewport")
     if lead.email and lead.email.split("@", 1)[1] in FREE_EMAIL_DOMAINS:
         flags.append("free_email_provider")
+    flags += site_flags(lead, year or int(utcnow_iso()[:4]))
     return min(score, 100), flags
 
 
