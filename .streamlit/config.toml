@@ -1,8 +1,45 @@
 # Streamlit settings for app/streamlit_app.py. Read from the folder you launch from (repo root).
 
+# One look on purpose: a light, green-tinted workspace with a dark field-green sidebar, and the
+# app's harvest green as the only accent. Text in Geist, headings in Outfit, data in Geist Mono.
 [theme]
-# Harvest green instead of Streamlit's default red, which reads as an error on chips and buttons.
+base = "light"
 primaryColor = "#2f7d4a"
+backgroundColor = "#f6f8f4"
+secondaryBackgroundColor = "#ebf0e8"
+textColor = "#15231b"
+linkColor = "#2a7044"
+borderColor = "#d9e2d6"
+showWidgetBorder = true
+baseRadius = "0.7rem"
+buttonRadius = "0.6rem"
+font = "Geist:https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap"
+headingFont = "Outfit:https://fonts.googleapis.com/css2?family=Outfit:wght@500;600&display=swap"
+codeFont = "'Geist Mono':https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap"
+headingFontSizes = ["2.1rem", "1.55rem", "1.3rem", "1.1rem", "0.98rem", "0.9rem"]
+headingFontWeights = [600, 600, 600, 600, 600, 600]
+metricValueFontSize = "1.9rem"
+metricValueFontWeight = 600
+dataframeHeaderBackgroundColor = "#ebf0e8"
+dataframeBorderColor = "#d9e2d6"
+# Semantic colours, softened to sit with the green (Streamlit's defaults are very saturated).
+greenColor = "#2f7d4a"
+redColor = "#c24a3e"
+orangeColor = "#c4861d"
+blueColor = "#2f6e8e"
+grayColor = "#8a978e"
+
+[theme.sidebar]
+backgroundColor = "#0f1d16"
+secondaryBackgroundColor = "#172a20"
+textColor = "#e4ece4"
+primaryColor = "#62b882"
+borderColor = "#22382c"
+greenColor = "#62b882"
+redColor = "#e0786c"
+orangeColor = "#e3a94a"
+blueColor = "#6aaed0"
+grayColor = "#8fa596"
 
 [client]
 # Hide the developer toolbar ("Deploy" and friends) from people using the app.

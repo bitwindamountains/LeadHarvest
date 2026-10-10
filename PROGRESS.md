@@ -8,6 +8,15 @@
 
 ## Done (newest first)
 
+- 2026-10-11: UI/UX redesign of the Streamlit app (230 tests pass, lint clean). Checked in a browser at 1366 px and 390 px against the seeded demo DB.
+  - **Theme:** `.streamlit/config.toml`. Fonts load as Google Fonts through `font`, `headingFont` and `codeFont`, plus softened semantic colours, `[theme.sidebar]` dark colours, radii, and the dataframe header colour.
+  - **Assets:** `app/assets/` holds `logo.svg` and `mark.svg` (`st.logo`, `page_icon`) and `brand_panel.html` for the sign-in panel. `st.html` strips svg and data images, so the panel is pure CSS.
+  - **Navigation:** the main area shows the search page when no run is picked. The sidebar's New search button calls `select_run(None)` before the picker is built.
+  - **Status icons:** `ui_support.STATUS_STYLE` and `status_markdown` replace the emoji `STATUS_ICONS`.
+  - **Not done:**
+    - On phones the sidebar opens over the page after sign-in. Streamlit decides this and the app can't control it.
+    - Status icon colours in the sidebar captions come out muted.
+
 - 2026-10-11: Value plan step D, segments (230 tests pass, lint clean, checked in a browser).
   - **Code:** `segments.py` (`SEGMENTS`, `apply_segment`) and `Pipeline.export_segment`. It writes CSV/XLSX with a `-<segment>` suffix and doesn't touch the run's recorded exports. CSV/XLSX `export()` take a `suffix`.
   - **CLI:** `export --segment`, csv/xlsx only.

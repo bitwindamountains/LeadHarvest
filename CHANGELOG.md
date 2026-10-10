@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Web UI redesign:
+  - **Look:** a calmer, more polished workspace. Text is set in Geist with Outfit headings, on a light green-tinted canvas with a dark sidebar, and harvest green is the only accent. Every emoji is replaced by a Material icon.
+  - **Sign-in:** a split screen, with a brand panel beside a sign-in card. On phones only the card shows.
+  - **Navigation:** the sidebar holds the logo, a **New search** button, the run history with status icons, and sign-out. The main area shows either the search page or the selected run, replacing the old collapsible "New search" box.
+  - **Search page:** a sectioned form ("What and where", "Size and delivery", "Advanced options") next to a "What happens next" guide.
+  - **Run page:** a status badge with the run details, the numbers as bordered cards, then the downloads, segment picker and table.
 - Segments, the lists agencies buy: `no-website`, `facebook-only`, `website-upgrade`, `no-booking` and `business-email`.
   - **Command line:** `export --segment NAME` writes each as its own CSV/XLSX.
   - **Web UI:** a **Show** picker filters the results table to a segment and downloads it as CSV. It replaces the "Only leads with an email" toggle, which lives on as "Has an email".

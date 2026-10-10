@@ -1,6 +1,7 @@
-"""LeadHarvest web UI (V1, F12): form → progress → results and downloads. Password-protected.
+"""LeadHarvest web UI (V1, F12): sign in → search → live progress → results and downloads.
 
 Run locally:  uv sync --extra ui && uv run streamlit run app/streamlit_app.py
+Look and feel: .streamlit/config.toml (theme, fonts) and app/assets/. Logic: ui_support.py.
 """
 
 from __future__ import annotations
@@ -26,8 +27,8 @@ from leadharvest.ui_support import (
     MAX_UI_LIMIT,
     SHOW_OPTIONS,
     SOURCE_LABELS,
-    STATUS_ICONS,
     STATUS_LABELS,
+    STATUS_STYLE,
     STEP_LABELS,
     TABLE_COLUMNS,
     TARGET_LABELS,
@@ -48,13 +49,15 @@ from leadharvest.ui_support import (
     short_time,
     shown_leads,
     source_choices,
+    status_markdown,
     validate_request,
     viewer_tz,
 )
 
-st.set_page_config(page_title="LeadHarvest", page_icon="🌾", layout="wide")
+ASSETS = Path(__file__).parent / "assets"
+LOGO, MARK = str(ASSETS / "logo.svg"), str(ASSETS / "mark.svg")
 
-TAGLINE = "Find businesses, enrich them from their own websites, and export clean leads."
+st.set_page_config(page_title="LeadHarvest", page_icon=MARK, layout="wide")
 
 
 class StatusReporter:
@@ -68,7 +71,7 @@ class StatusReporter:
     def step_started(self, step: str, total: int | None = None) -> None:
         self.box.update(label=f"{STEP_LABELS[step]}…")
         self.lines[step] = self.box.empty()
-        self.lines[step].markdown(f"⏳ {STEP_LABELS[step]}…")
+        self.lines[step].markdown(f":blue[:material/progress_activity:] {STEP_LABELS[step]}…")
         if step == "enrich":
             self.bar = self.box.progress(0.0)
 
@@ -78,7 +81,7 @@ class StatusReporter:
 
     def step_finished(self, step: str) -> None:
         if step in self.lines:
-            self.lines[step].markdown(f"✓ {STEP_LABELS[step]}")
+            self.lines[step].markdown(f":green[:material/check:] {STEP_LABELS[step]}")
 
 
 def open_repo(settings: Settings) -> Repository:
@@ -89,38 +92,51 @@ def open_repo(settings: Settings) -> Repository:
 # ---- sign-in ------------------------------------------------------------------------------------
 
 
+def brand_panel() -> str:
+    """The panel beside the sign-in form (markup and CSS in app/assets/brand_panel.html)."""
+    return (ASSETS / "brand_panel.html").read_text(encoding="utf-8")
+
+
 def sign_in(settings: Settings) -> None:
-    _, middle, _ = st.columns([1, 1.2, 1])
-    with middle:
-        st.title("🌾 LeadHarvest")
-        st.caption(TAGLINE)
+    brand, form = st.columns([1.15, 1], gap="large", vertical_alignment="center")
+    with brand:
+        st.html(brand_panel())
+    with form:
+        st.image(MARK, width=34)
+        st.header("Sign in", anchor=False)
         if not settings.ui_password:
             st.error("Set LH_UI_PASSWORD in .env (or app secrets) so strangers can't run scrapes.")
             st.stop()
+        st.caption("Enter the workspace password. It's set as LH_UI_PASSWORD in `.env`.")
         with st.form("sign_in"):
-            attempt = st.text_input("Password", type="password")
-            if st.form_submit_button("Sign in", type="primary", width="stretch"):
+            attempt = st.text_input("Password", type="password", placeholder="Workspace password")
+            if st.form_submit_button(
+                "Sign in", type="primary", width="stretch", icon=":material/login:"
+            ):
                 if password_ok(settings, attempt):
                     st.session_state["authed"] = True
                     st.rerun()
                 # Slows guessing; a new session per guess gets the same delay.
                 time.sleep(1)
-                st.error("Wrong password.")
+                st.error("Wrong password. Check LH_UI_PASSWORD in `.env`.")
     st.stop()
 
 
-# ---- sidebar: recent runs -----------------------------------------------------------------------
+# ---- sidebar: new search and recent runs -------------------------------------------------------
 
 
 def select_run(run_id: str | None) -> None:
-    """Open a run on the next rerun (the sidebar picker owns the current selection)."""
+    """Open a run (or, with None, the search page) on the next rerun. The sidebar picker owns
+    the current selection."""
     st.session_state["select_run"] = run_id
 
 
 def sidebar(repo: Repository, categories: dict[str, Category]) -> str | None:
-    """Recent runs; returns the id of the run to show."""
+    """New search, recent runs and sign-out; returns the id of the run to show."""
+    st.logo(LOGO, icon_image=MARK, size="large")
     with st.sidebar:
-        st.header("Recent runs")
+        if st.button("New search", icon=":material/add:", width="stretch", key="new_search"):
+            select_run(None)
         runs = {run.id: run for run in repo.list_runs(15)}
         # Only write the picker's state when it must change: rewriting a widget's state on
         # every rerun makes Streamlit ignore the user's next click on it.
@@ -129,9 +145,10 @@ def sidebar(repo: Repository, categories: dict[str, Category]) -> str | None:
         picked = st.session_state.get("run_picker", "unset")
         if picked is not None and picked not in runs:  # first visit, or the run aged out
             st.session_state["run_picker"] = None
+        st.markdown("###### Recent runs")
         choice = None
         if not runs:
-            st.caption("Your runs will appear here.")
+            st.caption("Runs you start appear here, newest first.")
         else:
             labels = run_labels(list(runs.values()), categories)
             choice = st.radio(
@@ -141,8 +158,8 @@ def sidebar(repo: Repository, categories: dict[str, Category]) -> str | None:
                 label_visibility="collapsed",
                 format_func=labels.__getitem__,
                 captions=[
-                    f"{STATUS_ICONS[r.status]} {STATUS_LABELS[r.status]} · "
-                    f"{ago(r.created_at)} · {repo.count_run_leads(r.id)} leads"
+                    f"{status_markdown(r.status)} · {ago(r.created_at)} · "
+                    f"{repo.count_run_leads(r.id)} leads"
                     for r in runs.values()
                 ],
             )
@@ -153,12 +170,52 @@ def sidebar(repo: Repository, categories: dict[str, Category]) -> str | None:
     return choice
 
 
-# ---- new run form -------------------------------------------------------------------------------
+# ---- new search ---------------------------------------------------------------------------------
+
+
+def search_page(
+    settings: Settings, repo: Repository, categories: dict[str, Category], first_time: bool
+) -> None:
+    st.header("New search", anchor=False)
+    st.caption(
+        "Choose a category and a place. LeadHarvest finds the businesses, visits their "
+        "websites and builds the list."
+    )
+    problems = setup_problems(settings)
+    for problem in problems:
+        st.error(problem, icon=":material/settings:")
+    if problems:
+        return
+    form_col, help_col = st.columns([1.75, 1], gap="large")
+    with help_col:
+        what_happens_next(first_time)
+    with form_col:
+        run_form(settings, repo, categories)
+
+
+def what_happens_next(first_time: bool) -> None:
+    with st.container(border=True):
+        st.markdown("##### What happens next")
+        st.markdown(
+            ":material/travel_explore: **Search** the place for businesses in the category  \n"
+            ":material/cleaning_services: **Clean** names and phones, and merge duplicates  \n"
+            ":material/language: **Visit** each website for emails, phones and social pages  \n"
+            ":material/insights: **Score** each lead and flag sales openings  \n"
+            ":material/ios_share: **Export** to the files and tools you picked"
+        )
+        st.caption(
+            "Websites are visited politely, with a pause between requests, so 100 leads take a "
+            "few minutes. Keep this tab open until the run finishes. If you click elsewhere in "
+            "the app, the run pauses and you can resume it from its page."
+        )
+    if first_time:
+        st.caption(":material/history: Finished runs appear in the sidebar, newest first.")
 
 
 def run_form(settings: Settings, repo: Repository, categories: dict[str, Category]) -> None:
     choices = export_choices(settings)
-    with st.form("run", border=False):  # the "New search" expander already frames it
+    with st.form("run"):
+        st.markdown("##### What and where")
         # One st.columns row per pair, so phones stack the fields in reading order.
         left, right = st.columns(2)
         category_key = left.selectbox(
@@ -169,6 +226,7 @@ def run_form(settings: Settings, repo: Repository, categories: dict[str, Categor
             placeholder="Makati, Philippines",
             help="A city, municipality or barangay. Add the province if the name is common.",
         )
+        st.markdown("##### Size and delivery")
         left, right = st.columns(2)
         limit = left.number_input(
             "Max leads", 1, MAX_UI_LIMIT, 100, step=50,
@@ -179,7 +237,14 @@ def run_form(settings: Settings, repo: Repository, categories: dict[str, Categor
         )
         if len(choices) < len(TARGET_LABELS):
             right.caption("Google Sheets and HubSpot appear here once set up in .env.")
-        with st.expander("Advanced options"):
+        with st.expander("Advanced options", icon=":material/tune:"):
+            sources = st.multiselect(
+                "Data sources", source_choices(), default=["osm"],
+                format_func=SOURCE_LABELS.get,
+                help="Overture Maps has far more businesses, many with a phone, email or "
+                "Facebook page, and its licence has no share-alike. A list that mixes in "
+                "OpenStreetMap data falls under the ODbL.",
+            )  # fmt: skip
             js = st.checkbox(
                 "Render JavaScript-only websites",
                 help="Opens near-empty sites in a headless browser to find their contacts. "
@@ -190,19 +255,9 @@ def run_form(settings: Settings, repo: Repository, categories: dict[str, Categor
                 value=settings.mx_check,
                 help="Checks each email domain's mail (MX) records before export.",
             )
-            sources = st.multiselect(
-                "Data sources", source_choices(), default=["osm"],
-                format_func=SOURCE_LABELS.get,
-                help="Overture Maps has far more businesses, many with a phone, email or "
-                "Facebook page, and its licence has no share-alike. A list that mixes in "
-                "OpenStreetMap data falls under the ODbL.",
-            )  # fmt: skip
-        submitted = st.form_submit_button("Find leads", type="primary", key="find")
-    st.caption(
-        "Websites are visited politely, with a pause between requests, so 100 leads take a few "
-        "minutes. Keep this tab open and don't click elsewhere in the app until the run "
-        "finishes; if you do, the run pauses and you can resume it."
-    )
+        submitted = st.form_submit_button(
+            "Find leads", type="primary", key="find", icon=":material/search:"
+        )
     if not submitted:
         return
     request = validate_request(
@@ -266,44 +321,53 @@ def show_run(
     meta = [f"Run {run.id[:8]}", f"started {started} ({ago(run.created_at)})"]
     if run.status == "completed" and run_seconds(run) >= 1:
         meta.append(f"took {duration_text(run_seconds(run))}")
-    st.caption(" · ".join(meta))
+    with st.container(horizontal=True, vertical_alignment="center", gap="small"):
+        icon, color = STATUS_STYLE[run.status]
+        st.badge(STATUS_LABELS[run.status], icon=icon, color=color)
+        st.caption(" · ".join(meta))
     status_banner(settings, repo, run, categories)
 
     leads = repo.leads_for_run(run.id)
     if not leads:
         if run.current_step == "done":
             st.info(
-                "No businesses found. Try a broader area (the city rather than a barangay) or a "
-                "related category."
+                "No businesses found. Try a broader area (the city rather than a barangay), a "
+                "related category, or add Overture Maps under Advanced options.",
+                icon=":material/search_off:",
             )
         return
     clean, score = run.stats.get("clean", {}), run.stats.get("score", {})
     total = len(leads)
     # A wrapping row, not st.columns: columns stack one per line on phones, which pushes the
     # table a full screen down.
-    with st.container(horizontal=True, gap="medium"):
-        st.metric("Leads", total, width="content")
+    with st.container(horizontal=True, gap="small"):
+        st.metric("Leads", total, width="content", border=True)
         st.metric("New this run", clean.get("new", "—"), help="Not seen in any earlier run.",
-                  width="content")  # fmt: skip
-        st.metric("With email", share(sum(1 for x in leads if x.email), total), width="content")
-        st.metric("With phone", share(sum(1 for x in leads if x.phone), total), width="content")
+                  width="content", border=True)  # fmt: skip
+        st.metric("With email", share(sum(1 for x in leads if x.email), total),
+                  width="content", border=True)  # fmt: skip
+        st.metric("With phone", share(sum(1 for x in leads if x.phone), total),
+                  width="content", border=True)  # fmt: skip
         st.metric(
             "Average score",
             score.get("average_score", "—"),
             help="From 0 to 100: higher means more ways to reach the business.",
             width="content",
+            border=True,
         )
     exports(settings, run)
 
-    show = st.selectbox(
+    st.markdown("##### Leads")
+    pick, action = st.columns([1.1, 2], vertical_alignment="bottom")
+    show = pick.selectbox(
         "Show", list(SHOW_OPTIONS), format_func=SHOW_OPTIONS.__getitem__, key=f"show-{run.id}",
         help="Segments agencies buy, e.g. businesses with no website. Each can be downloaded.",
     )  # fmt: skip
     shown = shown_leads(leads, show)
     rows = result_rows(shown, run.category)
     if show != "all":
-        # Button on the left: the table's own toolbar appears top right on hover.
-        with st.container(horizontal=True, vertical_alignment="center"):
+        # Left of the table's own toolbar, which appears top right on hover.
+        with action.container(horizontal=True, vertical_alignment="center"):
             st.download_button(
                 f"Download these {len(shown)} (CSV)", csv_download(shown, run.category),
                 file_name=f"{export_basename(run)}-{show}.csv", icon=":material/download:",
@@ -418,18 +482,12 @@ def main() -> None:
     repo = open_repo(settings)
     try:
         run_id = sidebar(repo, categories)
-        # A brand line, not a page title: the run's results should be near the top.
-        st.markdown("**🌾 LeadHarvest**")
         run = repo.get_run(run_id) if run_id else None
-        problems = setup_problems(settings)
-        for problem in problems:
-            st.error(problem)
-        if not problems:
-            # Collapsed while a run is open, so its results are the first thing on the page.
-            with st.expander("New search", expanded=run is None, icon=":material/search:"):
-                run_form(settings, repo, categories)
-        if run is not None:
+        if run is None:
+            search_page(settings, repo, categories, first_time=not repo.list_runs(1))
+        else:
             show_run(settings, repo, run, categories)
+        st.divider()
         st.caption(attribution(run, []) if run is not None else OSM_ATTRIBUTION)
     finally:
         repo.conn.close()

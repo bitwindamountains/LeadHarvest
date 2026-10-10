@@ -124,7 +124,21 @@ STEP_LABELS = {
 }
 STATUS_LABELS = {"completed": "Completed", "partial": "Paused", "failed": "Failed",
                  "running": "Running"}  # fmt: skip
-STATUS_ICONS = {"completed": "✅", "partial": "⏸️", "failed": "❌", "running": "⏳"}
+# Status as (Material icon, Streamlit colour): badges in the run header, coloured icons in lists.
+STATUS_STYLE = {
+    "completed": (":material/check_circle:", "green"),
+    "partial": (":material/pause_circle:", "orange"),
+    "failed": (":material/error:", "red"),
+    "running": (":material/progress_activity:", "blue"),
+}
+
+
+def status_markdown(status: str) -> str:
+    """':green[:material/check_circle:] Completed' for captions and other markdown."""
+    icon, color = STATUS_STYLE[status]
+    return f":{color}[{icon}] {STATUS_LABELS[status]}"
+
+
 FLAG_LABELS = {
     "no_website": "No website",
     "social_only": "Social media only",

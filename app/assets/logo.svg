@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 36" width="196" height="36" role="img" aria-label="LeadHarvest">
+  <path d="M15 32V13" stroke="#e6b54e" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M15 19c-4.7 0-7.4-2.9-8-7.3 4.5.3 7.5 2.7 8 7.3Zm0-4c4.7 0 7.4-2.9 8-7.3-4.5.3-7.5 2.7-8 7.3Zm0 9.4c-4 0-6.3-2.4-7-6.1 3.9.3 6.4 2.3 7 6.1Zm0 0c4 0 6.3-2.4 7-6.1-3.9.3-6.4 2.3-7 6.1Z" fill="#e6b54e"/>
+  <text x="34" y="25" fill="#eef3ec" font-family="Outfit, 'Segoe UI', Arial, sans-serif" font-size="20" font-weight="600" letter-spacing="-0.3">LeadHarvest</text>
+</svg>

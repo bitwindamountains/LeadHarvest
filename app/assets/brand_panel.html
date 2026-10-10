@@ -1,0 +1,51 @@
+<!-- Brand panel beside the sign-in form (app/streamlit_app.py). st.html strips <svg> and
+     data: images, so the wordmark and ticks are pure CSS. Its CSS is prefixed lh- and hides the
+     panel on phones, where the form comes first. -->
+<style>
+.lh-brand {
+  position: relative; overflow: hidden; border-radius: 22px; min-height: 460px;
+  padding: 40px; display: flex; flex-direction: column; justify-content: space-between; gap: 40px;
+  color: #eef3ec; background:
+    radial-gradient(circle, rgba(230, 181, 78, 0.55) 1.3px, transparent 1.9px) 0 0 / 22px 22px,
+    radial-gradient(ellipse 80% 70% at 15% 10%, #1d3a2a 0%, transparent 70%),
+    linear-gradient(160deg, #10201a 0%, #0c1712 100%);
+}
+.lh-brand::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 75% 60% at 30% 45%, rgba(12, 23, 18, 0.94),
+                              rgba(12, 23, 18, 0.35));
+}
+.lh-brand > * { position: relative; z-index: 1; }
+.lh-word {
+  display: inline-flex; align-items: center; gap: 10px;
+  font: 600 1.3rem/1 Outfit, "Segoe UI", sans-serif; letter-spacing: -0.01em;
+}
+.lh-word::before {  /* the gold grain mark */
+  content: ""; width: 12px; height: 18px; border-radius: 12px 0 12px 0; background: #e6b54e;
+  transform: rotate(-20deg);
+}
+.lh-brand h2 {
+  font: 600 2.1rem/1.12 Outfit, "Segoe UI", sans-serif; letter-spacing: -0.02em;
+  margin: 0 0 20px; max-width: 26rem; color: #eef3ec; padding: 0;
+}
+.lh-brand ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; max-width: 27rem; }
+.lh-brand li { position: relative; padding-left: 30px; color: #b9c8bd; line-height: 1.5; margin: 0; }
+.lh-brand li::before {  /* a tick drawn with two borders */
+  content: ""; position: absolute; left: 4px; top: 5px; width: 6px; height: 11px;
+  border: solid #e6b54e; border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.lh-brand .lh-foot { color: #8fa596; font-size: 0.86rem; }
+@media (max-width: 760px) { .lh-brand { display: none; } }
+</style>
+<div class="lh-brand">
+  <span class="lh-word">LeadHarvest</span>
+  <div>
+    <h2>Leads from any Philippine city, ready for your team.</h2>
+    <ul>
+      <li>Businesses found by category and place, from open map data.</li>
+      <li>Emails, phones and social pages read from each business's own website.</li>
+      <li>Scored, flagged and exported to Sheets, Excel, CSV or HubSpot.</li>
+    </ul>
+  </div>
+  <span class="lh-foot">Private workspace. Only people with the password can run searches.</span>
+</div>
