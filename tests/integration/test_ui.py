@@ -61,8 +61,15 @@ def test_validate_request() -> None:
     ok = validate_request(cats, "dentist", "  Makati,   Philippines ", 50, ["csv"], False, True)
     assert not isinstance(ok, list)
     assert ok.location == "Makati, Philippines"
+    assert ok.sources == ["osm"]  # the default
     errors = validate_request(cats, "nope", "x", 0, [], False, True)
     assert isinstance(errors, list) and len(errors) == 4
+    both = validate_request(
+        cats, "dentist", "Makati", 50, ["csv"], False, True, ["osm", "overture"]
+    )
+    assert not isinstance(both, list) and both.sources == ["osm", "overture"]
+    assert validate_request(cats, "dentist", "Makati", 50, ["csv"], False, True, []) == [
+        "Choose at least one data source."]  # fmt: skip
 
 
 def _run(run_id: str = "r1", **kw: object) -> Run:

@@ -4,7 +4,7 @@ Full spec: docs/BLUEPRINT.md. Read the relevant section before changing code.
 
 ## Commands
 (On this machine uv isn't on PATH: use `python -m uv ...`.)
-- Install: `uv sync` (`uv sync --all-extras` for Playwright `js` and Streamlit `ui`; then `uv run playwright install chromium`)
+- Install: `uv sync` (`uv sync --all-extras` for Playwright `js`, Streamlit `ui` and DuckDB `overture`; then `uv run playwright install chromium`)
 - Run: `uv run leadharvest --help`; UI: `uv run streamlit run app/streamlit_app.py`
 - Test: `uv run pytest -q`; one test: `uv run pytest tests/unit/test_dedupe.py -k <name>`; live (network, needs real `LH_USER_AGENT`): `uv run pytest -m live`
 - Lint/format: `uv run ruff check . --fix && uv run ruff format .`
@@ -12,7 +12,7 @@ Full spec: docs/BLUEPRINT.md. Read the relevant section before changing code.
 ## Architecture
 - Pipeline (`pipeline.py`): `search → clean → enrich → score → export → done`, each step idempotent; `resume` restarts at `runs.current_step`. SQLite (`data/leads.db`) is the only state.
 - `cli.py` (Typer) → `pipeline.py`; `batch.py` runs many jobs as ordinary runs tagged `options={"batch","row"}`; `monitor` = batch named `<name>@YYYY-Www` plus "new since last run" exports.
-- Sources: `sources/osm_overpass.py`, YAML directory adapters (`config/directories/`); area resolution in `geo/nominatim.py`.
+- Sources: `sources/osm_overpass.py`, `sources/overture.py` (DuckDB over the latest Overture places GeoParquet, filtered to the Nominatim boundary; tests build a synthetic parquet), YAML directory adapters (`config/directories/`); area resolution and boundaries in `geo/nominatim.py`. Export attribution follows the sources (`exporters/base.attribution`).
 - Schema changes: add `storage/migrations/NNN_*.sql` (applied in order by `storage/db.py`).
 - Exporters (`exporters/`) share `MANAGED_COLUMNS` in `base.py`; Sheets only touches managed columns.
 - UI: `app/streamlit_app.py` is layout only; put logic in `ui_support.py` (tested in `tests/integration/test_ui.py` with AppTest and a fake `Pipeline.execute`). Theme lives in `.streamlit/config.toml`, so launch from the repo root. Radio and select options need unique labels.

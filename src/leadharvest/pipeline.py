@@ -37,6 +37,7 @@ from leadharvest.sources.directory import (
     load_directory_config,
 )
 from leadharvest.sources.osm_overpass import OsmOverpassSource, OverpassClient
+from leadharvest.sources.overture import OvertureSource
 from leadharvest.storage.repository import Repository
 
 log = get_logger("pipeline")
@@ -71,19 +72,26 @@ class RunInProgress(Exception):
     """The run is already marked running: by another tab or process, or by a crash."""
 
 
-def default_sources(settings: Settings, sleep: Sleep = asyncio.sleep) -> SourcesFactory:
-    """Build the run's sources: "osm" and/or "directory:<name>"."""
+def default_sources(
+    settings: Settings, repo: Repository, sleep: Sleep = asyncio.sleep
+) -> SourcesFactory:
+    """Build the run's sources: "osm", "overture" and/or "directory:<name>"."""
 
     def build(client: httpx.AsyncClient, run: Run, fetcher: PoliteFetcher) -> list[Source]:
         sources: list[Source] = []
         for name in run.sources:
             if name == "osm":
                 sources.append(OsmOverpassSource(OverpassClient(settings, client, sleep=sleep)))
+            elif name == "overture":
+                geo = NominatimClient(settings, client, repo)
+                sources.append(OvertureSource(client, geo))
             elif name.startswith("directory:"):
                 config = load_directory_config(name.split(":", 1)[1])
                 sources.append(DirectorySource(config, fetcher))
             else:
-                raise SourceError(f"Unknown source '{name}'. Use osm or directory:<name>.")
+                raise SourceError(
+                    f"Unknown source '{name}'. Use osm, overture or directory:<name>."
+                )
         return sources
 
     return build
@@ -115,7 +123,7 @@ class Pipeline:
         self.settings = settings
         self.repo = repo
         self.exporter_factory = exporter_factory
-        self.sources_factory = sources_factory or default_sources(settings, sleep)
+        self.sources_factory = sources_factory or default_sources(settings, repo, sleep)
         self.renderer_factory = renderer_factory or default_renderer(settings)
         self.mx_lookup = mx_lookup
         self.resolver = resolver
@@ -264,7 +272,7 @@ class Pipeline:
             )  # fmt: skip
         query = SearchQuery(
             category=category.key, osm_tags=category.osm_tags, location=run.location,
-            area=area, limit=run.limit_n,
+            area=area, limit=run.limit_n, overture_categories=category.overture,
         )  # fmt: skip
         stats: dict[str, Any] = {
             "area": area.display_name or area.name,

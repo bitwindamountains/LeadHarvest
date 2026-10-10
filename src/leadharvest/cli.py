@@ -50,6 +50,7 @@ from leadharvest.sources.directory import (
     available_directories,
     load_directory_config,
 )
+from leadharvest.sources.overture import duckdb_installed
 from leadharvest.storage.db import connect
 from leadharvest.storage.repository import Repository
 
@@ -98,12 +99,14 @@ def _parse_sources(value: str) -> list[str]:
     """'osm', 'directory:<name>', or a comma list. Directory configs are validated now."""
     sources = [s.strip() for s in value.split(",") if s.strip()]
     if not sources:
-        raise _fail("--sources needs at least one source (osm or directory:<name>).")
+        raise _fail("--sources needs at least one source (osm, overture or directory:<name>).")
     for source in sources:
-        if source == "osm":
+        if source == "overture" and not duckdb_installed():
+            raise _fail("The overture source needs DuckDB: uv sync --extra overture")
+        if source in ("osm", "overture"):
             continue
         if not source.startswith("directory:"):
-            raise _fail(f"Unknown source {source!r}. Use osm or directory:<name>.")
+            raise _fail(f"Unknown source {source!r}. Use osm, overture or directory:<name>.")
         try:
             load_directory_config(source.split(":", 1)[1])
         except DirectoryConfigError as exc:
@@ -378,7 +381,9 @@ def run(
     location: Annotated[str, typer.Option(help='Area, e.g. "Makati, Philippines".')],
     limit: Annotated[int, typer.Option(min=1, max=5000, help="Max leads in this run.")] = 200,
     to: Annotated[str, typer.Option(help="Export targets: csv,xlsx,sheets,hubspot.")] = "csv,xlsx",
-    sources: Annotated[str, typer.Option(help="osm and/or directory:<name>, comma list.")] = "osm",
+    sources: Annotated[
+        str, typer.Option(help="osm, overture and/or directory:<name>, comma list.")
+    ] = "osm",
     js: Annotated[bool, typer.Option(help="Render near-empty JS sites with Playwright.")] = False,
     mx: Annotated[bool, typer.Option(help="Drop emails on domains without mail servers.")] = True,
     any_country: Annotated[bool, typer.Option(help="Don't restrict to LH_DEFAULT_REGION.")] = False,
@@ -410,7 +415,9 @@ def search(
     category: Annotated[str, typer.Option(help="Category key, e.g. dentist.")],
     location: Annotated[str, typer.Option(help='Area, e.g. "Makati, Philippines".')],
     limit: Annotated[int, typer.Option(min=1, max=5000)] = 200,
-    sources: Annotated[str, typer.Option(help="osm and/or directory:<name>, comma list.")] = "osm",
+    sources: Annotated[
+        str, typer.Option(help="osm, overture and/or directory:<name>, comma list.")
+    ] = "osm",
     any_country: Annotated[bool, typer.Option()] = False,
 ) -> None:
     """Search only: resolve the location and save raw records (continue with 'resume')."""

@@ -16,7 +16,7 @@ from typing import Any, Protocol
 from gspread.utils import rowcol_to_a1
 from tenacity import Retrying, retry_if_exception, stop_after_attempt, wait_exponential
 
-from leadharvest.exporters.base import MANAGED_COLUMNS, ExportError, lead_to_row
+from leadharvest.exporters.base import MANAGED_COLUMNS, ExportError, attribution, lead_to_row
 from leadharvest.models import ExportResult, Lead, Run
 
 MAX_TAB_LEN = 100
@@ -35,6 +35,7 @@ class WorksheetLike(Protocol):
     def freeze(self, rows: int | None = None, cols: int | None = None) -> Any: ...
     def format(self, ranges: str, cell_format: dict[str, Any]) -> Any: ...
     def set_basic_filter(self, name: str | None = None) -> Any: ...
+    def update_note(self, cell: str, content: str) -> Any: ...
 
 
 @dataclass
@@ -186,7 +187,7 @@ class SheetsExporter:
         return self._retrying(fn, *args, **kwargs)
 
     def _upsert(
-        self, title: str, rows: list[dict[str, object]], columns: tuple[str, ...]
+        self, title: str, rows: list[dict[str, object]], columns: tuple[str, ...], note: str
     ) -> SheetPlan:
         try:
             ws = self._call(self.open_worksheet, title, len(rows) + 1)
@@ -203,6 +204,8 @@ class SheetsExporter:
             self._call(ws.format, "1:1", {"textFormat": {"bold": True}})
             self._call(ws.freeze, rows=1)
             self._call(ws.set_basic_filter)
+            # Data licences need attribution; a note on the header keeps the client's columns.
+            self._call(ws.update_note, "A1", note)
         except Exception as exc:
             raise ExportError(f"Google Sheets export failed: {exc}") from exc
         return plan
@@ -210,7 +213,7 @@ class SheetsExporter:
     def export(self, leads: list[Lead], run: Run) -> ExportResult:
         title = tab_title(run.category, run.area_name or run.location)
         rows: list[dict[str, object]] = [lead_to_row(lead, run.category) for lead in leads]
-        plan = self._upsert(title, rows, MANAGED_COLUMNS)
+        plan = self._upsert(title, rows, MANAGED_COLUMNS, attribution(run, leads))
         return ExportResult(
             exporter=self.name,
             target=f"{self.target_label} / {title}",
@@ -229,7 +232,7 @@ class SheetsExporter:
         rows: list[dict[str, object]] = [
             {"found_on": found_on, **lead_to_row(lead, run.category)} for lead in leads
         ]
-        plan = self._upsert(title, rows, NEW_TAB_COLUMNS)
+        plan = self._upsert(title, rows, NEW_TAB_COLUMNS, attribution(run, leads))
         return ExportResult(
             exporter=self.name,
             target=f"{self.target_label} / {title}",

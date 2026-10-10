@@ -1,4 +1,4 @@
-"""XLSX export: text cells (phones stay +63…), bold frozen header, About sheet with ODbL note."""
+"""XLSX export: text cells (phones stay +63…), bold frozen header, About sheet with attribution."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from openpyxl.utils import get_column_letter
 from leadharvest.exporters.base import (
     MANAGED_COLUMNS,
     NUMERIC_COLUMNS,
-    OSM_ATTRIBUTION,
+    attribution,
     export_basename,
     lead_to_row,
 )
@@ -65,7 +65,7 @@ class XlsxExporter:
 
         about = wb.create_sheet("About")
         for row in (
-            ("Attribution", OSM_ATTRIBUTION),
+            ("Attribution", attribution(run, leads)),
             ("Category", run.category),
             ("Location", run.location),
             ("Run ID", run.id),

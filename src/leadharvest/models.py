@@ -42,6 +42,7 @@ class SearchQuery(BaseModel):
     osm_tags: list[str]
     location: str
     area: ResolvedArea
+    overture_categories: list[str] = Field(default_factory=list)
     limit: int = 200
 
     @property

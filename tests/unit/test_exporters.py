@@ -99,6 +99,7 @@ class FakeWorksheet:
         self.col_count = cols
         self.calls: list[str] = []
         self.input_options: list[str] = []
+        self.notes: dict[str, str] = {}
 
     def get_all_values(self) -> list[list[str]]:
         self.calls.append("get_all_values")
@@ -137,6 +138,9 @@ class FakeWorksheet:
     def set_basic_filter(self, name: str | None = None) -> None:
         self.calls.append("filter")
 
+    def update_note(self, cell: str, content: str) -> None:
+        self.notes[cell] = content
+
     def column(self, header: str) -> list[Any]:
         idx = [str(h) for h in self.grid[0]].index(header)
         return [r[idx] if idx < len(r) else "" for r in self.grid[1:]]
@@ -156,6 +160,7 @@ def test_new_sheet_gets_header_and_rows() -> None:
     assert (result.rows_appended, result.rows_updated) == (2, 0)
     assert set(ws.input_options) == {"RAW"}
     assert ws.calls.count("get_all_values") == 1 and ws.calls.count("batch_update") == 1
+    assert ws.notes["A1"].startswith("Data © OpenStreetMap")  # licence attribution
 
 
 def test_reexport_updates_appends_and_keeps_client_notes() -> None:

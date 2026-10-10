@@ -4,7 +4,7 @@ Type "dental clinics in Makati" and get a clean, deduplicated, enriched lead lis
 
 LeadHarvest is a Python command-line tool that:
 
-1. **Finds businesses** by category and location from OpenStreetMap (free, open data).
+1. **Finds businesses** by category and location from OpenStreetMap and/or Overture Maps (both free, open data).
 2. **Enriches** each one from its *own* website: emails, extra phone numbers, and social profiles, including schema.org data. It obeys robots.txt and rate limits.
 3. **Cleans** the data: E.164 phone numbers, normalized URLs, and deduplication that won't merge a chain's branches just because they share a hotline.
 4. **Exports** to CSV, XLSX, or a Google Sheet. Re-exporting updates existing rows and never touches the client's own columns ("Status", "Notes", ...).
@@ -28,7 +28,7 @@ Files land in `data/exports/`. Open the `.xlsx` in Excel. Excel mangles `+63…`
 
 | Command | What it does |
 |---|---|
-| `run --category X --location "Y" [--limit N] [--to csv,xlsx,sheets,hubspot] [--sources osm,directory:NAME] [--js] [--no-mx]` | Full run: search, clean, enrich, score, export |
+| `run --category X --location "Y" [--limit N] [--to csv,xlsx,sheets,hubspot] [--sources osm,overture,directory:NAME] [--js] [--no-mx]` | Full run: search, clean, enrich, score, export |
 | `search --category X --location "Y" [--sources ...]` | Search only; continue later with `resume` |
 | `resume [--run ID] [--force]` | Continue an interrupted or partial run from its last step. A run still marked running is refused; `--force` takes it over after a crash |
 | `enrich [--run ID] [--retry-failed] [--refresh-days N]` | (Re-)enrich a run's leads |
@@ -68,6 +68,8 @@ uv sync --extra js && uv run playwright install chromium
 ```
 
 **Directory adapters (`--sources directory:NAME`).** Add a public business directory you're allowed to scrape: copy `config/directories/_template.yaml`, confirm every item on its scraping checklist (the adapter refuses to load otherwise), fill in CSS selectors, then check it with `leadharvest test-adapter NAME --pages 1`. Combine sources with `--sources osm,directory:NAME`.
+
+**Overture Maps (`--sources overture`).** Install it with `uv sync --extra overture`, which adds DuckDB. Each run reads the latest monthly [Overture Maps](https://docs.overturemaps.org/guides/places/) places release for the area's bounding box, about 40 s for a city. It keeps places inside the city's boundary (from Nominatim) and above a confidence floor. Most records come from Facebook pages, so it finds far more small Philippine businesses than OpenStreetMap, often with a phone, email or Facebook link. In one Makati check there were about 800 dental clinics; 90% had a phone and half had an email. The `overture:` lists in `config/categories.yaml` map each category to Overture's taxonomy.
 
 **HubSpot (`--to hubspot`).** Create a HubSpot private app with the `crm.objects.companies.read` and `.write` scopes and put its token in `HUBSPOT_ACCESS_TOKEN`. Companies are matched by domain (or exact name when there's no domain). Existing companies only get fields that are empty in HubSpot; your team's edits are never overwritten.
 
@@ -128,7 +130,7 @@ If your clients send email to these leads, they must follow anti-spam law (CAN-S
 
 ## Data and attribution
 
-Business listings come from **© OpenStreetMap contributors**, available under the [Open Database License](https://www.openstreetmap.org/copyright). Every export carries this attribution (the XLSX `About` sheet; a `.about.txt` next to each CSV). Coverage is good in Metro Manila and thinner in the provinces.
+Business listings come from **© OpenStreetMap contributors**, available under the [Open Database License](https://www.openstreetmap.org/copyright), and/or from **Overture Maps Foundation**, whose places data is under CDLA Permissive 2.0, Apache 2.0 or CC0 depending on the provider, with no OpenStreetMap data and no share-alike. Every export carries the attribution for the sources it used: the XLSX `About` sheet, a `.about.txt` next to each CSV, and a note on the Google Sheet's header cell. A list that mixes OpenStreetMap data in falls under the ODbL. Coverage is good in Metro Manila and thinner in the provinces.
 
 Expect an email for only part of the leads: many small businesses publish only a Facebook page. Quote clients the hit rate from your own runs.
 

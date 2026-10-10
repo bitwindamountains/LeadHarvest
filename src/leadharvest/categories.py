@@ -21,6 +21,7 @@ class Category(BaseModel):
     key: str
     label: str
     osm_tags: list[str]
+    overture: list[str] = Field(default_factory=list)  # Overture taxonomy values (any level)
     synonyms: list[str] = Field(default_factory=list)
 
     @field_validator("osm_tags")

@@ -8,6 +8,21 @@
 
 ## Done (newest first)
 
+- 2026-10-11: Value plan step B, the Overture Maps source (223 tests pass, lint clean, filters mutation-checked).
+  - **Live data check** (anonymous read of Overture's public bucket): about 40 s for a Makati-sized bounding box. It had 868 dental places in the box (which also covers parts of Pasay, Taguig and Manila): 90% with a phone, 53% with an email, almost all with a Facebook page, and 28% with a website. Meta supplies about 95% of the records.
+  - **Code:** `sources/overture.py`.
+    - **Query:** DuckDB `read_parquet` over the latest release (from the STAC catalog), filtered by bbox, by `list_has_any(taxonomy.hierarchy, ...)`, by confidence ≥ 0.5 and by not being permanently closed.
+    - **Boundary:** `NominatimClient.boundary`, a cached `/lookup?osm_ids=R…&polygon_geojson=1`, with ray-casting point-in-polygon filtering (holes respected).
+    - **Ordering:** most confident first, cut to `fetch_n`.
+    - **Addresses:** a leading house number is split off the freeform address, so street keys match OSM's for dedupe.
+  - **Categories:** `overture:` taxonomy lists in `categories.yaml` for all 12 categories, checked against the real taxonomy.
+  - **Attribution:** `exporters/base.attribution(run, leads)` lists only the sources used. The Sheets export puts it in a note on A1; before this, it had none.
+  - **UI:** a "Data sources" multiselect in Advanced options. The default stays `osm`.
+  - **Not done:**
+    - I didn't run the live end-to-end Overture test (`tests/test_live.py`); it needs the owner's contact UA for Nominatim.
+    - The D6 default source is still open (blueprint section 23).
+    - `MIN_CONFIDENCE` is untuned.
+
 - 2026-10-11: UI polish after a browser review: a seeded throwaway DB in the scratchpad, with runs in every state, viewed at 1366 px and 390 px. 214 tests pass, lint clean.
   - **Header:** signed in, it is a `**🌾 LeadHarvest**` brand line. The sign-in page keeps the title and tagline. The divider above a run is gone.
   - **Metrics:** in `st.container(horizontal=True)` with `width="content"`. `st.columns` stacks one per line on phones.

@@ -24,7 +24,8 @@ dependencies = [
 
 [project.optional-dependencies]
 js = ["playwright>=1.44"]
-ui = ["streamlit>=1.36"]
+overture = ["duckdb>=1.1"]  # the Overture Maps places source reads GeoParquet over HTTPS
+ui = ["streamlit>=1.64"]  # the UI uses horizontal containers and st.context.timezone
 
 [project.scripts]
 leadharvest = "leadharvest.cli:app"

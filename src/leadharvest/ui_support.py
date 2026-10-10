@@ -15,6 +15,7 @@ from leadharvest.config import ConfigError, Settings
 from leadharvest.enrich.render import playwright_installed
 from leadharvest.exporters.base import lead_to_row
 from leadharvest.models import Lead, Run
+from leadharvest.sources.overture import duckdb_installed
 from leadharvest.storage.repository import Repository
 
 MAX_UI_LIMIT = 1000
@@ -59,6 +60,7 @@ class RunRequest:
     targets: list[str]
     js: bool = False
     mx: bool = True
+    sources: list[str] = field(default_factory=lambda: ["osm"])
     errors: list[str] = field(default_factory=list)
 
 
@@ -70,6 +72,7 @@ def validate_request(
     targets: list[str],
     js: bool,
     mx: bool,
+    sources: list[str] | None = None,
 ) -> RunRequest | list[str]:
     errors = []
     if category_key not in categories:
@@ -83,13 +86,26 @@ def validate_request(
         errors.append("Choose at least one export.")
     if js and not playwright_installed():
         errors.append("JS rendering needs Playwright installed on the server.")
+    sources = ["osm"] if sources is None else sources
+    if not sources:
+        errors.append("Choose at least one data source.")
+    if "overture" in sources and not duckdb_installed():
+        errors.append("Overture Maps needs DuckDB on the server (uv sync --extra overture).")
     if errors:
         return errors
-    return RunRequest(categories[category_key], location, limit, targets, js, mx)
+    return RunRequest(categories[category_key], location, limit, targets, js, mx, sources)
+
+
+def source_choices() -> list[str]:
+    return ["osm", "overture"] if duckdb_installed() else ["osm"]
 
 
 # ---- presentation -------------------------------------------------------------------------------
 
+SOURCE_LABELS = {
+    "osm": "OpenStreetMap",
+    "overture": "Overture Maps (incl. Facebook pages)",
+}
 TARGET_LABELS = {
     "csv": "CSV",
     "xlsx": "Excel (XLSX)",

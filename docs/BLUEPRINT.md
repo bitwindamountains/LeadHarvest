@@ -912,3 +912,4 @@ Blur emails and phone numbers in any public video.
 | D3 | Cloudflare-obfuscated emails | Decided | Not decoded; counted as `protected_emails` |
 | D4 | Rows a client deletes from the Sheet | Decided (MVP) | Re-appended on next export; documented. V2 may track removals |
 | D5 | Phone-match radius and shared-phone threshold | Decided (tunable) | 250 m, 3 names; tune after the first real Makati run |
+| D6 | Default source for client lists: Overture-only (no share-alike) vs. OSM+Overture (ODbL) | **Open** — owner, after comparing both on a live Makati run | `overture` source built (2026-10-11); `osm` stays the default until decided. Overture's `MIN_CONFIDENCE` (0.5) is tuned on the same run |

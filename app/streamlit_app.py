@@ -15,7 +15,7 @@ import streamlit as st
 from leadharvest.categories import Category, load_categories
 from leadharvest.cli import exporter_factory
 from leadharvest.config import ConfigError, Settings, load_settings
-from leadharvest.exporters.base import OSM_ATTRIBUTION
+from leadharvest.exporters.base import OSM_ATTRIBUTION, attribution
 from leadharvest.geo.nominatim import LocationNotFound
 from leadharvest.logging_setup import attach_run_log, detach_run_log
 from leadharvest.models import Run
@@ -24,6 +24,7 @@ from leadharvest.storage.db import connect
 from leadharvest.storage.repository import Repository
 from leadharvest.ui_support import (
     MAX_UI_LIMIT,
+    SOURCE_LABELS,
     STATUS_ICONS,
     STATUS_LABELS,
     STEP_LABELS,
@@ -43,6 +44,7 @@ from leadharvest.ui_support import (
     share,
     sheet_url,
     short_time,
+    source_choices,
     validate_request,
     viewer_tz,
 )
@@ -185,6 +187,13 @@ def run_form(settings: Settings, repo: Repository, categories: dict[str, Categor
                 value=settings.mx_check,
                 help="Checks each email domain's mail (MX) records before export.",
             )
+            sources = st.multiselect(
+                "Data sources", source_choices(), default=["osm"],
+                format_func=SOURCE_LABELS.get,
+                help="Overture Maps has far more businesses, many with a phone, email or "
+                "Facebook page, and its licence has no share-alike. A list that mixes in "
+                "OpenStreetMap data falls under the ODbL.",
+            )  # fmt: skip
         submitted = st.form_submit_button("Find leads", type="primary", key="find")
     st.caption(
         "Websites are visited politely, with a pause between requests, so 100 leads take a few "
@@ -193,7 +202,9 @@ def run_form(settings: Settings, repo: Repository, categories: dict[str, Categor
     )
     if not submitted:
         return
-    request = validate_request(categories, category_key, location, int(limit), targets, js, mx)
+    request = validate_request(
+        categories, category_key, location, int(limit), targets, js, mx, sources
+    )
     if isinstance(request, list):
         for error in request:
             st.error(error)
@@ -201,7 +212,7 @@ def run_form(settings: Settings, repo: Repository, categories: dict[str, Categor
     pipeline = Pipeline(settings, repo, exporter_factory=exporter_factory(settings))
     run = pipeline.create_run(
         request.category, request.location, limit=request.limit, targets=request.targets,
-        options={"js": request.js, "mx": request.mx},
+        sources=request.sources, options={"js": request.js, "mx": request.mx},
     )  # fmt: skip
     select_run(run.id)
     execute(settings, repo, run, request.category)
@@ -401,7 +412,7 @@ def main() -> None:
                 run_form(settings, repo, categories)
         if run is not None:
             show_run(settings, repo, run, categories)
-        st.caption(OSM_ATTRIBUTION)
+        st.caption(attribution(run, []) if run is not None else OSM_ATTRIBUTION)
     finally:
         repo.conn.close()
 

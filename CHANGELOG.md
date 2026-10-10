@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- New source, **Overture Maps** (`--sources overture`, or "Data sources" in the UI's advanced options; install with `uv sync --extra overture`):
+  - **What it is:** open places data, mostly from Facebook pages, with phones, emails, websites and social links. A Makati check found about 800 dental clinics, against a few dozen in OpenStreetMap.
+  - **Licence:** CDLA Permissive 2.0, Apache 2.0 or CC0 depending on the provider. It holds no OpenStreetMap data, so an Overture-only list has no ODbL share-alike.
+  - **Filtering:** places are kept only inside the city's boundary and above a confidence floor; closed places are skipped.
+- Exports name the data sources they actually used, and the Google Sheet export now carries attribution too, as a note on the header cell.
+- The Streamlit extra now requires 1.64, the version the UI is built and tested on.
 - UI polish:
   - **Results first:** once signed in, the page header is one small brand line instead of a large title and tagline, so a run's results start near the top.
   - **Phone layout:** the five numbers above the table wrap two or three to a row instead of one per line, so the table starts on the first screen.

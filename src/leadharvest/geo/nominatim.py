@@ -100,6 +100,42 @@ class NominatimClient:
             self.repo.geo_cache_put(key, results)
         return results
 
+    async def boundary(self, area: ResolvedArea) -> dict[str, Any] | None:
+        """The area's boundary as {"geojson": Polygon/MultiPolygon, "boundingbox": [s, n, w, e]}.
+
+        Sources that query by bounding box (Overture) use it to drop places in neighbouring
+        cities. None for bbox-only areas, which have no OSM object to look up.
+        """
+        if area.kind != "area" or area.area_id is None:
+            return None
+        if area.area_id >= RELATION_AREA_OFFSET:
+            osm_ids = f"R{area.area_id - RELATION_AREA_OFFSET}"
+        else:
+            osm_ids = f"W{area.area_id - WAY_AREA_OFFSET}"
+        key = f"boundary-v1|{osm_ids}"
+        cached = self.repo.geo_cache_get(key)
+        if cached is not None:
+            return cached[0] if cached else None
+        params = {
+            "osm_ids": osm_ids, "format": "jsonv2", "polygon_geojson": "1",
+            "polygon_threshold": "0.0001",  # about 10 m: a smaller response, same city
+        }  # fmt: skip
+        lookup_url = self.settings.nominatim_url.rsplit("/", 1)[0] + "/lookup"
+        await self.limiter.wait()
+        try:
+            response = await request_with_retry(self.client, "GET", lookup_url, params=params)
+            response.raise_for_status()
+            results = response.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            raise GeoError(f"Nominatim boundary lookup failed: {exc}") from exc
+        found = []
+        for result in results if isinstance(results, list) else []:
+            if isinstance(result, dict) and isinstance(result.get("geojson"), dict):
+                found = [{"geojson": result["geojson"], "boundingbox": result.get("boundingbox")}]
+                break
+        self.repo.geo_cache_put(key, found)
+        return found[0] if found else None
+
     async def resolve(
         self, location: str, *, any_country: bool = False
     ) -> tuple[ResolvedArea, list[str]]:

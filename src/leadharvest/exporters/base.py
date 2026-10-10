@@ -10,6 +10,24 @@ from leadharvest.models import ExportResult, Lead, Run
 OSM_ATTRIBUTION = (
     "Data © OpenStreetMap contributors, ODbL 1.0 — https://www.openstreetmap.org/copyright"
 )
+# Overture's per-source lines (docs.overturemaps.org/attribution), for every Places provider.
+OVERTURE_ATTRIBUTION = (
+    "Places data from Overture Maps Foundation (overturemaps.org): data from Meta, Microsoft, "
+    "BrightQuery, PinMeTo, DAC, Krick and RenderSEO, available under CDLA Permissive 2.0; data "
+    "from AllThePlaces, available under CC0 1.0; data from Foursquare, available under Apache "
+    "2.0, Copyright 2024 Foursquare Labs, Inc., notice: "
+    "https://opensource.foursquare.com/places-notice-txt/"
+)
+
+
+def attribution(run: Run, leads: list[Lead]) -> str:
+    """Attribution for the sources behind these leads (earlier runs may have added some)."""
+    used = set(run.sources) | {source for lead in leads for source in lead.sources}
+    lines = [OVERTURE_ATTRIBUTION] if "overture" in used else []
+    if "osm" in used or not lines:
+        lines.insert(0, OSM_ATTRIBUTION)
+    return "\n".join(lines)
+
 
 MANAGED_COLUMNS: tuple[str, ...] = (
     "lead_id", "business_name", "category", "phone", "phones_extra", "email", "emails_extra",

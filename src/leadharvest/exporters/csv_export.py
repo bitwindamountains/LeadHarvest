@@ -7,8 +7,8 @@ from pathlib import Path
 
 from leadharvest.exporters.base import (
     MANAGED_COLUMNS,
-    OSM_ATTRIBUTION,
     PHONE_COLUMNS,
+    attribution,
     export_basename,
     lead_to_row,
 )
@@ -51,7 +51,7 @@ class CsvExporter:
                 row = lead_to_row(lead, run.category)
                 writer.writerow([escape_cell(col, row[col]) for col in MANAGED_COLUMNS])
         path.with_suffix(".about.txt").write_text(
-            f"{OSM_ATTRIBUTION}\nCategory: {run.category}\nLocation: {run.location}\n"
+            f"{attribution(run, leads)}\nCategory: {run.category}\nLocation: {run.location}\n"
             f"Run ID: {run.id}\nRows: {len(leads)}\n"
             "Tip: open the .xlsx in Excel; Excel converts +63... phone numbers in CSV files.\n",
             encoding="utf-8",
