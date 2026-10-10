@@ -67,6 +67,9 @@
 
 Blueprint section 18 has the phase list; section 19 has the Definition of Done (DoD).
 
+### Value plan (2026-10-11)
+`docs/planning/04_LeadHarvest_Value_Plan.md` ranks the next features after research. Its top pick is an **Overture Maps places source**: permissive licence, no OSM data, and websites, phones, emails and socials. It fixes coverage and decision D2 together and fits Facebook-first PH SMEs. Next come zero-request website signals, email type labels and a per-run quality report. Its order is: live run first (below), then Overture, then signals, then the demo.
+
 ### Now: live verification (owner; needs a real contact email in `LH_USER_AGENT` in `.env`)
 1. **CI:** check that GitHub Actions passed for `879d552` (audit fixes) and `8db28b6` (UI). This is the first CI run of the new real-browser tests on Ubuntu and Windows.
 2. **Live tests:** run `uv run pytest -m live`.
