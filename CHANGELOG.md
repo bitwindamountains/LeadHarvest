@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- UI polish:
+  - **Results first:** once signed in, the page header is one small brand line instead of a large title and tagline, so a run's results start near the top.
+  - **Phone layout:** the five numbers above the table wrap two or three to a row instead of one per line, so the table starts on the first screen.
+  - **Times:** run times show in the browser's time zone, plus how long ago (`18 h ago`). A run stuck as "running" since yesterday is easy to spot.
+  - **Table:** phone numbers are grouped (`+63 917 123 4567`), and websites show only the domain. Exports are unchanged.
 - Fix: a run can't be executed twice at once. Resuming a run that another tab or the CLI is still running used to start a second copy, which visited every website twice and exported twice. Now it is refused. The UI offers **Take over and resume** and the CLI offers `resume --force` for a run left "running" by a crash. New runs start as paused until they begin.
 - Fix: `purge` keeps the raw records of unfinished runs, so a paused run can still resume.
 - Fix: the HubSpot export no longer lets a third lead with the same domain overwrite fields the second one filled.

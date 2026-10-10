@@ -5,7 +5,10 @@ from __future__ import annotations
 import hmac
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime, tzinfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+import phonenumbers
 
 from leadharvest.categories import Category
 from leadharvest.config import ConfigError, Settings
@@ -147,10 +150,42 @@ def run_labels(runs: list[Run], categories: dict[str, Category]) -> dict[str, st
     return {rid: f"{text} · #{rid[:6]}" if counts[text] > 1 else text for rid, text in base.items()}
 
 
-def short_time(iso: str) -> str:
-    """'2026-10-08T16:20:05+00:00' → 'Oct 8, 16:20 UTC'."""
-    when = datetime.fromisoformat(iso)
-    return f"{when:%b} {when.day}, {when:%H:%M} UTC"
+def viewer_tz(name: str | None) -> tzinfo:
+    """The browser's time zone (st.context.timezone), or UTC if unknown."""
+    try:
+        return ZoneInfo(name) if name else UTC
+    except (ZoneInfoNotFoundError, ValueError):
+        return UTC
+
+
+def short_time(iso: str, tz: tzinfo = UTC) -> str:
+    """'2026-10-08T16:20:05+00:00' → 'Oct 9, 00:20' in Manila; 'Oct 8, 16:20 UTC' in UTC."""
+    when = datetime.fromisoformat(iso).astimezone(tz)
+    return f"{when:%b} {when.day}, {when:%H:%M}" + (" UTC" if tz is UTC else "")
+
+
+def ago(iso: str, now: datetime | None = None) -> str:
+    """'5 min ago', '3 h ago', '2 days ago': a run left "running" for hours stands out."""
+    seconds = ((now or datetime.now(UTC)) - datetime.fromisoformat(iso)).total_seconds()
+    if seconds < 60:
+        return "just now"
+    if seconds < 3600:
+        return f"{int(seconds // 60)} min ago"
+    if seconds < 86400:
+        return f"{int(seconds // 3600)} h ago"
+    days = int(seconds // 86400)
+    return "yesterday" if days == 1 else f"{days} days ago"
+
+
+def display_phone(phone: str | None) -> str | None:
+    """'+639171234567' → '+63 917 123 4567' for reading; exports keep the E.164 form."""
+    if not phone:
+        return phone
+    try:
+        number = phonenumbers.parse(phone)
+    except phonenumbers.NumberParseException:
+        return phone
+    return phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.INTERNATIONAL)
 
 
 def run_seconds(run: Run) -> float:
@@ -170,6 +205,7 @@ def result_rows(leads: list[Lead], category: str) -> list[dict[str, object]]:
     for lead in sorted(leads, key=lambda x: -(x.score or 0)):  # stable: ties keep run order
         row = lead_to_row(lead, category)
         row["flags"] = ", ".join(FLAG_LABELS.get(f, f) for f in lead.flags)
+        row["phone"] = display_phone(lead.phone)
         rows.append(row)
     return rows
 

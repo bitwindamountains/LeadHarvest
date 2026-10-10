@@ -8,6 +8,13 @@
 
 ## Done (newest first)
 
+- 2026-10-11: UI polish after a browser review: a seeded throwaway DB in the scratchpad, with runs in every state, viewed at 1366 px and 390 px. 214 tests pass, lint clean.
+  - **Header:** signed in, it is a `**🌾 LeadHarvest**` brand line. The sign-in page keeps the title and tagline. The divider above a run is gone.
+  - **Metrics:** in `st.container(horizontal=True)` with `width="content"`. `st.columns` stacks one per line on phones.
+  - **`ui_support` helpers:** `viewer_tz` (`st.context.timezone`, falling back to UTC), `short_time(iso, tz)`, `ago`, and `display_phone` (table only; exports keep E.164). The website `LinkColumn` shows the domain through a `display_text` regex.
+  - **Gotcha:** Streamlit reloads the app script on save but not `leadharvest.ui_support`. Restart the server after changing it.
+  - **Not done:** on a phone, choosing a run leaves the sidebar open over the results. Streamlit can't close it from code.
+
 - 2026-10-11: Five-axis review of `879d552` and `8db28b6`, then fixes (214 tests pass, lint clean; each fix mutation-checked against its test):
   - **One copy of a run at a time:** `Repository.claim_run` sets a run running with one conditional UPDATE, and `Pipeline.execute` raises `RunInProgress` if it is already running. `create_run` now stores new runs as `partial`. `force=True` takes over a run left "running" by a crash: in the UI the button is **Take over and resume**, in the CLI it is `resume --force`. A batch row whose run is still running fails, and the rest of the batch goes on.
   - **purge** keeps the raw records of `partial` and `running` runs.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -13,7 +14,9 @@ from leadharvest.models import Lead, Run, new_lead_id, utcnow_iso
 from leadharvest.storage.db import connect
 from leadharvest.storage.repository import Repository
 from leadharvest.ui_support import (
+    ago,
     can_resume,
+    display_phone,
     duration_text,
     export_choices,
     mark_interrupted,
@@ -24,6 +27,7 @@ from leadharvest.ui_support import (
     share,
     short_time,
     validate_request,
+    viewer_tz,
 )
 from tests.conftest import TEST_UA
 
@@ -78,6 +82,15 @@ def test_run_labels_stay_unique_for_repeat_searches() -> None:
 
 def test_presentation_helpers() -> None:
     assert short_time("2026-10-08T06:05:09+00:00") == "Oct 8, 06:05 UTC"
+    manila = viewer_tz("Asia/Manila")
+    assert short_time("2026-10-08T20:05:09+00:00", manila) == "Oct 9, 04:05"  # next day there
+    assert viewer_tz(None) is UTC and viewer_tz("Not/AZone") is UTC
+    now = datetime(2026, 10, 10, 12, 0, tzinfo=UTC)
+    assert [ago((now - timedelta(seconds=s)).isoformat(), now)
+            for s in (5, 300, 7200, 90000, 260000)] == [
+        "just now", "5 min ago", "2 h ago", "yesterday", "3 days ago"]  # fmt: skip
+    assert display_phone("+639171234567") == "+63 917 123 4567"
+    assert display_phone("not a phone") == "not a phone" and display_phone(None) is None
     assert duration_text(45.4) == "45 s" and duration_text(135) == "2 min 15 s"
     assert share(1, 3) == "1 (33%)" and share(0, 0) == "0"
     assert can_resume(_run(status="partial", current_step="enrich"))

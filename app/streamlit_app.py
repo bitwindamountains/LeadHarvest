@@ -29,6 +29,7 @@ from leadharvest.ui_support import (
     STEP_LABELS,
     TABLE_COLUMNS,
     TARGET_LABELS,
+    ago,
     can_resume,
     duration_text,
     export_choices,
@@ -43,6 +44,7 @@ from leadharvest.ui_support import (
     sheet_url,
     short_time,
     validate_request,
+    viewer_tz,
 )
 
 st.set_page_config(page_title="LeadHarvest", page_icon="🌾", layout="wide")
@@ -135,7 +137,7 @@ def sidebar(repo: Repository, categories: dict[str, Category]) -> str | None:
                 format_func=labels.__getitem__,
                 captions=[
                     f"{STATUS_ICONS[r.status]} {STATUS_LABELS[r.status]} · "
-                    f"{short_time(r.created_at)} · {repo.count_run_leads(r.id)} leads"
+                    f"{ago(r.created_at)} · {repo.count_run_leads(r.id)} leads"
                     for r in runs.values()
                 ],
             )
@@ -245,9 +247,9 @@ def execute(
 def show_run(
     settings: Settings, repo: Repository, run: Run, categories: dict[str, Category]
 ) -> None:
-    st.divider()
-    st.subheader(run_title(run, categories))
-    meta = [f"Run {run.id[:8]}", f"started {short_time(run.created_at)}"]
+    st.subheader(run_title(run, categories), anchor=False)
+    started = short_time(run.created_at, viewer_tz(st.context.timezone))
+    meta = [f"Run {run.id[:8]}", f"started {started} ({ago(run.created_at)})"]
     if run.status == "completed" and run_seconds(run) >= 1:
         meta.append(f"took {duration_text(run_seconds(run))}")
     st.caption(" · ".join(meta))
@@ -263,16 +265,20 @@ def show_run(
         return
     clean, score = run.stats.get("clean", {}), run.stats.get("score", {})
     total = len(leads)
-    cols = st.columns(5)
-    cols[0].metric("Leads", total)
-    cols[1].metric("New this run", clean.get("new", "—"), help="Not seen in any earlier run.")
-    cols[2].metric("With email", share(sum(1 for x in leads if x.email), total))
-    cols[3].metric("With phone", share(sum(1 for x in leads if x.phone), total))
-    cols[4].metric(
-        "Average score",
-        score.get("average_score", "—"),
-        help="From 0 to 100: higher means more ways to reach the business.",
-    )
+    # A wrapping row, not st.columns: columns stack one per line on phones, which pushes the
+    # table a full screen down.
+    with st.container(horizontal=True, gap="medium"):
+        st.metric("Leads", total, width="content")
+        st.metric("New this run", clean.get("new", "—"), help="Not seen in any earlier run.",
+                  width="content")  # fmt: skip
+        st.metric("With email", share(sum(1 for x in leads if x.email), total), width="content")
+        st.metric("With phone", share(sum(1 for x in leads if x.phone), total), width="content")
+        st.metric(
+            "Average score",
+            score.get("average_score", "—"),
+            help="From 0 to 100: higher means more ways to reach the business.",
+            width="content",
+        )
     exports(settings, run)
 
     rows = result_rows(leads, run.category)
@@ -291,7 +297,10 @@ def show_run(
             ),
             "email": "Email",
             "phone": "Phone",
-            "website": st.column_config.LinkColumn("Website"),
+            # Show the domain; the link keeps the full URL.
+            "website": st.column_config.LinkColumn(
+                "Website", display_text=r"https?://(?:www\.)?([^/]+)"
+            ),
             "facebook": st.column_config.LinkColumn("Facebook", display_text="Open"),
             "instagram": st.column_config.LinkColumn("Instagram", display_text="Open"),
             "address": "Address",
@@ -380,8 +389,8 @@ def main() -> None:
     repo = open_repo(settings)
     try:
         run_id = sidebar(repo, categories)
-        st.title("🌾 LeadHarvest")
-        st.caption(TAGLINE)
+        # A brand line, not a page title: the run's results should be near the top.
+        st.markdown("**🌾 LeadHarvest**")
         run = repo.get_run(run_id) if run_id else None
         problems = setup_problems(settings)
         for problem in problems:
