@@ -134,8 +134,8 @@ FLAG_LABELS = {
 }
 # Columns shown in the results table, in order; the rest stay in the downloads.
 TABLE_COLUMNS = (
-    "business_name", "score", "email", "email_kind", "phone", "website", "facebook", "instagram", "address",
-    "city", "flags", "tech", "opening_hours",
+    "business_name", "score", "email", "email_kind", "phone", "website", "facebook", "instagram",
+    "address", "city", "flags", "tech", "opening_hours",
 )  # fmt: skip
 
 
