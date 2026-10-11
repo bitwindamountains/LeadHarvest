@@ -4,13 +4,13 @@ The Streamlit app (`app/`) is a tool for one operator or a small team, not a mar
 
 ## Look
 
-- **One theme, "night harvest":** colours and fonts come from `.streamlit/config.toml`. Finer styling comes from `app/assets/theme.css`, injected on every page:
-  - Canvas: a near-black paddy field (`#060b08`) with emerald and gold glows, a faint grid of gold grain dots, and fixed film grain (a pointer-events-none overlay that never scrolls).
-  - Sidebar: darker soil (`#040806`).
-  - Accent: palay gold (`#e0b04a`) is the only accent. Gold buttons and chips carry dark text (`#1a1305`).
-  - Semantic colours: green, red, orange and blue are tuned for the dark canvas and used only for status.
-  - It matches the LeadHarvest landing page, so the brand reads as one product.
-- **Type:** Outfit for headings, Geist for text, Geist Mono for code and data.
+- **One theme, "harvest ledger":** colours and fonts come from `.streamlit/config.toml`. Finer styling comes from `app/assets/theme.css`, injected on every page:
+  - Canvas: sage-tinted paper (`#eff1e9`), not cream, ruled with faint ledger lines. It has a soft ochre glow and a sage glow, plus fixed paper grain (a pointer-events-none overlay that never scrolls).
+  - Text: espresso ink (`#221c15`).
+  - Sidebar: dark olive soil (`#1f2619`).
+  - Accent: palay gold, deepened to ochre (`#8f5e0e`) for contrast on paper, is the only accent. Ochre buttons and chips carry light text (`#fbf6ea`). In the sidebar the gold is brighter (`#d9a441`).
+  - Semantic colours: green, red, orange and blue are earthy and used only for status.
+- **Type:** Fraunces, a high-contrast serif like an almanac or ledger, for headings and the big figures on the number cards. Geist for text, Geist Mono for code and data.
 - **Heading scale:**
   - One H1 per page: the page or run name.
   - H2 for sections ("What and where", "Leads").

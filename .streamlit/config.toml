@@ -1,48 +1,49 @@
 # Streamlit settings for app/streamlit_app.py. Read from the folder you launch from (repo root).
 
-# "Night harvest": a dark paddy-field canvas with palay gold as the only accent, matching the
-# LeadHarvest brand. Green is kept for success states only. Text in Geist, headings in Outfit,
-# data in Geist Mono. Finer styling (cards, buttons, background) lives in app/assets/theme.css.
+# "Harvest ledger": a sage-tinted paper canvas, espresso ink, a dark olive sidebar, and palay
+# gold (deepened to ochre for contrast on light paper) as the only accent. Headings in Fraunces,
+# a high-contrast serif like an almanac or ledger; text in Geist; data in Geist Mono.
+# Finer styling (cards, buttons, paper grain) lives in app/assets/theme.css.
 [theme]
-base = "dark"
-primaryColor = "#e0b04a"
-backgroundColor = "#060b08"
-secondaryBackgroundColor = "#101b15"
-textColor = "#e6ede5"
-linkColor = "#e8c06a"
-borderColor = "#1a2a21"
+base = "light"
+primaryColor = "#8f5e0e"
+backgroundColor = "#eff1e9"
+secondaryBackgroundColor = "#e4e8dc"
+textColor = "#221c15"
+linkColor = "#8a5a0c"
+borderColor = "#d6dbcc"
 showWidgetBorder = true
 baseRadius = "1rem"
 buttonRadius = "full"  # pill buttons
 font = "Geist:https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap"
-headingFont = "Outfit:https://fonts.googleapis.com/css2?family=Outfit:wght@500;600&display=swap"
+headingFont = "Fraunces:https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap"
 codeFont = "'Geist Mono':https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap"
 # One H1 per page (the page or run name); H2 for sections, kept compact (docs/UI.md).
-headingFontSizes = ["2.2rem", "1.12rem", "1rem", "0.95rem", "0.9rem", "0.85rem"]
-headingFontWeights = [600, 600, 600, 600, 600, 600]
+headingFontSizes = ["2.5rem", "1.2rem", "1.05rem", "0.95rem", "0.9rem", "0.85rem"]
+headingFontWeights = [500, 600, 600, 600, 600, 600]
 metricValueFontSize = "2rem"
-metricValueFontWeight = 600
-dataframeHeaderBackgroundColor = "#101b15"
-dataframeBorderColor = "#1a2a21"
-codeBackgroundColor = "#101b15"
-# Semantic colours tuned for the dark canvas.
-greenColor = "#5fbf83"
-redColor = "#ec7d70"
-orangeColor = "#e8a94a"
-blueColor = "#76b4d6"
-grayColor = "#8c9c92"
+metricValueFontWeight = 500
+dataframeHeaderBackgroundColor = "#e4e8dc"
+dataframeBorderColor = "#d6dbcc"
+codeBackgroundColor = "#e4e8dc"
+# Semantic colours, earthy so they sit with the palette; status only.
+greenColor = "#3f7a4c"
+redColor = "#b0473a"
+orangeColor = "#b5741a"
+blueColor = "#3d6d84"
+grayColor = "#8b8f80"
 
 [theme.sidebar]
-backgroundColor = "#040806"
-secondaryBackgroundColor = "#101c15"
-textColor = "#dfe8de"
-primaryColor = "#e0b04a"
-borderColor = "#1b2c22"
-greenColor = "#5fbf83"
-redColor = "#ec7d70"
-orangeColor = "#e8a94a"
-blueColor = "#76b4d6"
-grayColor = "#8c9c92"
+backgroundColor = "#1f2619"
+secondaryBackgroundColor = "#2a3322"
+textColor = "#e9eadf"
+primaryColor = "#d9a441"
+borderColor = "#323c29"
+greenColor = "#8fc49b"
+redColor = "#e48a7e"
+orangeColor = "#e3ad55"
+blueColor = "#8db9cf"
+grayColor = "#a3a893"
 
 [client]
 # Hide the developer toolbar ("Deploy" and friends) from people using the app.

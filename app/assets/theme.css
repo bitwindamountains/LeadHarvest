@@ -1,57 +1,60 @@
-/* LeadHarvest "night harvest" theme, layered on .streamlit/config.toml (docs/UI.md).
-   Ethereal-glass build: a near-black field with emerald and gold glows and fixed film grain;
-   cards are double-bezel (an outer tray ring around an inner core with its own highlight);
-   pill buttons carry their icon in a nested circle; light-weight icons; one gold accent.
-   Selectors use Streamlit's data-testid hooks and st-key-* classes from widget keys. */
+/* LeadHarvest "harvest ledger" theme, layered on .streamlit/config.toml (docs/UI.md).
+   Editorial build: sage-tinted paper ruled like a ledger, espresso ink, a dark olive sidebar,
+   ochre palay gold as the only accent, Fraunces headings. Cards are double-bezel (an outer tray
+   ring around an inner core with its own highlight); pill buttons carry their icon in a nested
+   circle; light-weight icons; paper grain. Selectors use Streamlit's data-testid hooks and
+   st-key-* classes from widget keys. */
 
 :root {
-  --lh-gold: #e0b04a;
-  --lh-gold-soft: rgba(224, 176, 74, 0.13);
-  --lh-gold-line: rgba(224, 176, 74, 0.32);
-  --lh-ink: #1a1305;
-  --lh-core: linear-gradient(180deg, rgba(22, 36, 28, 0.94), rgba(12, 21, 16, 0.94));
-  --lh-hair: rgba(255, 255, 255, 0.07);
-  --lh-muted: #98a99d;
+  --lh-accent: #8f5e0e;
+  --lh-accent-soft: rgba(143, 94, 14, 0.09);
+  --lh-accent-line: rgba(143, 94, 14, 0.28);
+  --lh-on-accent: #fbf6ea;
+  --lh-ink: #221c15;
+  --lh-muted: #6a6c5e;
+  --lh-core: linear-gradient(180deg, #fcfcf8, #f6f7f1);
+  --lh-hair: rgba(34, 28, 21, 0.09);
+  --lh-sidebar-gold: #d9a441;
   /* Spring-like settle: fast start, long soft landing. Never linear or ease-in-out. */
   --lh-spring: cubic-bezier(0.32, 0.72, 0, 1);
   --lh-out: cubic-bezier(0.23, 1, 0.32, 1);
   /* Double bezel: inner highlight, then the tray (6px), then the tray's hairline, then a wide
-     diffused shadow. Rings sit outside the box, so siblings keep their own gap. */
+     warm, diffused shadow. Rings sit outside the box, so siblings keep their own gap. */
   --lh-bezel:
-    inset 0 1px 1px rgba(255, 255, 255, 0.07),
-    0 0 0 6px rgba(255, 255, 255, 0.022),
-    0 0 0 7px rgba(255, 255, 255, 0.055),
-    0 48px 90px -60px rgba(0, 0, 0, 0.95);
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    0 0 0 6px rgba(34, 28, 21, 0.025),
+    0 0 0 7px rgba(34, 28, 21, 0.065),
+    0 44px 80px -56px rgba(70, 52, 24, 0.38);
 }
 
-/* ---- the field: mesh glows over near-black, a faint grain-dot grid, fixed film grain ---- */
+/* ---- the paper: faint ledger rules, two soft glows, fixed paper grain ---- */
 .stApp {
   background:
-    radial-gradient(ellipse 55% 45% at 92% -6%, rgba(224, 176, 74, 0.12), transparent 70%),
-    radial-gradient(ellipse 50% 55% at -8% 108%, rgba(46, 125, 84, 0.26), transparent 70%),
-    radial-gradient(ellipse 35% 30% at 55% 55%, rgba(46, 125, 84, 0.07), transparent 70%),
-    radial-gradient(circle, rgba(224, 176, 74, 0.06) 1px, transparent 1.7px) 0 0 / 28px 28px,
-    #060b08;
+    radial-gradient(ellipse 55% 45% at 95% -8%, rgba(201, 146, 42, 0.12), transparent 70%),
+    radial-gradient(ellipse 55% 55% at -10% 110%, rgba(116, 138, 96, 0.20), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(34, 28, 21, 0.035) 0 1px, transparent 1px 34px),
+    #eff1e9;
   background-attachment: fixed;
 }
-.stApp::after {  /* film grain: fixed, never scrolls, never takes clicks */
-  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0.045;
+.stApp::after {  /* paper grain: fixed, never scrolls, never takes clicks */
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0.05;
+  mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 [data-testid="stHeader"] { background: transparent; }
 [data-testid="stMainBlockContainer"] { padding-top: 4.5rem; padding-bottom: 6rem; max-width: 84rem; }
 
 /* ---- type ---- */
-[data-testid="stMain"] h1 { letter-spacing: -0.03em; line-height: 1.05; text-wrap: balance; }
-[data-testid="stMain"] h2 { letter-spacing: -0.01em; }
+[data-testid="stMain"] h1 { letter-spacing: -0.02em; line-height: 1.04; text-wrap: balance; }
+[data-testid="stMain"] h2 { letter-spacing: -0.005em; }
 [data-testid="stCaptionContainer"] { color: var(--lh-muted); }
 .lh-eyebrow {  /* a small pill above a title that carries real context, e.g. the run id */
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 5px 12px; border-radius: 999px; border: 1px solid var(--lh-gold-line);
-  background: var(--lh-gold-soft); color: #ecd29a;
+  padding: 5px 12px; border-radius: 999px; border: 1px solid var(--lh-accent-line);
+  background: var(--lh-accent-soft); color: #7a4f0a;
   font: 500 10.5px/1 Geist, "Segoe UI", sans-serif; letter-spacing: 0.2em; text-transform: uppercase;
 }
-.lh-eyebrow::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--lh-gold); }
+.lh-eyebrow::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--lh-accent); }
 
 /* ---- icons: Material Symbols drawn light, never the thick default ---- */
 [data-testid="stIconMaterial"] { font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24; }
@@ -66,23 +69,26 @@
   padding: 1.6rem 1.6rem 1.4rem !important;
 }
 
-/* ---- metric cards: smaller bezel, gold hairline on the inner core, lift on hover ---- */
+/* ---- metric cards: smaller bezel, ochre hairline on the inner core, ledger figures ---- */
 [data-testid="stMetric"] {
   background: var(--lh-core);
   border: 1px solid var(--lh-hair) !important;
   border-radius: 22px !important;
   box-shadow:
-    inset 0 1px 0 var(--lh-gold-line),
-    0 0 0 5px rgba(255, 255, 255, 0.02),
-    0 0 0 6px rgba(255, 255, 255, 0.05),
-    0 36px 70px -50px rgba(0, 0, 0, 0.95);
+    inset 0 2px 0 var(--lh-accent-line),
+    0 0 0 5px rgba(34, 28, 21, 0.022),
+    0 0 0 6px rgba(34, 28, 21, 0.06),
+    0 34px 64px -48px rgba(70, 52, 24, 0.4);
   padding: 0.85rem 1.15rem !important;
   transition: transform 600ms var(--lh-spring);
 }
 [data-testid="stMetricLabel"] p {
   text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.68rem; color: var(--lh-muted);
 }
-[data-testid="stMetricValue"] { font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
+[data-testid="stMetricValue"] {
+  font-family: Fraunces, Georgia, serif; font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.02em;
+}
 @media (hover: hover) and (pointer: fine) {
   [data-testid="stMetric"]:hover { transform: translateY(-3px); }
 }
@@ -104,66 +110,78 @@
 [data-testid^="stBaseButton-primary"] > div > span > span:has([data-testid="stIconMaterial"]),
 [data-testid^="stBaseButton-secondary"] > div > span > span:has([data-testid="stIconMaterial"]) {
   display: inline-grid; place-items: center; width: 1.95rem; height: 1.95rem; flex: none;
-  border-radius: 999px; background: rgba(255, 255, 255, 0.08); margin: 0;
+  border-radius: 999px; background: rgba(34, 28, 21, 0.06); margin: 0;
   transition: transform 500ms var(--lh-spring);
 }
 [data-testid^="stBaseButton-primary"] {
-  color: var(--lh-ink) !important; font-weight: 600;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 14px 32px -16px rgba(224, 176, 74, 0.7);
+  color: var(--lh-on-accent) !important; font-weight: 600;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 14px 30px -16px rgba(143, 94, 14, 0.75);
 }
 [data-testid^="stBaseButton-primary"] p,
-[data-testid^="stBaseButton-primary"] [data-testid="stIconMaterial"] { color: var(--lh-ink) !important; }
-[data-testid^="stBaseButton-primary"] > div > span > span:has([data-testid="stIconMaterial"]) { background: rgba(26, 19, 5, 0.13); }
+[data-testid^="stBaseButton-primary"] [data-testid="stIconMaterial"] { color: var(--lh-on-accent) !important; }
+[data-testid^="stBaseButton-primary"] > div > span > span:has([data-testid="stIconMaterial"]) {
+  background: rgba(255, 255, 255, 0.16);
+}
 [data-testid^="stBaseButton-secondary"] {
-  background: rgba(16, 27, 21, 0.7); border-color: var(--lh-hair) !important;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  background: #fbfbf7; border-color: var(--lh-hair) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9), 0 10px 24px -18px rgba(70, 52, 24, 0.45);
 }
 [data-testid^="stBaseButton"]:active { transform: scale(0.98); }
 @media (hover: hover) and (pointer: fine) {
-  [data-testid^="stBaseButton-primary"]:hover { filter: brightness(1.07); }
-  [data-testid^="stBaseButton-secondary"]:hover { border-color: var(--lh-gold-line) !important; }
+  [data-testid^="stBaseButton-primary"]:hover { filter: brightness(1.1); }
+  [data-testid^="stBaseButton-secondary"]:hover { border-color: var(--lh-accent-line) !important; }
   [data-testid^="stBaseButton-primary"]:hover > div > span > span:has([data-testid="stIconMaterial"]),
   [data-testid^="stBaseButton-secondary"]:hover > div > span > span:has([data-testid="stIconMaterial"]) {
     transform: translate(3px, -1px) scale(1.05);
   }
 }
 
-/* ---- inputs: hairline ring and an inner highlight instead of a flat grey box ---- */
+/* ---- inputs: an inner highlight instead of a flat grey box ---- */
 [data-baseweb="input"], [data-baseweb="select"] > div, [data-testid="stNumberInputContainer"] {
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 2px rgba(34, 28, 21, 0.05);
 }
 
-/* ---- chips in multiselects (Export to, Data sources): dark text on gold ---- */
-[data-baseweb="tag"], [data-baseweb="tag"] span, [data-baseweb="tag"] svg { color: var(--lh-ink) !important; }
+/* ---- chips in multiselects (Export to, Data sources): light text on ochre ---- */
+[data-baseweb="tag"], [data-baseweb="tag"] span, [data-baseweb="tag"] svg { color: var(--lh-on-accent) !important; }
 
 /* ---- table and expander ---- */
 [data-testid="stDataFrame"] {
   border-radius: 18px; overflow: hidden;
-  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.02), 0 0 0 7px rgba(255, 255, 255, 0.05),
-              0 48px 90px -60px rgba(0, 0, 0, 0.95);
+  box-shadow: 0 0 0 6px rgba(34, 28, 21, 0.022), 0 0 0 7px rgba(34, 28, 21, 0.06),
+              0 44px 80px -56px rgba(70, 52, 24, 0.38);
 }
-[data-testid="stExpander"] details { background: rgba(6, 11, 8, 0.55); border-radius: 16px; }
+[data-testid="stExpander"] details { background: rgba(255, 255, 255, 0.45); border-radius: 16px; }
 
-/* ---- sidebar: deeper soil, the open run marked in gold ---- */
+/* ---- sidebar: dark olive soil, the open run marked in gold ---- */
 [data-testid="stSidebar"] {
   background:
-    radial-gradient(ellipse 120% 35% at 0% 0%, rgba(224, 176, 74, 0.07), transparent 70%),
-    #040806;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+    radial-gradient(ellipse 120% 35% at 0% 0%, rgba(217, 164, 65, 0.10), transparent 70%),
+    #1f2619;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
 }
 [data-testid="stSidebar"] h2 {
   text-transform: uppercase; letter-spacing: 0.2em; font-size: 0.66rem !important;
-  color: var(--lh-muted); margin-top: 0.75rem;
+  font-family: Geist, "Segoe UI", sans-serif !important; color: #a3a893; margin-top: 0.75rem;
 }
+[data-testid="stSidebar"] [data-testid^="stBaseButton-secondary"] {
+  background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.06);
+}
+[data-testid="stSidebar"] [data-testid^="stBaseButton-secondary"] > div > span > span:has([data-testid="stIconMaterial"]) {
+  background: rgba(255, 255, 255, 0.08);
+}
+[data-testid="stSidebar"] [data-testid="stRadioCaption"],
+[data-testid="stSidebar"] [data-testid="stRadioCaption"] p { color: #aeb19f !important; }  /* readable on olive */
 [data-testid="stSidebar"] [data-testid="stRadioOption"] {
   padding: 0.3rem 0.5rem; border-radius: 12px;
   transition: background-color 300ms var(--lh-out);
 }
 [data-testid="stSidebar"] [data-testid="stRadioOption"]:has(input:checked) {
-  background: var(--lh-gold-soft); box-shadow: inset 2px 0 0 var(--lh-gold);
+  background: rgba(217, 164, 65, 0.14); box-shadow: inset 2px 0 0 var(--lh-sidebar-gold);
 }
 @media (hover: hover) and (pointer: fine) {
-  [data-testid="stSidebar"] [data-testid="stRadioOption"]:hover { background: rgba(224, 176, 74, 0.06); }
+  [data-testid="stSidebar"] [data-testid="stRadioOption"]:hover { background: rgba(217, 164, 65, 0.07); }
+  [data-testid="stSidebar"] [data-testid^="stBaseButton-secondary"]:hover { border-color: rgba(217, 164, 65, 0.45) !important; }
 }
 
 /* ---- motion: a heavy fade-up from a soft blur, once per element; lists stagger ---- */

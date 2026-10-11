@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Web UI colour theme is now "harvest ledger":
+  - **Paper and ink:** sage-tinted paper ruled like a ledger, with espresso ink.
+  - **Sidebar:** dark olive.
+  - **Accent:** ochre palay gold.
+  - **Type:** headings and the big figures on the number cards are set in Fraunces, a serif.
+  - **Sign-in panel:** recoloured to match.
 - Web UI finish, built to a high-end visual standard:
   - **Canvas:** near-black, with emerald and gold glows and fine film grain.
   - **Cards:** double-bezel, an inner panel set into a tray.

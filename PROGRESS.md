@@ -8,6 +8,12 @@
 
 ## Done (newest first)
 
+- 2026-10-11: Colour theme changed to "harvest ledger" (230 tests pass, lint clean). Checked at 1440 px: sign-in, search and run pages, plus the sidebar.
+  - **Config (`.streamlit/config.toml`):** `base = "light"`, `primaryColor` `#8f5e0e`, Fraunces as `headingFont`, and an olive `[theme.sidebar]`.
+  - **CSS (`theme.css`):** rebuilt on tokens. Ledger rules replace the dot grid, warm shadows replace black ones, ochre buttons take light text, sidebar buttons stay light-on-dark, and the sidebar run captions are lightened (`#aeb19f`) to stay readable on olive.
+  - **Sign-in (`brand_panel.html`):** recoloured olive and ochre, with a Fraunces headline.
+  - **Not changed:** the landing page keeps its dark green and gold look.
+
 - 2026-10-11: High-end visual pass on the Streamlit UI (230 tests pass, lint clean). Checked at 1440 and 390 px; no horizontal scroll, and all five number cards sit on one row at 1440.
   - **CSS (`theme.css`):**
     - Double-bezel cards come from stacked box-shadow rings, so Streamlit's markup is unchanged.
