@@ -14,7 +14,7 @@ from leadharvest.exporters.base import OSM_ATTRIBUTION, attribution
 from leadharvest.storage.db import connect
 from leadharvest.storage.repository import Repository
 
-from views.common import MARK
+from views.common import MARK, inject_theme
 from views.run import show_run
 from views.search import search_page
 from views.sidebar import sidebar
@@ -24,6 +24,7 @@ st.set_page_config(page_title="LeadHarvest", page_icon=MARK, layout="wide")
 
 
 def main() -> None:
+    inject_theme()
     try:
         settings = load_settings()
     except ConfigError as exc:

@@ -22,6 +22,11 @@ ASSETS = Path(__file__).resolve().parent.parent / "assets"
 LOGO, MARK = str(ASSETS / "logo.svg"), str(ASSETS / "mark.svg")
 
 
+def inject_theme() -> None:
+    """The night-harvest stylesheet (app/assets/theme.css), on top of .streamlit/config.toml."""
+    st.html(f"<style>{(ASSETS / 'theme.css').read_text(encoding='utf-8')}</style>")
+
+
 def select_run(run_id: str | None) -> None:
     """Open a run (or, with None, the search page) on the next rerun. The sidebar picker owns
     the current selection."""

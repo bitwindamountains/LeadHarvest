@@ -1,0 +1,123 @@
+/* LeadHarvest "night harvest" theme, layered on .streamlit/config.toml (docs/UI.md).
+   A dark paddy field with a faint grid of grain dots, palay gold as the only accent, and short
+   entrance and hover motion. Selectors use Streamlit's data-testid hooks and st-key-* classes
+   (from widget keys), which are stable across minor versions. */
+
+:root {
+  --lh-gold: #e0b04a;
+  --lh-gold-soft: rgba(224, 176, 74, 0.14);
+  --lh-gold-line: rgba(224, 176, 74, 0.28);
+  --lh-ink: #1a1305;
+  --lh-surface: rgba(20, 35, 27, 0.72);
+  --lh-surface-hi: rgba(26, 44, 34, 0.86);
+  --lh-line: #22362b;
+  --lh-muted: #9aab9f;
+  --lh-ease: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* ---- the field: dot grid, two soft glows, a darker horizon at the top ---- */
+.stApp {
+  background:
+    radial-gradient(ellipse 60% 45% at 88% -8%, rgba(224, 176, 74, 0.11), transparent 70%),
+    radial-gradient(ellipse 55% 50% at -5% 105%, rgba(63, 107, 82, 0.30), transparent 70%),
+    radial-gradient(circle, rgba(224, 176, 74, 0.075) 1px, transparent 1.7px) 0 0 / 26px 26px,
+    #0b1410;
+  background-attachment: fixed;
+}
+[data-testid="stHeader"] { background: transparent; }
+[data-testid="stMainBlockContainer"] { padding-top: 3.5rem; max-width: 84rem; }
+
+/* ---- type ---- */
+[data-testid="stMain"] h1 { letter-spacing: -0.025em; line-height: 1.08; text-wrap: balance; }
+[data-testid="stMain"] h2 { letter-spacing: -0.01em; }
+[data-testid="stCaptionContainer"] { color: var(--lh-muted); }
+
+/* ---- surfaces: the form, the guide, sign-in card ---- */
+[data-testid="stForm"],
+[class*="st-key-lh-card"] {
+  background: linear-gradient(180deg, var(--lh-surface-hi), var(--lh-surface));
+  border: 1px solid var(--lh-line) !important;
+  border-radius: 18px !important;
+  box-shadow: inset 0 1px 0 rgba(224, 176, 74, 0.10), 0 24px 48px -32px rgba(0, 0, 0, 0.7);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+
+/* ---- metric cards: gold hairline on top, quiet label, lift on hover ---- */
+[data-testid="stMetric"] {
+  background: linear-gradient(180deg, var(--lh-surface-hi), var(--lh-surface));
+  border-color: var(--lh-line) !important;
+  border-radius: 16px !important;
+  box-shadow: inset 0 1px 0 var(--lh-gold-line);
+  min-width: 9.5rem;
+  transition: transform 220ms var(--lh-ease), border-color 220ms ease;
+}
+[data-testid="stMetricLabel"] p {
+  text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72rem; color: var(--lh-muted);
+}
+[data-testid="stMetricValue"] { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+@media (hover: hover) and (pointer: fine) {
+  [data-testid="stMetric"]:hover { transform: translateY(-2px); border-color: var(--lh-gold-line) !important; }
+}
+
+/* ---- buttons: gold primary with dark text (Streamlit defaults to white), tactile press ---- */
+[data-testid^="stBaseButton-primary"] {
+  color: var(--lh-ink) !important; font-weight: 600;
+  box-shadow: 0 10px 26px -14px rgba(224, 176, 74, 0.75);
+}
+[data-testid^="stBaseButton-primary"] p,
+[data-testid^="stBaseButton-primary"] [data-testid="stIconMaterial"] { color: var(--lh-ink) !important; }
+[data-testid^="stBaseButton-secondary"] { background: rgba(20, 35, 27, 0.6); }
+[data-testid^="stBaseButton"] { transition: transform 140ms var(--lh-ease), border-color 200ms ease, filter 200ms ease; }
+[data-testid^="stBaseButton"]:active { transform: scale(0.98); }
+@media (hover: hover) and (pointer: fine) {
+  [data-testid^="stBaseButton-primary"]:hover { filter: brightness(1.08); }
+  [data-testid^="stBaseButton-secondary"]:hover { border-color: var(--lh-gold-line); }
+}
+
+/* ---- chips in multiselects (Export to, Data sources): dark text on gold ---- */
+[data-baseweb="tag"], [data-baseweb="tag"] span, [data-baseweb="tag"] svg { color: var(--lh-ink) !important; }
+
+/* ---- table and expander ---- */
+[data-testid="stDataFrame"] {
+  border-radius: 14px; overflow: hidden;
+  box-shadow: 0 24px 48px -36px rgba(0, 0, 0, 0.8);
+}
+[data-testid="stExpander"] details { background: rgba(11, 20, 16, 0.55); border-radius: 12px; }
+
+/* ---- sidebar: darker soil, the open run marked in gold ---- */
+[data-testid="stSidebar"] {
+  background:
+    radial-gradient(ellipse 120% 40% at 0% 0%, rgba(224, 176, 74, 0.08), transparent 70%),
+    #070e0a;
+  border-right: 1px solid #16261d;
+}
+[data-testid="stSidebar"] h2 {
+  text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.72rem !important;
+  color: var(--lh-muted); margin-top: 0.5rem;
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"] {
+  padding: 0.3rem 0.5rem; border-radius: 10px;
+  transition: background-color 180ms ease;
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"]:has(input:checked) {
+  background: var(--lh-gold-soft); box-shadow: inset 2px 0 0 var(--lh-gold);
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-testid="stSidebar"] [data-testid="stRadioOption"]:hover { background: rgba(224, 176, 74, 0.06); }
+}
+
+/* ---- motion: elements rise in once when they appear; lists stagger ---- */
+@keyframes lh-rise { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: no-preference) {
+  [data-testid="stMain"] [data-testid="stElementContainer"],
+  [data-testid="stMain"] [data-testid="stForm"],
+  [data-testid="stMetric"] { animation: lh-rise 420ms var(--lh-ease) backwards; }
+  [data-testid="stMetric"]:nth-of-type(2) { animation-delay: 50ms; }
+  [data-testid="stMetric"]:nth-of-type(3) { animation-delay: 100ms; }
+  [data-testid="stMetric"]:nth-of-type(4) { animation-delay: 150ms; }
+  [data-testid="stMetric"]:nth-of-type(5) { animation-delay: 200ms; }
+  [data-testid="stSidebar"] [data-testid="stRadioOption"] { animation: lh-rise 360ms var(--lh-ease) backwards; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-testid="stMetric"], [data-testid^="stBaseButton"] { transition: none; }
+}

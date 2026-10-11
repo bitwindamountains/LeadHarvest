@@ -43,7 +43,7 @@ def search_page(
 
 
 def what_happens_next(first_time: bool) -> None:
-    with st.container(border=True):
+    with st.container(border=True, key="lh-card-guide"):
         st.header("What happens next", anchor=False)
         st.markdown(
             ":material/travel_explore: **Search** the place for businesses in the category  \n"

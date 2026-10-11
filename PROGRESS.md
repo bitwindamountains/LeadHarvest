@@ -8,6 +8,12 @@
 
 ## Done (newest first)
 
+- 2026-10-11: "Night harvest" theme for the Streamlit UI (230 tests pass, lint clean). Checked at 1440 and 390 px; no horizontal scroll.
+  - **Theme files:** `.streamlit/config.toml` switches to `base = "dark"` with a gold primary. `app/assets/theme.css` is injected by `views.common.inject_theme()`.
+  - **What the CSS styles:** the dot-field background, glass cards (`stForm` and `st-key-lh-card*`), metric cards, gold buttons with dark text, sidebar selection via `:has(input:checked)`, dark text on multiselect chips, and entrance and hover motion behind `prefers-reduced-motion`.
+  - **Design contract:** `docs/UI.md` is updated to match.
+  - **Risk:** the CSS targets Streamlit `data-testid` hooks. After a Streamlit upgrade, check the screens again.
+
 - 2026-10-11: Frontend engineering pass on the Streamlit UI (230 tests pass, lint clean). Checked in a browser at 320, 768, 1024 and 1440 px; 320 px has no horizontal scroll.
   - **Split:** `app/streamlit_app.py` (50 lines) now routes to `app/views/` (signin, sidebar, search, run, common), each under 200 lines. Ruff `known-local-folder = ["views"]`.
   - **Headings:** one H1 per page. `headingFontSizes` keeps H2 compact. The brand panel's headline is a styled `<p>`.

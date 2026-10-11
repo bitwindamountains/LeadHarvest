@@ -4,18 +4,20 @@ The Streamlit app (`app/`) is a tool for one operator or a small team, not a mar
 
 ## Look
 
-- **One theme, defined in `.streamlit/config.toml`:**
-  - Main area: a light, green-tinted canvas (`#f6f8f4`).
-  - Sidebar: dark field green (`#0f1d16`).
-  - Accent: harvest green (`#2f7d4a`) is the only accent colour.
-  - Semantic colours: red, orange and blue are softened versions, used only for status.
+- **One theme, "night harvest":** colours and fonts come from `.streamlit/config.toml`. Finer styling comes from `app/assets/theme.css`, injected on every page:
+  - Canvas: a dark paddy field (`#0b1410`) with a faint grid of gold grain dots and two soft glows.
+  - Sidebar: darker soil (`#070e0a`).
+  - Accent: palay gold (`#e0b04a`) is the only accent. Gold buttons and chips carry dark text (`#1a1305`).
+  - Semantic colours: green, red, orange and blue are tuned for the dark canvas and used only for status.
+  - It matches the LeadHarvest landing page, so the brand reads as one product.
 - **Type:** Outfit for headings, Geist for text, Geist Mono for code and data.
 - **Heading scale:**
   - One H1 per page: the page or run name.
   - H2 for sections ("What and where", "Leads").
   - No skipped levels.
 - **Icons:** Material icons (`:material/...:`) only, never emojis. State is never shown by colour alone: every status icon has a text label next to it.
-- **Cards:** bordered containers only where they group something: the search form, the "What happens next" guide, and the numbers. Everything else sits on the canvas.
+- **Cards:** glass surfaces with a faint gold top edge, used only where they group something. That means the search form, the "What happens next" guide (`key="lh-card-..."`), the sign-in card and the number cards. Everything else sits on the canvas.
+- **Motion:** elements rise in once (420 ms, ease-out, staggered on the number cards). Cards lift and buttons press on hover and click. All of it is off under `prefers-reduced-motion`. There's no JavaScript animation: Streamlit strips scripts from `st.html`.
 
 ## Screens
 

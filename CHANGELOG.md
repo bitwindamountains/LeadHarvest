@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Web UI theme, "night harvest": the whole app now follows the LeadHarvest brand instead of a generic light dashboard look.
+  - **Canvas and accent:** a dark paddy-field canvas with a faint grid of gold grain dots, and palay gold as the only accent.
+  - **Surfaces:** glass cards with gold edges, and number cards with uppercase labels.
+  - **Sidebar:** the open run is marked in gold.
+  - **Motion:** short entrance and hover motion, off when the system asks for reduced motion.
 - Web UI engineering pass:
   - **Headings:** each page has one H1 (the page or run name) and H2 sections, with no skipped levels.
   - **Empty segment:** choosing a segment with no matching leads shows a note instead of an empty table.
