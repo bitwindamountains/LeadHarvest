@@ -24,6 +24,7 @@ from rich.table import Table
 from leadharvest import __version__
 from leadharvest.batch import BatchError, Job, read_jobs_csv, read_jobs_sheet, run_batch
 from leadharvest.categories import Category, UnknownCategory, load_categories, resolve_category
+from leadharvest.clean.dedupe import merge_location_duplicates
 from leadharvest.clean.normalize import (
     is_shared_domain,
     normalize_email,
@@ -51,7 +52,7 @@ from leadharvest.sources.directory import (
     available_directories,
     load_directory_config,
 )
-from leadharvest.sources.overture import duckdb_installed
+from leadharvest.sources.overture import default_source_names, duckdb_installed
 from leadharvest.storage.db import connect
 from leadharvest.storage.repository import Repository
 
@@ -96,8 +97,11 @@ def _parse_targets(value: str, settings: Settings) -> list[str]:
     return list(dict.fromkeys(targets))
 
 
-def _parse_sources(value: str) -> list[str]:
-    """'osm', 'directory:<name>', or a comma list. Directory configs are validated now."""
+def _parse_sources(value: str | None) -> list[str]:
+    """'osm', 'overture', 'directory:<name>', or a comma list; None means default_source_names().
+    Directory configs are validated now."""
+    if value is None:
+        return default_source_names()
     sources = [s.strip() for s in value.split(",") if s.strip()]
     if not sources:
         raise _fail("--sources needs at least one source (osm, overture or directory:<name>).")
@@ -383,8 +387,12 @@ def run(
     limit: Annotated[int, typer.Option(min=1, max=5000, help="Max leads in this run.")] = 200,
     to: Annotated[str, typer.Option(help="Export targets: csv,xlsx,sheets,hubspot.")] = "csv,xlsx",
     sources: Annotated[
-        str, typer.Option(help="osm, overture and/or directory:<name>, comma list.")
-    ] = "osm",
+        str | None,
+        typer.Option(
+            help="osm, overture and/or directory:<name>, comma list. "
+            "Default: overture if installed, else osm."
+        ),
+    ] = None,
     js: Annotated[bool, typer.Option(help="Render near-empty JS sites with Playwright.")] = False,
     mx: Annotated[bool, typer.Option(help="Drop emails on domains without mail servers.")] = True,
     any_country: Annotated[bool, typer.Option(help="Don't restrict to LH_DEFAULT_REGION.")] = False,
@@ -417,8 +425,12 @@ def search(
     location: Annotated[str, typer.Option(help='Area, e.g. "Makati, Philippines".')],
     limit: Annotated[int, typer.Option(min=1, max=5000)] = 200,
     sources: Annotated[
-        str, typer.Option(help="osm, overture and/or directory:<name>, comma list.")
-    ] = "osm",
+        str | None,
+        typer.Option(
+            help="osm, overture and/or directory:<name>, comma list. "
+            "Default: overture if installed, else osm."
+        ),
+    ] = None,
     any_country: Annotated[bool, typer.Option()] = False,
 ) -> None:
     """Search only: resolve the location and save raw records (continue with 'resume')."""
@@ -587,7 +599,7 @@ def _batch_command(
     name: str,
     limit: int,
     to: str,
-    sources: str,
+    sources: str | None,
     js: bool,
     mx: bool,
     rerun: bool,
@@ -654,7 +666,10 @@ def batch(
     name: Annotated[str | None, typer.Option(help="Batch name (default: file/tab name).")] = None,
     limit: Annotated[int, typer.Option(min=1, max=5000, help="Default limit per job.")] = 200,
     to: Annotated[str, typer.Option(help="Export targets: csv,xlsx,sheets,hubspot.")] = "csv,xlsx",
-    sources: Annotated[str, typer.Option(help="Default sources per job.")] = "osm",
+    sources: Annotated[
+        str | None,
+        typer.Option(help="Default sources per job. Default: overture if installed, else osm."),
+    ] = None,
     js: Annotated[bool, typer.Option(help="Render near-empty JS sites.")] = False,
     mx: Annotated[bool, typer.Option(help="Drop emails on dead domains.")] = True,
     rerun: Annotated[bool, typer.Option(help="Run completed rows again.")] = False,
@@ -680,7 +695,10 @@ def monitor(
     name: Annotated[str | None, typer.Option(help="Monitor name (default: file/tab name).")] = None,
     limit: Annotated[int, typer.Option(min=1, max=5000, help="Default limit per job.")] = 200,
     to: Annotated[str, typer.Option(help="Export targets: csv,xlsx,sheets,hubspot.")] = "csv,xlsx",
-    sources: Annotated[str, typer.Option(help="Default sources per job.")] = "osm",
+    sources: Annotated[
+        str | None,
+        typer.Option(help="Default sources per job. Default: overture if installed, else osm."),
+    ] = None,
     mx: Annotated[bool, typer.Option(help="Drop emails on dead domains.")] = True,
 ) -> None:
     """Weekly monitoring: fresh runs each ISO week plus a "New since last run" export."""
@@ -801,6 +819,29 @@ def forget(
         f"Deleted {deleted} lead(s) and suppressed {kind} {value}. Future runs will skip it."
     )
     console.print("Remember to remove the rows from any Sheets or files already delivered.")
+
+
+@app.command()
+def dedupe(
+    apply: Annotated[bool, typer.Option(help="Merge them (default: only list them).")] = False,
+) -> None:
+    """Find stored leads that are one place listed twice (close name within 100 m) and merge
+    each into the older lead. New runs already merge these; this fixes leads stored before."""
+    settings = _settings()
+    with _repository(settings) as repo:
+        pairs = merge_location_duplicates(repo, apply=apply)
+    for keep, drop in pairs:
+        console.print(  # markup off: business names may contain [brackets]
+            f"{keep.business_name} ({keep.lead_id}) <- {drop.business_name} ({drop.lead_id})",
+            markup=False,
+        )
+    if not pairs:
+        console.print("No duplicates found.")
+    elif apply:
+        console.print(f"Merged {len(pairs)} duplicate(s) into the older lead.")
+        console.print("Rows for the merged-away leads stay in Sheets or files already delivered.")
+    else:
+        console.print(f"{len(pairs)} duplicate(s). Run again with --apply to merge them.")
 
 
 @app.command()

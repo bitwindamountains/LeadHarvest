@@ -38,7 +38,7 @@ from leadharvest.sources.directory import (
     load_directory_config,
 )
 from leadharvest.sources.osm_overpass import OsmOverpassSource, OverpassClient
-from leadharvest.sources.overture import OvertureSource
+from leadharvest.sources.overture import OvertureSource, default_source_names
 from leadharvest.storage.repository import Repository
 
 log = get_logger("pipeline")
@@ -149,7 +149,7 @@ class Pipeline:
             id=new_run_id(),
             category=category.key,
             location=location,
-            sources=sources or ["osm"],
+            sources=sources or default_source_names(),
             limit_n=limit,
             export_targets=targets,
             options=options or {},

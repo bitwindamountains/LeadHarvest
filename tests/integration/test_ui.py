@@ -11,24 +11,28 @@ from leadharvest.categories import load_categories
 from leadharvest.config import Settings
 from leadharvest.geo.nominatim import LocationNotFound
 from leadharvest.models import Lead, Run, new_lead_id, utcnow_iso
+from leadharvest.sources.overture import default_source_names
 from leadharvest.storage.db import connect
 from leadharvest.storage.repository import Repository
 from leadharvest.ui_support import (
     SHOW_OPTIONS,
     ago,
     can_resume,
+    coverage,
     csv_download,
     display_phone,
     duration_text,
     export_choices,
     mark_interrupted,
     password_ok,
+    percent,
     result_rows,
     run_labels,
+    score_bands,
     setup_problems,
-    share,
     short_time,
     shown_leads,
+    table_height,
     validate_request,
     viewer_tz,
 )
@@ -59,12 +63,19 @@ def test_setup_problems_and_choices(tmp_path) -> None:
     assert export_choices(_settings()) == ["csv", "xlsx"]
 
 
+def test_default_sources_prefer_overture_when_installed(monkeypatch) -> None:
+    monkeypatch.setattr("leadharvest.sources.overture.duckdb_installed", lambda: True)
+    assert default_source_names() == ["overture"]
+    monkeypatch.setattr("leadharvest.sources.overture.duckdb_installed", lambda: False)
+    assert default_source_names() == ["osm"]  # no DuckDB: fall back instead of failing
+
+
 def test_validate_request() -> None:
     cats = load_categories()
     ok = validate_request(cats, "dentist", "  Makati,   Philippines ", 50, ["csv"], False, True)
     assert not isinstance(ok, list)
     assert ok.location == "Makati, Philippines"
-    assert ok.sources == ["osm"]  # the default
+    assert ok.sources == default_source_names()  # the default
     errors = validate_request(cats, "nope", "x", 0, [], False, True)
     assert isinstance(errors, list) and len(errors) == 4
     both = validate_request(
@@ -102,7 +113,13 @@ def test_presentation_helpers() -> None:
     assert display_phone("+639171234567") == "+63 917 123 4567"
     assert display_phone("not a phone") == "not a phone" and display_phone(None) is None
     assert duration_text(45.4) == "45 s" and duration_text(135) == "2 min 15 s"
-    assert share(1, 3) == "1 (33%)" and share(0, 0) == "0"
+    assert percent(1, 3) == 33 and percent(0, 0) == 0 and percent(199, 200) == 99
+    assert coverage(2, 5) == "of 5 leads"  # too few leads for a percentage
+    assert coverage(7, 20) == "of 20 leads · 35%"
+    assert table_height(5) == 35 * 6 + 20 and table_height(500) == table_height(10)
+    scored = [_run_lead(score) for score in (0, 19, 20, 55, 99, 100, None)]
+    assert [n for _, n in score_bands(scored)] == [2, 1, 1, 0, 2]
+    assert [n for _, n in score_bands([])] == [0, 0, 0, 0, 0]
     assert can_resume(_run(status="partial", current_step="enrich"))
     assert can_resume(_run(status="running", current_step="search"))
     assert not can_resume(_run(status="completed", current_step="done"))
@@ -115,7 +132,7 @@ def test_presentation_helpers() -> None:
     ]  # fmt: skip
     rows = result_rows(leads, "dentist")
     assert [r["lead_id"] for r in rows] == ["L1", "L0", "L2"]  # best first, unscored last
-    assert rows[0]["flags"] == "No HTTPS, custom"  # readable; unknown flags pass through
+    assert rows[0]["flags"] == ["No HTTPS", "custom"]  # readable; unknown flags pass through
     with_email = leads[0].model_copy(update={"email": "info@b0.ph"})
     assert shown_leads([with_email, *leads[1:]], "has-email") == [with_email]
     assert shown_leads(leads, "all") == leads
@@ -212,6 +229,12 @@ def _seed(path, run_id: str, status: str, step: str, leads: int = 0, error: str 
     repo.conn.close()
 
 
+def _run_lead(score: int | None) -> Lead:
+    now = utcnow_iso()
+    return Lead(business_name="X", name_key="x", score=score, first_seen_run_id="r",
+                first_seen_at=now, last_seen_at=now, updated_at=now)  # fmt: skip
+
+
 def _finish(run_status: str = "completed"):
     """A stand-in for Pipeline.execute that finishes the run without any network."""
 
@@ -236,8 +259,16 @@ def test_ui_history_switches_between_runs(ui_env) -> None:
         resumable = any(b.label == "Resume run" for b in at.button)
         assert resumable is (run_id == "run-paused")
     assert at.metric[0].value == "3"  # leads
-    assert at.metric[2].value == "1 (33%)"  # with email
+    assert at.metric[1].value == "1" and at.metric[1].delta == "of 3 leads"  # with email
     assert at.dataframe[0].value["business_name"].tolist()[0] == "Clinic 2"  # best score first
+    # Ledger rows filter the table; the same row again shows everything.
+    assert at.button(key="lh-seg-no-booking").disabled  # no leads in it
+    at.button(key="lh-seg-business-email").click().run()
+    assert at.selectbox(key="show-run-done").value == "business-email"
+    assert len(at.dataframe[0].value) == 1
+    at.button(key="lh-seg-business-email").click().run()
+    assert at.selectbox(key="show-run-done").value == "all"
+    assert len(at.dataframe[0].value) == 3
 
 
 def test_ui_resume_finishes_a_paused_run(ui_env, monkeypatch) -> None:

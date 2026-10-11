@@ -55,6 +55,12 @@ def duckdb_installed() -> bool:
     return True
 
 
+def default_source_names() -> list[str]:
+    """Sources for a run that names none: Overture where DuckDB is installed (far more reachable
+    businesses, and no ODbL share-alike on lists sold to clients: decision D6), else OSM."""
+    return ["overture"] if duckdb_installed() else ["osm"]
+
+
 def query_places(
     path: str, bbox: tuple[float, float, float, float], categories: Sequence[str]
 ) -> list[dict[str, Any]]:

@@ -241,7 +241,7 @@ async def test_source_error_marks_partial_and_resume_finishes(settings, repo) ->
         sleep=_instant,
     )
     cat = load_categories()["dentist"]
-    run = pipeline.create_run(cat, "Makati", limit=10, targets=["csv"])
+    run = pipeline.create_run(cat, "Makati", limit=10, targets=["csv"], sources=["osm"])
     result = await pipeline.execute(run.id, cat)
     assert result.status == "partial" and result.current_step == "search"
     assert "Overpass" in (result.error or "")

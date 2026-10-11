@@ -27,3 +27,6 @@ build/
 *.log
 .DS_Store
 Thumbs.db
+
+# Local Impeccable hook cache (session ids, absolute paths)
+.impeccable/hook.cache.json

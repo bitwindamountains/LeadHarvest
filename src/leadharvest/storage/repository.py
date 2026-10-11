@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -231,6 +232,40 @@ class Repository:
             (name_key, street_key, city_key),
         ).fetchall()
         return [_row_to_lead(r) for r in rows]
+
+    def leads_near(self, lat: float, lon: float, radius_m: float) -> list[Lead]:
+        """Leads inside a lat/lon box around the point (callers check the exact distance)."""
+        dlat = radius_m / 111_320
+        dlon = dlat / max(math.cos(math.radians(lat)), 0.01)
+        rows = self.conn.execute(
+            "SELECT * FROM leads WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? "
+            "ORDER BY first_seen_at, lead_id",
+            (lat - dlat, lat + dlat, lon - dlon, lon + dlon),
+        ).fetchall()
+        return [_row_to_lead(r) for r in rows]
+
+    def leads_with_location(self) -> list[Lead]:
+        rows = self.conn.execute(
+            "SELECT * FROM leads WHERE lat IS NOT NULL AND lon IS NOT NULL "
+            "ORDER BY first_seen_at, lead_id"
+        ).fetchall()
+        return [_row_to_lead(r) for r in rows]
+
+    def merge_lead_into(self, keep: Lead, drop_id: str) -> None:
+        """Save the merged lead, move the duplicate's source records and run links onto it,
+        then delete the duplicate. Raw records stay: they now belong to the kept lead."""
+        assert keep.lead_id and keep.lead_id != drop_id
+        with self.transaction():
+            self.update_lead(keep)
+            self.conn.execute(
+                "UPDATE lead_sources SET lead_id = ? WHERE lead_id = ?", (keep.lead_id, drop_id)
+            )
+            self.conn.execute(
+                "INSERT OR IGNORE INTO run_leads (run_id, lead_id, category, position) "
+                "SELECT run_id, ?, category, position FROM run_leads WHERE lead_id = ?",
+                (keep.lead_id, drop_id),
+            )
+            self.conn.execute("DELETE FROM leads WHERE lead_id = ?", (drop_id,))
 
     def distinct_names_for_phone(self, phone: str) -> int:
         row = self.conn.execute(

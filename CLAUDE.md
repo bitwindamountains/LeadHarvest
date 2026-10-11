@@ -12,14 +12,14 @@ Full spec: docs/BLUEPRINT.md. Read the relevant section before changing code.
 ## Architecture
 - Pipeline (`pipeline.py`): `search → clean → enrich → score → export → done`, each step idempotent; `resume` restarts at `runs.current_step`. SQLite (`data/leads.db`) is the only state.
 - `cli.py` (Typer) → `pipeline.py`; `batch.py` runs many jobs as ordinary runs tagged `options={"batch","row"}`; `monitor` = batch named `<name>@YYYY-Www` plus "new since last run" exports.
-- Sources: `sources/osm_overpass.py`, `sources/overture.py` (DuckDB over the latest Overture places GeoParquet, filtered to the Nominatim boundary; tests build a synthetic parquet), YAML directory adapters (`config/directories/`); area resolution and boundaries in `geo/nominatim.py`. Export attribution follows the sources (`exporters/base.attribution`).
+- Sources (default `sources.overture.default_source_names()`: Overture when DuckDB is installed, else OSM; decision D6): `sources/osm_overpass.py`, `sources/overture.py` (DuckDB over the latest Overture places GeoParquet, filtered to the Nominatim boundary; tests build a synthetic parquet), YAML directory adapters (`config/directories/`); area resolution and boundaries in `geo/nominatim.py`. Export attribution follows the sources (`exporters/base.attribution`).
 - Schema changes: add `storage/migrations/NNN_*.sql` (applied in order by `storage/db.py`).
 - Exporters (`exporters/`) share `MANAGED_COLUMNS` in `base.py`; Sheets only touches managed columns.
 - UI: `app/streamlit_app.py` routes between `app/views/` (one module per screen: `signin`, `sidebar`, `search`, `run`, plus `common`). Design rules and the states each screen must show are in `docs/UI.md`. Put logic in `ui_support.py` (tested in `tests/integration/test_ui.py` with AppTest and a fake `Pipeline.execute`). Theme lives in `.streamlit/config.toml` (fonts, colours, sidebar), so launch from the repo root. Logo, mark and the sign-in brand panel live in `app/assets/`. `st.html` strips `<svg>` and `data:` images, so the panel is pure CSS. Use Material icons (`:material/...:`), never emojis. Radio and select options need unique labels.
 
 ## Status and roadmap
 Details, history and the full roadmap are in PROGRESS.md; keep this summary in sync with it.
-- **Built:** blueprint phases 0–6, 8 (except 8.6 Google Places) and 9, plus the 2026-10-09 audit fixes and UI redesign. On `main` and pushed. 211 tests pass.
+- **Built:** blueprint phases 0–6, 8 (except 8.6 Google Places) and 9, plus the 2026-10-09 audit fixes and UI redesign. On `main` and pushed. 236 tests pass. Overture is the default source (D6); dedupe rule 4 merges one place from two sources.
 - **Now (owner, live):**
   - CI green on GitHub;
   - `pytest -m live`;

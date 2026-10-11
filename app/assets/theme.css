@@ -52,7 +52,7 @@
   display: inline-flex; align-items: center; gap: 8px;
   padding: 5px 12px; border-radius: 999px; border: 1px solid var(--lh-accent-line);
   background: var(--lh-accent-soft); color: #7a4f0a;
-  font: 500 10.5px/1 Geist, "Segoe UI", sans-serif; letter-spacing: 0.2em; text-transform: uppercase;
+  font: 500 0.75rem/1 Geist, "Segoe UI", sans-serif; letter-spacing: 0.16em; text-transform: uppercase;
 }
 .lh-eyebrow::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--lh-accent); }
 
@@ -69,32 +69,257 @@
   padding: 1.6rem 1.6rem 1.4rem !important;
 }
 
-/* ---- metric cards: smaller bezel, ochre hairline on the inner core, ledger figures ---- */
+/* ---- run numbers: a ledger bento. A tall Leads card beside two coverage meters over a wide
+   score meter; 2 columns on phones (Leads, then the pair, then score). Never a lone card. ---- */
+:has(> .st-key-lh-numbers) { container-type: inline-size; }
+.st-key-lh-numbers {
+  display: grid !important; grid-template-columns: 1.25fr 1fr 1fr; grid-template-rows: auto auto;
+  gap: 1.25rem !important;  /* wider than two 7px bezel rings, so trays never touch */
+  align-items: stretch !important;
+}
+.st-key-lh-numbers > * { width: auto !important; min-width: 0 !important; }
+/* Grid items are Streamlit's layout wrappers around each keyed card container. */
+.st-key-lh-numbers > :has(> .st-key-lh-kpi-leads) { grid-column: 1; grid-row: 1 / 3; }
+.st-key-lh-numbers > :has(> .st-key-lh-kpi-score) { grid-column: 2 / 4; }
+/* Wrapper, keyed container, element container and card all fill the cell. */
+.st-key-lh-numbers > *,
+.st-key-lh-numbers [class*="st-key-lh-kpi"] { display: flex !important; flex-direction: column; }
+.st-key-lh-numbers [class*="st-key-lh-kpi"],
+.st-key-lh-numbers [class*="st-key-lh-kpi"] > [data-testid="stElementContainer"] { flex: 1; }
+.st-key-lh-numbers [data-testid="stMetric"] { height: 100%; }
+@container (max-width: 560px) {
+  .st-key-lh-numbers { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem !important; }
+  .st-key-lh-numbers > :has(> .st-key-lh-kpi-leads),
+  .st-key-lh-numbers > :has(> .st-key-lh-kpi-score) { grid-column: 1 / -1; grid-row: auto; }
+}
+
+[data-testid="stMetricLabel"] [data-testid="stMarkdownContainer"],
+[data-testid="stMetricLabel"] p { white-space: normal; overflow-wrap: normal; word-break: normal; }
 [data-testid="stMetric"] {
+  position: relative; isolation: isolate;
   background: var(--lh-core);
   border: 1px solid var(--lh-hair) !important;
   border-radius: 22px !important;
   box-shadow:
-    inset 0 2px 0 var(--lh-accent-line),
-    0 0 0 5px rgba(34, 28, 21, 0.022),
-    0 0 0 6px rgba(34, 28, 21, 0.06),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    0 0 0 6px rgba(34, 28, 21, 0.022),
+    0 0 0 7px rgba(34, 28, 21, 0.06),
     0 34px 64px -48px rgba(70, 52, 24, 0.4);
-  padding: 0.85rem 1.15rem !important;
+  padding: 1rem 1.2rem 1.15rem !important;
   transition: transform 600ms var(--lh-spring);
 }
 [data-testid="stMetricLabel"] p {
-  text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.68rem; color: var(--lh-muted);
+  text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.72rem; font-weight: 500;
+  color: var(--lh-muted);
 }
 [data-testid="stMetricValue"] {
   font-family: Fraunces, Georgia, serif; font-variant-numeric: tabular-nums lining-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em; line-height: 1.05;
+}
+.st-key-lh-numbers [data-testid="stMetricValue"],
+.st-key-lh-numbers [data-testid="stMetricValue"] * { font-size: 2.15rem !important; }
+/* The quiet second line ("2 of 5 leads", "out of 100"): muted ink, never a red/green delta. */
+.st-key-lh-numbers [data-testid="stMetricDelta"] {
+  background: none !important; padding: 0 !important; color: var(--lh-muted) !important;
+  font-size: 0.82rem; font-variant-numeric: tabular-nums;
+}
+.st-key-lh-numbers [data-testid="stMetricDelta"] [data-testid="stIconMaterial"] { display: none; }
+
+/* Hero: the keyed container is the card, so the segment ledger sits inside it with the
+   figure; the metric itself is unframed. Warm, ochre-lit core with an ochre-tinted tray. */
+.st-key-lh-numbers .st-key-lh-kpi-leads {
+  gap: 0 !important;
+  background:
+    radial-gradient(ellipse 90% 60% at 0% 0%, rgba(201, 146, 42, 0.16), transparent 65%),
+    var(--lh-core);
+  border: 1px solid var(--lh-hair); border-radius: 22px;
+  padding: 1.25rem 1.4rem 1.3rem;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px var(--lh-accent-soft),
+    0 0 0 6px rgba(143, 94, 14, 0.035),
+    0 0 0 7px rgba(143, 94, 14, 0.1),
+    0 44px 80px -52px rgba(110, 72, 14, 0.5);
+  transition: transform 600ms var(--lh-spring);
+}
+.st-key-lh-numbers .st-key-lh-kpi-leads > [data-testid="stElementContainer"] { flex: none; }
+.st-key-lh-kpi-leads [data-testid="stMetric"] {
+  background: none; border: 0 !important; box-shadow: none; padding: 0 !important;
+  height: auto !important; transform: none !important;
+}
+.st-key-lh-kpi-leads [data-testid="stMetricValue"] { padding-top: 0.5rem; }
+.st-key-lh-kpi-leads [data-testid="stMetricValue"],
+.st-key-lh-kpi-leads [data-testid="stMetricValue"] * {
+  font-size: clamp(3.2rem, 9cqi, 5rem) !important; font-weight: 500; letter-spacing: -0.045em;
+}
+.st-key-lh-kpi-leads [data-testid="stMetricDelta"] {
+  display: inline-flex; margin-top: 0.4rem;
+  padding: 0.2rem 0.65rem !important; border-radius: 999px;
+  background: var(--lh-accent-soft) !important; color: var(--lh-accent) !important;
+  box-shadow: inset 0 0 0 1px var(--lh-accent-line); font-weight: 500;
+}
+/* The ledger: pushed to the card's foot, one button row per segment, dot leaders to the count.
+   A row filters the leads table; the active one is tinted and carries a check icon. */
+.st-key-lh-kpi-leads > :has(.lh-ledger-head) { margin-top: auto; padding-top: 1.1rem; }
+.lh-ledger-head {
+  margin: 0 0 0.3rem; border-top: 1px solid var(--lh-hair); padding-top: 0.85rem;
+  text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.72rem; font-weight: 500;
+  color: var(--lh-muted);
+}
+.lh-ledger-head span { text-transform: none; letter-spacing: 0; font-weight: 400; }
+/* Rows bleed 0.55rem into the card's padding on both sides, so the hover tint has room and the
+   text (inset by the row's own 0.55rem padding) lines up with the heading's rule. The wrapper
+   fixes the width, so it must grow by both bleeds explicitly. */
+.st-key-lh-ledger {
+  gap: 0.1rem !important; margin: 0 -0.55rem; width: calc(100% + 1.1rem) !important;
+  max-width: none !important;
+}
+.st-key-lh-ledger [data-testid="stBaseButton-tertiary"] {
+  width: 100%; min-height: 0; padding: 0.3rem 0.55rem !important; border-radius: 10px;
+  justify-content: flex-start; color: var(--lh-ink);
+  transition: background-color 300ms var(--lh-out), transform 500ms var(--lh-spring);
+}
+.st-key-lh-ledger [data-testid="stBaseButton-tertiary"] > div,
+.st-key-lh-ledger [data-testid="stBaseButton-tertiary"] > div > span,
+.st-key-lh-ledger [data-testid="stBaseButton-tertiary"] [data-testid="stMarkdownContainer"] { width: 100%; }
+.st-key-lh-ledger [data-testid="stBaseButton-tertiary"] p {
+  display: flex; align-items: baseline; gap: 0.5rem; margin: 0; font-size: 0.86rem; text-align: left;
+}
+.st-key-lh-ledger [data-testid="stBaseButton-tertiary"] p::after {
+  content: ""; order: 1; flex: 1; min-width: 1rem;
+  border-bottom: 1px dotted rgba(34, 28, 21, 0.3); transform: translateY(-0.28em);
+}
+.st-key-lh-ledger [data-testid="stBaseButton-tertiary"] strong {
+  order: 2; font-family: Fraunces, Georgia, serif; font-weight: 500; font-size: 1.02rem;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.st-key-lh-ledger [data-testid="stBaseButton-tertiary"]:has([data-testid="stIconMaterial"]) {
+  background: var(--lh-accent-soft); color: var(--lh-accent);
+  box-shadow: inset 0 0 0 1px var(--lh-accent-line);
+}
+.st-key-lh-ledger [data-testid="stIconMaterial"] { color: var(--lh-accent); font-size: 1rem; }
+.st-key-lh-ledger [data-testid="stBaseButton-tertiary"]:disabled { color: var(--lh-muted); cursor: default; }
+.st-key-lh-ledger [data-testid="stBaseButton-tertiary"]:disabled strong { opacity: 0.55; }
+.st-key-lh-ledger [data-testid="stBaseButton-tertiary"]:focus-visible {
+  outline: 2px solid var(--lh-accent-line); outline-offset: 1px;
 }
 @media (hover: hover) and (pointer: fine) {
-  [data-testid="stMetric"]:hover { transform: translateY(-3px); }
+  .st-key-lh-ledger [data-testid="stBaseButton-tertiary"]:not(:disabled):hover {
+    background: rgba(143, 94, 14, 0.07); color: var(--lh-ink);
+  }
 }
-@media (max-width: 640px) {  /* phones: smaller figures so the cards pair up instead of stacking */
-  [data-testid="stMetric"] { padding: 0.6rem 0.85rem !important; }
-  [data-testid="stMetricValue"], [data-testid="stMetricValue"] * { font-size: 1.45rem !important; }
+
+/* Score card: the keyed container is the card (like the hero), figure left, histogram right;
+   stacked when the numbers grid drops to two columns. */
+.st-key-lh-numbers .st-key-lh-kpi-score {
+  display: grid !important; grid-template-columns: minmax(8.5rem, 11.5rem) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr); align-content: stretch !important; align-items: stretch;
+  column-gap: 2rem; row-gap: 1rem;
+  background: var(--lh-core);
+  border: 1px solid var(--lh-hair); border-radius: 22px;
+  padding: 1rem 1.4rem 1.1rem 1.2rem;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    0 0 0 6px rgba(34, 28, 21, 0.022),
+    0 0 0 7px rgba(34, 28, 21, 0.06),
+    0 34px 64px -48px rgba(70, 52, 24, 0.4);
+  transition: transform 600ms var(--lh-spring);
+}
+.st-key-lh-numbers .st-key-lh-kpi-score > [data-testid="stElementContainer"] {
+  flex: none; width: auto !important; align-self: stretch;
+}
+/* The histogram fills its cell, so taller cards get taller bars. */
+.st-key-lh-kpi-score [data-testid="stHtml"]:has(.lh-hist) { height: 100%; }
+/* The direction line ("out of 100 · higher = easier to reach") wraps in the capped column. */
+.st-key-lh-kpi-score [data-testid="stMetricDelta"],
+.st-key-lh-kpi-score [data-testid="stMetricDelta"] * { white-space: normal !important; overflow: visible !important; }
+.lh-hist li small { white-space: nowrap; }
+.st-key-lh-kpi-score [data-testid="stMetric"] {
+  background: none; border: 0 !important; box-shadow: none; padding: 0 !important;
+  height: auto !important; transform: none !important;
+}
+@container (max-width: 560px) {
+  .st-key-lh-numbers .st-key-lh-kpi-score { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; }
+}
+
+.lh-sr {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.lh-hist { margin: 0; height: 100%; display: flex; flex-direction: column; }
+.lh-hist figcaption {
+  margin: 0 0 0.5rem; text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.72rem;
+  font-weight: 500; color: var(--lh-muted);
+}
+.lh-hist-plot { position: relative; flex: 1; min-height: 7.5rem; }
+.lh-hist ol {
+  list-style: none; margin: 0; padding: 0; height: 100%;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.5rem;
+}
+/* Each band: a column with the count sitting on its bar (height --h of the column, a share of
+   the fullest band), then the band's range under the baseline. */
+.lh-hist li { display: grid; grid-template-rows: minmax(0, 1fr) auto; margin: 0; }
+.lh-hist .lh-col {
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+  gap: 0.3rem; min-height: 0;
+}
+.lh-hist li b {
+  font-family: Fraunces, Georgia, serif; font-weight: 500; font-size: 0.95rem; line-height: 1;
+  font-variant-numeric: tabular-nums lining-nums; color: var(--lh-ink);
+}
+.lh-hist li i {
+  flex: none; width: 100%; height: calc(var(--h) * (100% - 1.3rem)); border-radius: 7px 7px 2px 2px;
+  background: linear-gradient(180deg, #c08a2e, var(--lh-accent));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 10px 18px -12px rgba(110, 72, 14, 0.6);
+  transform-origin: bottom;
+}
+.lh-hist li small {
+  width: 100%; padding-top: 0.35rem; border-top: 1px solid rgba(34, 28, 21, 0.16); text-align: center;
+  font-size: 0.72rem; color: var(--lh-muted); font-variant-numeric: tabular-nums;
+}
+.lh-hist li.is-zero b { color: var(--lh-muted); opacity: 0.6; }
+@media (prefers-reduced-motion: no-preference) {
+  .lh-hist li i { animation: lh-grow 1000ms var(--lh-spring) backwards; }
+  .lh-hist li:nth-child(2) i { animation-delay: 60ms; }
+  .lh-hist li:nth-child(3) i { animation-delay: 120ms; }
+  .lh-hist li:nth-child(4) i { animation-delay: 180ms; }
+  .lh-hist li:nth-child(5) i { animation-delay: 240ms; }
+}
+@keyframes lh-grow { from { transform: scaleY(0); } }
+
+/* Meters: a plain track with an ochre fill scaled to --lh-fill, which
+   views/run.py sets per card. Transform only, so the fill animates on the GPU. */
+[class*="st-key-lh-kpi-"]:not(.st-key-lh-kpi-leads):not(.st-key-lh-kpi-score) [data-testid="stMetric"] { padding-bottom: 1.95rem !important; }
+[class*="st-key-lh-kpi-"]:not(.st-key-lh-kpi-leads):not(.st-key-lh-kpi-score) [data-testid="stMetric"]::before,
+[class*="st-key-lh-kpi-"]:not(.st-key-lh-kpi-leads):not(.st-key-lh-kpi-score) [data-testid="stMetric"]::after {
+  content: ""; position: absolute; left: 1.2rem; right: 1.2rem; bottom: 1rem; height: 5px;
+  border-radius: 999px; pointer-events: none;
+}
+[class*="st-key-lh-kpi-"]:not(.st-key-lh-kpi-leads):not(.st-key-lh-kpi-score) [data-testid="stMetric"]::before {
+  background: rgba(34, 28, 21, 0.07);
+  box-shadow: inset 0 1px 1px rgba(34, 28, 21, 0.08);
+}
+[class*="st-key-lh-kpi-"]:not(.st-key-lh-kpi-leads):not(.st-key-lh-kpi-score) [data-testid="stMetric"]::after {
+  background: linear-gradient(90deg, #c08a2e, var(--lh-accent));
+  box-shadow: 0 0 10px -2px rgba(201, 146, 42, 0.55);
+  transform-origin: left center; transform: scaleX(var(--lh-fill, 0));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [data-testid="stMetric"]:hover,
+  .st-key-lh-numbers .st-key-lh-kpi-leads:hover,
+  .st-key-lh-numbers .st-key-lh-kpi-score:hover { transform: translateY(-3px); }
+}
+@media (max-width: 640px) {  /* phones: smaller figures so the meter cards pair up */
+  [data-testid="stMetric"] { padding: 0.8rem 0.95rem 1rem !important; }
+  .st-key-lh-numbers [data-testid="stMetricValue"],
+  .st-key-lh-numbers [data-testid="stMetricValue"] * { font-size: 1.6rem !important; }
+  .st-key-lh-numbers .st-key-lh-kpi-leads { padding: 1rem 1.1rem 1.05rem; }
+  .st-key-lh-kpi-leads [data-testid="stMetricValue"],
+  .st-key-lh-kpi-leads [data-testid="stMetricValue"] * { font-size: 3rem !important; }
+  [class*="st-key-lh-kpi-"]:not(.st-key-lh-kpi-leads):not(.st-key-lh-kpi-score) [data-testid="stMetric"]::before,
+  [class*="st-key-lh-kpi-"]:not(.st-key-lh-kpi-leads):not(.st-key-lh-kpi-score) [data-testid="stMetric"]::after {
+    left: 0.95rem; right: 0.95rem; bottom: 0.85rem;
+  }
   [data-testid="stMetricLabel"] p { letter-spacing: 0.1em; }
 }
 
@@ -150,6 +375,21 @@
   box-shadow: 0 0 0 6px rgba(34, 28, 21, 0.022), 0 0 0 7px rgba(34, 28, 21, 0.06),
               0 44px 80px -56px rgba(70, 52, 24, 0.38);
 }
+/* Table scrollbar: 16 px with a rounded 10 px thumb (ui_support.table_height leaves room for it).
+   Streamlit sets scrollbar-width: thin (10 px on Windows), and while the standard properties
+   are set Chrome ignores ::-webkit-scrollbar, so they are reset first. Firefox keeps its own
+   full-size bar, tinted to match. */
+[data-testid="stDataFrame"] .dvn-scroller { scrollbar-width: auto; scrollbar-color: auto; }
+[data-testid="stDataFrame"] .dvn-scroller::-webkit-scrollbar { width: 16px; height: 16px; }
+[data-testid="stDataFrame"] .dvn-scroller::-webkit-scrollbar-track { background: rgba(34, 28, 21, 0.04); }
+[data-testid="stDataFrame"] .dvn-scroller::-webkit-scrollbar-corner { background: transparent; }
+[data-testid="stDataFrame"] .dvn-scroller::-webkit-scrollbar-thumb {
+  background: rgba(34, 28, 21, 0.34) padding-box; border: 3px solid transparent; border-radius: 999px;
+}
+[data-testid="stDataFrame"] .dvn-scroller::-webkit-scrollbar-thumb:hover { background-color: rgba(143, 94, 14, 0.7); }
+@supports (-moz-appearance: none) {
+  [data-testid="stDataFrame"] .dvn-scroller { scrollbar-color: rgba(34, 28, 21, 0.4) rgba(34, 28, 21, 0.04); }
+}
 [data-testid="stExpander"] details { background: rgba(255, 255, 255, 0.45); border-radius: 16px; }
 
 /* ---- sidebar: dark olive soil, the open run marked in gold ---- */
@@ -160,7 +400,7 @@
   border-right: 1px solid rgba(255, 255, 255, 0.04);
 }
 [data-testid="stSidebar"] h2 {
-  text-transform: uppercase; letter-spacing: 0.2em; font-size: 0.66rem !important;
+  text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.75rem !important;
   font-family: Geist, "Segoe UI", sans-serif !important; color: #a3a893; margin-top: 0.75rem;
 }
 [data-testid="stSidebar"] [data-testid^="stBaseButton-secondary"] {
@@ -185,15 +425,17 @@
 }
 
 /* ---- motion: a heavy fade-up from a soft blur, once per element; lists stagger ---- */
+@keyframes lh-fill { from { transform: scaleX(0); } }
 @keyframes lh-rise { from { opacity: 0; transform: translateY(16px); filter: blur(6px); } }
 @media (prefers-reduced-motion: no-preference) {
   [data-testid="stMain"] [data-testid="stElementContainer"],
   [data-testid="stMain"] [data-testid="stForm"],
   [data-testid="stMetric"] { animation: lh-rise 700ms var(--lh-spring) backwards; }
-  [data-testid="stMetric"]:nth-of-type(2) { animation-delay: 60ms; }
-  [data-testid="stMetric"]:nth-of-type(3) { animation-delay: 120ms; }
-  [data-testid="stMetric"]:nth-of-type(4) { animation-delay: 180ms; }
-  [data-testid="stMetric"]:nth-of-type(5) { animation-delay: 240ms; }
+  .st-key-lh-numbers > :nth-child(2) [data-testid="stMetric"] { animation-delay: 80ms; }
+  .st-key-lh-numbers > :nth-child(3) [data-testid="stMetric"] { animation-delay: 140ms; }
+  .st-key-lh-numbers > :nth-child(4) [data-testid="stMetric"] { animation-delay: 200ms; }
+  /* Meters fill once their card has landed. */
+  .st-key-lh-numbers [data-testid="stMetric"]::after { animation: lh-fill 1100ms var(--lh-spring) 450ms backwards; }
   [data-testid="stSidebar"] [data-testid="stRadioOption"] { animation: lh-rise 600ms var(--lh-spring) backwards; }
 }
 @media (prefers-reduced-motion: reduce) {

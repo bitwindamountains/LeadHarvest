@@ -10,6 +10,7 @@ from leadharvest.categories import Category
 from leadharvest.config import Settings
 from leadharvest.exporters.base import export_basename
 from leadharvest.models import Lead, Run
+from leadharvest.segments import segment_counts
 from leadharvest.storage.repository import Repository
 from leadharvest.ui_support import (
     SHOW_OPTIONS,
@@ -17,40 +18,58 @@ from leadharvest.ui_support import (
     STATUS_STYLE,
     STEP_LABELS,
     TABLE_COLUMNS,
+    TABLE_ROW_PX,
     TARGET_LABELS,
     ago,
     can_resume,
+    coverage,
     csv_download,
     duration_text,
+    percent,
     result_rows,
     run_seconds,
     run_title,
-    share,
+    score_bands,
     sheet_url,
     short_time,
     shown_leads,
+    table_height,
     viewer_tz,
 )
 
 from views.common import execute, eyebrow
 
+_col = st.column_config
+# Business stays pinned while the table scrolls sideways. Pixel widths fit typical content: a
+# 180 px pin still leaves room on phones, 240 px fits most emails, 280 px fits two openings.
 COLUMN_CONFIG = {
-    "business_name": "Business",
-    "score": st.column_config.ProgressColumn("Score", min_value=0, max_value=100, format="%d"),
-    "email": "Email",
-    "email_kind": st.column_config.TextColumn(
-        "Email type", help="business, personal (a person's name) or unknown"
+    "business_name": _col.TextColumn("Business", width=180, pinned=True),
+    "score": _col.ProgressColumn(
+        "Score",
+        min_value=0,
+        max_value=100,
+        format="%d",
+        width="small",
+        help="From 0 to 100: higher means more ways to reach the business.",
     ),
-    "phone": "Phone",
+    "flags": _col.ListColumn(
+        "Openings", width=280, help="Sales openings, e.g. no website or no HTTPS."
+    ),
+    "email": _col.TextColumn("Email", width=240),
+    "email_kind": _col.TextColumn(
+        "Email type", width="small", help="business, personal (a person's name) or unknown"
+    ),
+    "phone": _col.TextColumn("Phone", width=140),
     # Show the domain; the link keeps the full URL.
-    "website": st.column_config.LinkColumn("Website", display_text=r"https?://(?:www\.)?([^/]+)"),
-    "facebook": st.column_config.LinkColumn("Facebook", display_text="Open"),
-    "instagram": st.column_config.LinkColumn("Instagram", display_text="Open"),
-    "address": "Address",
-    "city": "City",
-    "flags": "Flags",
-    "tech": "Site platform",
-    "opening_hours": "Opening hours",
+    "website": _col.LinkColumn(
+        "Website", width="medium", display_text=r"https?://(?:www\.)?([^/]+)"
+    ),
+    "facebook": _col.LinkColumn("Facebook", width="small", display_text="Facebook"),
+    "instagram": _col.LinkColumn("Instagram", width="small", display_text="Instagram"),
+    "address": _col.TextColumn("Address", width="large"),
+    "city": _col.TextColumn("City", width="small"),
+    "tech": _col.TextColumn("Site platform", width="small"),
+    "opening_hours": _col.TextColumn("Opening hours", width="medium"),
 }
 
 
@@ -88,24 +107,86 @@ def run_header(run: Run, categories: dict[str, Category]) -> None:
 
 def numbers(run: Run, leads: list[Lead]) -> None:
     clean, score = run.stats.get("clean", {}), run.stats.get("score", {})
-    total = len(leads)
-    # A wrapping row, not st.columns: columns stack one per line on phones, which pushes the
-    # table a full screen down.
-    with st.container(horizontal=True, gap="small"):
-        st.metric("Leads", total, width="content", border=True)
-        st.metric("New this run", clean.get("new", "—"), help="Not seen in any earlier run.",
-                  width="content", border=True)  # fmt: skip
-        st.metric("With email", share(sum(1 for x in leads if x.email), total),
-                  width="content", border=True)  # fmt: skip
-        st.metric("With phone", share(sum(1 for x in leads if x.phone), total),
-                  width="content", border=True)  # fmt: skip
-        st.metric(
-            "Average score",
-            score.get("average_score", "—"),
-            help="From 0 to 100: higher means more ways to reach the business.",
-            width="content",
-            border=True,
-        )
+    total, new, average = len(leads), clean.get("new"), score.get("average_score")
+    email = sum(1 for x in leads if x.email)
+    phone = sum(1 for x in leads if x.phone)
+    # theme.css draws each meter from its card's --lh-fill (0 to 1).
+    fills = {
+        "email": percent(email, total) / 100,
+        "phone": percent(phone, total) / 100,
+    }
+    rules = "".join(f".st-key-lh-kpi-{k} {{ --lh-fill: {v:.3f}; }}" for k, v in fills.items())
+    st.html(f"<style>{rules}</style>")
+    # Not st.columns, which stacks one per line on phones and pushes the table a screen down.
+    # theme.css lays "lh-numbers" out as a ledger bento: a tall Leads card beside the meters.
+    quiet = {"delta_color": "off", "delta_arrow": "off", "border": True}
+    with st.container(horizontal=True, gap="small", key="lh-numbers"):
+        with st.container(key="lh-kpi-leads"):
+            st.metric(
+                "Leads",
+                total,
+                None if new is None else f"{new} new this run",
+                help="Businesses in this run. New means not seen in any earlier run.",
+                **(quiet | {"border": False}),  # the container is the card here
+            )
+            segment_ledger(run, leads)
+        for name, label, count in (("email", "With email", email), ("phone", "With phone", phone)):
+            with st.container(key=f"lh-kpi-{name}"):
+                st.metric(label, count, coverage(count, total), **quiet)
+        with st.container(key="lh-kpi-score"):
+            st.metric(
+                "Average score",
+                "—" if average is None else round(average),
+                None if average is None else "out of 100 · higher = easier to reach",
+                help="From 0 to 100: higher means more ways to reach the business.",
+                **(quiet | {"border": False}),  # the container is the card here
+            )
+            score_histogram(leads)
+
+
+def score_histogram(leads: list[Lead]) -> None:
+    """The score card's right half: leads per score band as bars scaled to the fullest band.
+    No average marker: a mean drawn over a few, often bimodal, leads misleads. st.html strips
+    <svg>, so it is plain elements."""
+    bands = score_bands(leads)
+    tallest = max((n for _, n in bands), default=0) or 1
+    bars = "".join(
+        f'<li class="{"is-zero" if n == 0 else ""}" style="--h: {n / tallest:.3f}">'
+        f'<span class="lh-col"><b>{n}<span class="lh-sr"> scored</span></b>'
+        f'<i aria-hidden="true"></i></span><small>{label}</small></li>'
+        for label, n in bands
+    )
+    st.html(
+        f'<figure class="lh-hist"><figcaption>Leads by score</figcaption>'
+        f'<div class="lh-hist-plot"><ol>{bars}</ol></div></figure>'
+    )
+
+
+def segment_ledger(run: Run, leads: list[Lead]) -> None:
+    """The Leads card's lower half: one row per segment, ruled like a ledger with dot leaders.
+    A row filters the leads table to that segment (a check marks it); again shows all leads."""
+    show_key = f"show-{run.id}"  # the table's Show selectbox
+    current = st.session_state.get(show_key, "all")
+    # Segments overlap (a lead with no website can also lack booking), so counts can sum past
+    # the total; the heading says so.
+    st.html('<p class="lh-ledger-head">Segments <span>· a lead can be in several</span></p>')
+    with st.container(key="lh-ledger", gap=None):
+        for key, label, count in segment_counts(leads):
+            st.button(
+                f"{label} **{count}**",
+                key=f"lh-seg-{key}",
+                type="tertiary",
+                width="stretch",
+                icon=":material/check:" if key == current else None,
+                disabled=count == 0 and key != current,
+                on_click=toggle_show,
+                args=(show_key, key),
+            )
+
+
+def toggle_show(show_key: str, segment: str) -> None:
+    """Runs before the rerun, so the selectbox below picks the new value up."""
+    st.session_state[show_key] = "all" if st.session_state.get(show_key) == segment else segment
 
 
 def leads_table(run: Run, leads: list[Lead]) -> None:
@@ -131,6 +212,7 @@ def leads_table(run: Run, leads: list[Lead]) -> None:
     st.dataframe(
         result_rows(shown, run.category), hide_index=True, width="stretch", placeholder="—",
         column_order=TABLE_COLUMNS, column_config=COLUMN_CONFIG,
+        row_height=TABLE_ROW_PX, height=table_height(len(shown)),
     )  # fmt: skip
     clean, enrich = run.stats.get("clean", {}), run.stats.get("enrich", {})
     dups = len(clean.get("possible_duplicates", [])) + len(enrich.get("possible_duplicates", []))

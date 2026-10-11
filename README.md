@@ -39,6 +39,7 @@ Files land in `data/exports/`. Open the `.xlsx` in Excel. Excel mangles `+63…`
 | `batch jobs.csv` / `batch --from-sheet TAB` | Many categories × locations; re-run the same command to resume |
 | `monitor jobs.csv --to sheets` | Weekly refresh: fresh runs each ISO week plus a "New since last run" export |
 | `forget --domain x.com` / `--phone` / `--email` | Delete a business and suppress it from all future runs |
+| `dedupe [--apply]` | List stored leads that are one place listed twice (close name within 100 m); `--apply` merges each into the older lead |
 | `purge --not-seen-days 180` | Retention: delete leads not seen for N days |
 
 `--run` accepts a full id, the 8-character prefix shown in output, or `latest` (the default).
@@ -69,7 +70,7 @@ uv sync --extra js && uv run playwright install chromium
 
 **Directory adapters (`--sources directory:NAME`).** Add a public business directory you're allowed to scrape: copy `config/directories/_template.yaml`, confirm every item on its scraping checklist (the adapter refuses to load otherwise), fill in CSS selectors, then check it with `leadharvest test-adapter NAME --pages 1`. Combine sources with `--sources osm,directory:NAME`.
 
-**Overture Maps (`--sources overture`).** Install it with `uv sync --extra overture`, which adds DuckDB. Each run reads the latest monthly [Overture Maps](https://docs.overturemaps.org/guides/places/) places release for the area's bounding box, about 40 s for a city. It keeps places inside the city's boundary (from Nominatim) and above a confidence floor. Most records come from Facebook pages, so it finds far more small Philippine businesses than OpenStreetMap, often with a phone, email or Facebook link. In one Makati check there were about 800 dental clinics; 90% had a phone and half had an email. The `overture:` lists in `config/categories.yaml` map each category to Overture's taxonomy.
+**Overture Maps (the default).** Install it with `uv sync --extra overture`, which adds DuckDB. When DuckDB is installed, runs that don't pass `--sources` use Overture only (its licence has no share-alike); without it they fall back to OpenStreetMap. Add OpenStreetMap with `--sources overture,osm`. Each run reads the latest monthly [Overture Maps](https://docs.overturemaps.org/guides/places/) places release for the area's bounding box, about 40 s for a city. It keeps places inside the city's boundary (from Nominatim) and above a confidence floor. Most records come from Facebook pages, so it finds far more small Philippine businesses than OpenStreetMap, often with a phone, email or Facebook link. In one Makati check there were about 800 dental clinics; 90% had a phone and half had an email. The `overture:` lists in `config/categories.yaml` map each category to Overture's taxonomy.
 
 **HubSpot (`--to hubspot`).** Create a HubSpot private app with the `crm.objects.companies.read` and `.write` scopes and put its token in `HUBSPOT_ACCESS_TOKEN`. Companies are matched by domain (or exact name when there's no domain). Existing companies only get fields that are empty in HubSpot; your team's edits are never overwritten.
 

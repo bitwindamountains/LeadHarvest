@@ -8,6 +8,7 @@ from leadharvest.categories import Category
 from leadharvest.cli import exporter_factory
 from leadharvest.config import Settings
 from leadharvest.pipeline import Pipeline
+from leadharvest.sources.overture import default_source_names
 from leadharvest.storage.repository import Repository
 from leadharvest.ui_support import (
     MAX_UI_LIMIT,
@@ -91,11 +92,11 @@ def run_form(settings: Settings, repo: Repository, categories: dict[str, Categor
             right.caption("Google Sheets and HubSpot appear here once set up in .env.")
         with st.expander("Advanced options", icon=":material/tune:"):
             sources = st.multiselect(
-                "Data sources", source_choices(), default=["osm"],
+                "Data sources", source_choices(), default=default_source_names(),
                 format_func=SOURCE_LABELS.get,
-                help="Overture Maps has far more businesses, many with a phone, email or "
-                "Facebook page, and its licence has no share-alike. A list that mixes in "
-                "OpenStreetMap data falls under the ODbL.",
+                help="Overture Maps is the default: far more businesses, many with a phone, "
+                "email or Facebook page, and its licence has no share-alike. Adding "
+                "OpenStreetMap can find a few more, but the list then falls under the ODbL.",
             )  # fmt: skip
             js = st.checkbox(
                 "Render JavaScript-only websites",

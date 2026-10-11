@@ -18,7 +18,7 @@ from leadharvest.exporters.base import lead_to_row
 from leadharvest.exporters.csv_export import write_rows
 from leadharvest.models import Lead, Run
 from leadharvest.segments import SEGMENTS, apply_segment
-from leadharvest.sources.overture import duckdb_installed
+from leadharvest.sources.overture import default_source_names, duckdb_installed
 from leadharvest.storage.repository import Repository
 
 MAX_UI_LIMIT = 1000
@@ -63,7 +63,7 @@ class RunRequest:
     targets: list[str]
     js: bool = False
     mx: bool = True
-    sources: list[str] = field(default_factory=lambda: ["osm"])
+    sources: list[str] = field(default_factory=default_source_names)
     errors: list[str] = field(default_factory=list)
 
 
@@ -89,7 +89,7 @@ def validate_request(
         errors.append("Choose at least one export.")
     if js and not playwright_installed():
         errors.append("JS rendering needs Playwright installed on the server.")
-    sources = ["osm"] if sources is None else sources
+    sources = default_source_names() if sources is None else sources
     if not sources:
         errors.append("Choose at least one data source.")
     if "overture" in sources and not duckdb_installed():
@@ -149,10 +149,11 @@ FLAG_LABELS = {
     "no_analytics": "No analytics or ad pixel",
     "no_online_booking": "No online booking",
 }
-# Columns shown in the results table, in order; the rest stay in the downloads.
+# Columns shown in the results table, in order: who, how good, the sales openings, how to reach
+# them, then where. The rest stay in the downloads.
 TABLE_COLUMNS = (
-    "business_name", "score", "email", "email_kind", "phone", "website", "facebook", "instagram",
-    "address", "city", "flags", "tech", "opening_hours",
+    "business_name", "score", "flags", "email", "email_kind", "phone", "website", "facebook",
+    "instagram", "address", "city", "tech", "opening_hours",
 )  # fmt: skip
 
 
@@ -259,11 +260,11 @@ def csv_download(leads: list[Lead], category: str) -> bytes:
 
 
 def result_rows(leads: list[Lead], category: str) -> list[dict[str, object]]:
-    """Table rows, best leads first, with readable flags."""
+    """Table rows, best leads first, with flags as readable labels (shown as chips)."""
     rows = []
     for lead in sorted(leads, key=lambda x: -(x.score or 0)):  # stable: ties keep run order
         row = lead_to_row(lead, category)
-        row["flags"] = ", ".join(FLAG_LABELS.get(f, f) for f in lead.flags)
+        row["flags"] = [FLAG_LABELS.get(f, f) for f in lead.flags]
         row["phone"] = display_phone(lead.phone)
         rows.append(row)
     return rows
@@ -275,5 +276,36 @@ def sheet_url(settings: Settings) -> str | None:
     return f"https://docs.google.com/spreadsheets/d/{settings.google_sheet_id}"
 
 
-def share(count: int, total: int) -> str:
-    return f"{count} ({count * 100 // total}%)" if total else "0"
+TABLE_ROW_PX = 35  # st.dataframe's default row height, set explicitly so the maths holds
+
+
+def table_height(rows: int) -> int:
+    """Header plus up to 10 rows, plus room for the horizontal scrollbar: theme.css draws it
+    16 px tall inside the grid, which st.dataframe's "auto" height ignores (clipping a row)."""
+    return TABLE_ROW_PX * (min(rows, 10) + 1) + 2 + 18
+
+
+SCORE_BANDS = ("0–19", "20–39", "40–59", "60–79", "80–100")  # noqa: RUF001 (display en dashes)
+
+
+def score_bands(leads: list[Lead]) -> list[tuple[str, int]]:
+    """Leads per 20-point score band (100 falls in the top one). Unscored leads are left out."""
+    counts = [0] * len(SCORE_BANDS)
+    for lead in leads:
+        if lead.score is not None:
+            counts[min(max(lead.score, 0) // 20, len(SCORE_BANDS) - 1)] += 1
+    return list(zip(SCORE_BANDS, counts, strict=True))
+
+
+def percent(count: int, total: int) -> int:
+    """Whole-number share, rounded down so 99.6% never reads as a complete 100%."""
+    return count * 100 // total if total else 0
+
+
+PERCENT_MIN_LEADS = 20  # below this, a percentage claims more precision than the count has
+
+
+def coverage(count: int, total: int) -> str:
+    """The line under a count ("of 5 leads"), with the share only once there are enough leads."""
+    share = f" · {percent(count, total)}%" if total >= PERCENT_MIN_LEADS else ""
+    return f"of {total} leads{share}"

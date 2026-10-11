@@ -1,0 +1,20 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "fraunces",
+        "createdAt": "2026-10-11T11:40:54.230Z",
+        "reason": "user confirmed: harvest ledger type, docs/UI.md"
+      },
+      {
+        "rule": "overused-font",
+        "value": "geist",
+        "createdAt": "2026-10-11T11:40:54.709Z",
+        "reason": "user confirmed: harvest ledger type, docs/UI.md"
+      }
+    ]
+  }
+}
