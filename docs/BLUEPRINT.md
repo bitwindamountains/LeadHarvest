@@ -636,7 +636,7 @@ LH_UI_PASSWORD=
 | Error type | Behavior |
 |---|---|
 | `LocationNotFound` | User error: print suggestions, exit code 2 |
-| `SourceError` (timeout, 5xx, 429) | Retry 3× with exponential backoff (tenacity), then next fallback URL, then run → `partial` |
+| `SourceError` (timeout, 5xx, 429) | Retry 3× with exponential backoff (tenacity), then next fallback URL. With several sources, a failed one is skipped and named in `stats.search.source_errors` (CLI "Skipped source" row, UI warning) and the run goes on; only when every source fails does the run go `partial` |
 | Enrichment error for one lead | Recorded in `enrich_status`; never stops the run |
 | `ExportError` | Retry 3×; on failure run → `partial`, files already written are kept |
 | Unexpected exception | Logged with traceback to file; short message on console; run → `failed` |

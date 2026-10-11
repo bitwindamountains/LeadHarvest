@@ -271,6 +271,19 @@ def test_ui_history_switches_between_runs(ui_env) -> None:
     assert len(at.dataframe[0].value) == 3
 
 
+def test_ui_names_a_skipped_source(ui_env) -> None:
+    _seed(ui_env / "leads.db", "run-done", "completed", "done", leads=2)
+    repo = Repository(connect(ui_env / "leads.db"))
+    repo.merge_run_stats(
+        "run-done", {"search": {"source_errors": {"osm": "All Overpass endpoints failed"}}}
+    )
+    repo.conn.close()
+    at = _signed_in()
+    at.sidebar.radio[0].set_value("run-done").run()
+    assert not at.exception
+    assert any("OpenStreetMap" in w.value and "skipped" in w.value for w in at.warning)
+
+
 def test_ui_resume_finishes_a_paused_run(ui_env, monkeypatch) -> None:
     monkeypatch.setattr("leadharvest.pipeline.Pipeline.execute", _finish())
     _seed(ui_env / "leads.db", "run-paused", "partial", "enrich", error="interrupted")

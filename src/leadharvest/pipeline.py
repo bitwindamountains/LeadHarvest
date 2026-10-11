@@ -280,14 +280,29 @@ class Pipeline:
             "area_kind": area.kind,
             "other_matches": alternatives,
         }
-        for source in self.sources_factory(client, run, fetcher):
-            records = await source.search(query)
+        sources = self.sources_factory(client, run, fetcher)
+        failed: dict[str, str] = {}
+        for source in sources:
+            try:
+                records = await source.search(query)
+            except SourceError as exc:
+                if len(sources) == 1:
+                    raise
+                # One source down (e.g. every Overpass endpoint) shouldn't sink the others'
+                # results: keep going, and say which source is missing.
+                log.warning("Source %s failed, continuing without it: %s", source.name, exc)
+                failed[source.name] = str(exc)[:300]
+                continue
             saved = sum(self.repo.save_raw(run.id, r) for r in records)
             stats[f"{source.name}_records"] = len(records)
             stats[f"{source.name}_saved"] = saved
             total = getattr(source, "last_total", None)
             if total is not None:
                 stats[f"{source.name}_total_available"] = total
+        if failed and len(failed) == len(sources):  # nothing found: pause, resume retries all
+            raise SourceError("; ".join(f"{name}: {error}" for name, error in failed.items()))
+        if failed:
+            stats["source_errors"] = failed
         return stats
 
     @contextlib.asynccontextmanager

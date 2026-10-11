@@ -16,6 +16,7 @@ from leadharvest.exporters.csv_export import CsvExporter
 from leadharvest.geo.nominatim import LocationNotFound
 from leadharvest.models import RawBusiness, SearchQuery
 from leadharvest.pipeline import Pipeline, RunInProgress
+from leadharvest.sources.base import SourceError
 from tests.conftest import fake_resolver, read_fixture
 
 HTML = {"content-type": "text/html; charset=utf-8"}
@@ -245,6 +246,50 @@ async def test_source_error_marks_partial_and_resume_finishes(settings, repo) ->
     result = await pipeline.execute(run.id, cat)
     assert result.status == "partial" and result.current_step == "search"
     assert "Overpass" in (result.error or "")
+
+
+class DownSource:
+    """A source whose service is unreachable, like Overpass returning 504 everywhere."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    async def search(self, query: SearchQuery) -> list[RawBusiness]:
+        raise SourceError(f"All {self.name} endpoints failed")
+
+
+def pipeline_with(settings, repo, sources: list) -> Pipeline:
+    return Pipeline(
+        settings, repo,
+        exporter_factory=lambda name: CsvExporter(settings.export_dir),
+        sources_factory=lambda client, run, fetcher: sources,
+        mx_lookup=fake_mx,
+        resolver=fake_resolver,
+        sleep=_instant,
+    )  # fmt: skip
+
+
+@respx.mock
+async def test_one_failing_source_does_not_stop_the_run(settings, repo) -> None:
+    mock_world()
+    pipeline = pipeline_with(settings, repo, [DownSource("osm"), FixtureSource()])
+    cat = load_categories()["dentist"]
+    run = pipeline.create_run(cat, "Makati, Philippines", limit=100, targets=["csv"])
+    result = await pipeline.execute(run.id, cat)
+    assert result.status == "completed"
+    assert repo.leads_for_run(run.id)  # the working source's leads are kept
+    assert result.stats["search"]["source_errors"] == {"osm": "All osm endpoints failed"}
+
+
+@respx.mock
+async def test_all_sources_failing_still_pauses(settings, repo) -> None:
+    mock_world()  # the area still resolves; only the sources are down
+    pipeline = pipeline_with(settings, repo, [DownSource("osm"), DownSource("overture")])
+    cat = load_categories()["dentist"]
+    run = pipeline.create_run(cat, "Makati, Philippines", limit=100, targets=["csv"])
+    result = await pipeline.execute(run.id, cat)
+    assert result.status == "partial" and result.current_step == "search"
+    assert "osm:" in result.error and "overture:" in result.error
 
 
 async def test_execute_refuses_a_run_already_running(settings, repo) -> None:

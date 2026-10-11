@@ -14,6 +14,7 @@ from leadharvest.segments import segment_counts
 from leadharvest.storage.repository import Repository
 from leadharvest.ui_support import (
     SHOW_OPTIONS,
+    SOURCE_LABELS,
     STATUS_LABELS,
     STATUS_STYLE,
     STEP_LABELS,
@@ -227,6 +228,12 @@ def status_banner(
     if run.status == "failed":
         st.error(f"This run failed: {run.error or 'unknown error'}. Details: `{log_file}`")
         return
+    for name, error in (run.stats.get("search", {}).get("source_errors") or {}).items():
+        st.warning(
+            f"**{SOURCE_LABELS.get(name, name)}** was skipped because it failed ({error}). "
+            "These leads come from the other sources only; start a new run later to include it.",
+            icon=":material/cloud_off:",
+        )
     if not can_resume(run):
         return
     step = STEP_LABELS.get(run.current_step, run.current_step).lower()

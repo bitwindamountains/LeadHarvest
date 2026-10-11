@@ -8,6 +8,12 @@
 
 ## Done (newest first)
 
+- 2026-10-11: A failing source no longer stops a multi-source run (239 tests pass, lint clean).
+  - `Pipeline.search` catches `SourceError` per source. With two or more sources, it logs a warning, records the source in `stats["search"]["source_errors"]` and keeps the others' results. If every source fails it raises a combined error, so the run pauses at search as before. A single-source run is unchanged.
+  - Shown as a "Skipped source" row in the CLI summary and a warning on the run page that names the source and suggests a new run later. Resume doesn't retry a skipped source, because search is already done.
+  - Tests: one source down means the run completes with the other's leads; all down means it pauses with both errors; an AppTest checks the UI warning.
+  - Live: resuming hotel run 496710d9 (OSM + Overture) completed. The first Overpass endpoint returned 504 and the fallback answered, so nothing was skipped this time. The run also showed rule 4 live: 22 raw records became 18 leads, 4 duplicates merged, 0 new.
+
 - 2026-10-11: Dedupe rule 4, same place from two sources (235 tests pass, lint clean).
   - **Cause:** rules 1–3 need a shared phone, domain, or name + street. OSM records often have no phone or street, and Overture spells names differently, so "Kafe Marco", "BJ's Seaside"/"BJs Seaside", "Maayo stay Argao"/"Maayo Argao" and others stayed as two leads.
   - **Rule 4 (`clean/dedupe.py`):** both records have coordinates within 100 m, and the names are equal ignoring spaces or share at least 60% of tokens (`names_match_closely`, stricter than rule 1's similarity). It runs last, so earlier rules keep priority and conflicts are still reported. `Repository.leads_near` does a lat/lon box lookup; migration `005_leads_location_index.sql` adds the index.

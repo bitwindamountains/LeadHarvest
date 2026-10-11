@@ -19,7 +19,7 @@ Full spec: docs/BLUEPRINT.md. Read the relevant section before changing code.
 
 ## Status and roadmap
 Details, history and the full roadmap are in PROGRESS.md; keep this summary in sync with it.
-- **Built:** blueprint phases 0–6, 8 (except 8.6 Google Places) and 9, plus the 2026-10-09 audit fixes and UI redesign. On `main` and pushed. 236 tests pass. Overture is the default source (D6); dedupe rule 4 merges one place from two sources.
+- **Built:** blueprint phases 0–6, 8 (except 8.6 Google Places) and 9, plus the 2026-10-09 audit fixes and UI redesign. On `main` and pushed. 239 tests pass. Overture is the default source (D6); dedupe rule 4 merges one place from two sources.
 - **Now (owner, live):**
   - CI green on GitHub;
   - `pytest -m live`;

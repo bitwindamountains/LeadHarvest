@@ -299,6 +299,8 @@ def print_summary(repo: Repository, run: Run) -> None:
     search = stats.get("search", {})
     found = clean.get("found", search.get("osm_records", 0))
     table.add_row("Found (raw records)", str(found))
+    for name, error in (search.get("source_errors") or {}).items():
+        table.add_row("Skipped source", f"{name}: {error}")
     table.add_row(
         "Leads in run",
         f"{len(leads)} ({clean.get('new', 0)} new, {clean.get('existing', 0)} seen before)",
