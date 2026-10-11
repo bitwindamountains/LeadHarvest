@@ -8,6 +8,15 @@
 
 ## Done (newest first)
 
+- 2026-10-11: High-end visual pass on the Streamlit UI (230 tests pass, lint clean). Checked at 1440 and 390 px; no horizontal scroll, and all five number cards sit on one row at 1440.
+  - **CSS (`theme.css`):**
+    - Double-bezel cards come from stacked box-shadow rings, so Streamlit's markup is unchanged.
+    - Button icon circles target `button > div > span > span:has(stIconMaterial)`.
+    - Icons use Material Symbols `font-variation-settings` `wght` 300.
+    - Film grain is a percent-encoded SVG in a fixed `::after`.
+  - **Config:** `buttonRadius = "full"`, plus a deeper canvas.
+  - **Context pills:** `views.common.eyebrow` adds them on sign-in ("Private workspace"), search ("Lead search · Philippines") and run pages (the run id, moved out of the caption).
+
 - 2026-10-11: "Night harvest" theme for the Streamlit UI (230 tests pass, lint clean). Checked at 1440 and 390 px; no horizontal scroll.
   - **Theme files:** `.streamlit/config.toml` switches to `base = "dark"` with a gold primary. `app/assets/theme.css` is injected by `views.common.inject_theme()`.
   - **What the CSS styles:** the dot-field background, glass cards (`stForm` and `st-key-lh-card*`), metric cards, gold buttons with dark text, sidebar selection via `:has(input:checked)`, dark text on multiselect chips, and entrance and hover motion behind `prefers-reduced-motion`.

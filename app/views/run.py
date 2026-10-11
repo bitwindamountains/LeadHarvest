@@ -32,7 +32,7 @@ from leadharvest.ui_support import (
     viewer_tz,
 )
 
-from views.common import execute
+from views.common import execute, eyebrow
 
 COLUMN_CONFIG = {
     "business_name": "Business",
@@ -74,9 +74,10 @@ def show_run(
 
 
 def run_header(run: Run, categories: dict[str, Category]) -> None:
+    eyebrow(f"Run {run.id[:8]}")
     st.title(run_title(run, categories), anchor=False)
     started = short_time(run.created_at, viewer_tz(st.context.timezone))
-    meta = [f"Run {run.id[:8]}", f"started {started} ({ago(run.created_at)})"]
+    meta = [f"Started {started} ({ago(run.created_at)})"]
     if run.status == "completed" and run_seconds(run) >= 1:
         meta.append(f"took {duration_text(run_seconds(run))}")
     with st.container(horizontal=True, vertical_alignment="center", gap="small"):

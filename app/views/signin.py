@@ -9,7 +9,7 @@ import streamlit as st
 from leadharvest.config import Settings
 from leadharvest.ui_support import password_ok
 
-from views.common import ASSETS, MARK
+from views.common import ASSETS, MARK, eyebrow
 
 
 def sign_in(settings: Settings) -> None:
@@ -19,6 +19,7 @@ def sign_in(settings: Settings) -> None:
         st.html((ASSETS / "brand_panel.html").read_text(encoding="utf-8"))
     with form:
         st.image(MARK, width=34)
+        eyebrow("Private workspace")
         st.title("Sign in", anchor=False)
         if not settings.ui_password:
             st.error("Set LH_UI_PASSWORD in .env (or app secrets) so strangers can't run scrapes.")

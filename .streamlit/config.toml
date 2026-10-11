@@ -6,14 +6,14 @@
 [theme]
 base = "dark"
 primaryColor = "#e0b04a"
-backgroundColor = "#0b1410"
-secondaryBackgroundColor = "#14231b"
+backgroundColor = "#060b08"
+secondaryBackgroundColor = "#101b15"
 textColor = "#e6ede5"
 linkColor = "#e8c06a"
-borderColor = "#22362b"
+borderColor = "#1a2a21"
 showWidgetBorder = true
-baseRadius = "0.75rem"
-buttonRadius = "0.65rem"
+baseRadius = "1rem"
+buttonRadius = "full"  # pill buttons
 font = "Geist:https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap"
 headingFont = "Outfit:https://fonts.googleapis.com/css2?family=Outfit:wght@500;600&display=swap"
 codeFont = "'Geist Mono':https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap"
@@ -22,9 +22,9 @@ headingFontSizes = ["2.2rem", "1.12rem", "1rem", "0.95rem", "0.9rem", "0.85rem"]
 headingFontWeights = [600, 600, 600, 600, 600, 600]
 metricValueFontSize = "2rem"
 metricValueFontWeight = 600
-dataframeHeaderBackgroundColor = "#14231b"
-dataframeBorderColor = "#22362b"
-codeBackgroundColor = "#14231b"
+dataframeHeaderBackgroundColor = "#101b15"
+dataframeBorderColor = "#1a2a21"
+codeBackgroundColor = "#101b15"
 # Semantic colours tuned for the dark canvas.
 greenColor = "#5fbf83"
 redColor = "#ec7d70"
@@ -33,7 +33,7 @@ blueColor = "#76b4d6"
 grayColor = "#8c9c92"
 
 [theme.sidebar]
-backgroundColor = "#070e0a"
+backgroundColor = "#040806"
 secondaryBackgroundColor = "#101c15"
 textColor = "#dfe8de"
 primaryColor = "#e0b04a"

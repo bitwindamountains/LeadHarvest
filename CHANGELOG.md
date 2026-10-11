@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Web UI finish, built to a high-end visual standard:
+  - **Canvas:** near-black, with emerald and gold glows and fine film grain.
+  - **Cards:** double-bezel, an inner panel set into a tray.
+  - **Buttons:** pills, with the icon in its own circle that moves on hover.
+  - **Icons:** drawn at a light stroke weight.
+  - **Context pills:** small uppercase pills above titles, such as "Run a1b2c3d4".
+  - **Motion:** a soft spring fade-up.
+  - **Phones:** the number cards pair up instead of stacking.
 - Web UI theme, "night harvest": the whole app now follows the LeadHarvest brand instead of a generic light dashboard look.
   - **Canvas and accent:** a dark paddy-field canvas with a faint grid of gold grain dots, and palay gold as the only accent.
   - **Surfaces:** glass cards with gold edges, and number cards with uppercase labels.

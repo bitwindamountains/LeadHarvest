@@ -19,12 +19,15 @@ from leadharvest.ui_support import (
     validate_request,
 )
 
-from views.common import execute, select_run
+from views.common import execute, eyebrow, select_run
+
+REGION_NAMES = {"PH": "Philippines"}
 
 
 def search_page(
     settings: Settings, repo: Repository, categories: dict[str, Category], first_time: bool
 ) -> None:
+    eyebrow(f"Lead search · {REGION_NAMES.get(settings.default_region, settings.default_region)}")
     st.title("New search", anchor=False)
     st.caption(
         "Choose a category and a place. LeadHarvest finds the businesses, visits their "

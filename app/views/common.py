@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import html
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,11 @@ from leadharvest.ui_support import STEP_LABELS, mark_interrupted, run_title
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 LOGO, MARK = str(ASSETS / "logo.svg"), str(ASSETS / "mark.svg")
+
+
+def eyebrow(text: str) -> None:
+    """A small pill above a page title, for real context (region, run id), never decoration."""
+    st.html(f'<span class="lh-eyebrow">{html.escape(text)}</span>')
 
 
 def inject_theme() -> None:

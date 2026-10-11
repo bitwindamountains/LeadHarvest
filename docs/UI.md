@@ -5,8 +5,8 @@ The Streamlit app (`app/`) is a tool for one operator or a small team, not a mar
 ## Look
 
 - **One theme, "night harvest":** colours and fonts come from `.streamlit/config.toml`. Finer styling comes from `app/assets/theme.css`, injected on every page:
-  - Canvas: a dark paddy field (`#0b1410`) with a faint grid of gold grain dots and two soft glows.
-  - Sidebar: darker soil (`#070e0a`).
+  - Canvas: a near-black paddy field (`#060b08`) with emerald and gold glows, a faint grid of gold grain dots, and fixed film grain (a pointer-events-none overlay that never scrolls).
+  - Sidebar: darker soil (`#040806`).
   - Accent: palay gold (`#e0b04a`) is the only accent. Gold buttons and chips carry dark text (`#1a1305`).
   - Semantic colours: green, red, orange and blue are tuned for the dark canvas and used only for status.
   - It matches the LeadHarvest landing page, so the brand reads as one product.
@@ -15,9 +15,11 @@ The Streamlit app (`app/`) is a tool for one operator or a small team, not a mar
   - One H1 per page: the page or run name.
   - H2 for sections ("What and where", "Leads").
   - No skipped levels.
-- **Icons:** Material icons (`:material/...:`) only, never emojis. State is never shown by colour alone: every status icon has a text label next to it.
-- **Cards:** glass surfaces with a faint gold top edge, used only where they group something. That means the search form, the "What happens next" guide (`key="lh-card-..."`), the sign-in card and the number cards. Everything else sits on the canvas.
-- **Motion:** elements rise in once (420 ms, ease-out, staggered on the number cards). Cards lift and buttons press on hover and click. All of it is off under `prefers-reduced-motion`. There's no JavaScript animation: Streamlit strips scripts from `st.html`.
+- **Icons:** Material icons (`:material/...:`) only, never emojis. They're drawn at a light stroke weight (`wght` 300). State is never shown by colour alone: every status icon has a text label next to it.
+- **Cards:** double-bezel, like a plate in a tray. An inner core with its own top highlight sits inside a 6 px outer ring with a hairline edge, plus a wide diffused shadow. They're used only where they group something: the search form, the "What happens next" guide (`key="lh-card-..."`), the sign-in card, the number cards and the table. Everything else sits on the canvas. There's no blur on scrolling content.
+- **Buttons:** pills (`buttonRadius = "full"`) with the icon after the label in its own circle. The icon nudges forward on hover, and the button presses (scale 0.98) on click.
+- **Context pills:** a small uppercase pill above a page title (`views.common.eyebrow`). It carries real context, such as "Lead search · Philippines" or "Run a1b2c3d4", never decoration.
+- **Motion:** elements fade up from a soft blur once (700 ms, spring curve `cubic-bezier(0.32, 0.72, 0, 1)`, staggered on the number cards). Hover and press use the same curve, never linear or ease-in-out. Cards lift and buttons press on hover and click. All of it is off under `prefers-reduced-motion`. There's no JavaScript animation: Streamlit strips scripts from `st.html`.
 
 ## Screens
 

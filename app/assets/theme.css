@@ -1,77 +1,136 @@
 /* LeadHarvest "night harvest" theme, layered on .streamlit/config.toml (docs/UI.md).
-   A dark paddy field with a faint grid of grain dots, palay gold as the only accent, and short
-   entrance and hover motion. Selectors use Streamlit's data-testid hooks and st-key-* classes
-   (from widget keys), which are stable across minor versions. */
+   Ethereal-glass build: a near-black field with emerald and gold glows and fixed film grain;
+   cards are double-bezel (an outer tray ring around an inner core with its own highlight);
+   pill buttons carry their icon in a nested circle; light-weight icons; one gold accent.
+   Selectors use Streamlit's data-testid hooks and st-key-* classes from widget keys. */
 
 :root {
   --lh-gold: #e0b04a;
-  --lh-gold-soft: rgba(224, 176, 74, 0.14);
-  --lh-gold-line: rgba(224, 176, 74, 0.28);
+  --lh-gold-soft: rgba(224, 176, 74, 0.13);
+  --lh-gold-line: rgba(224, 176, 74, 0.32);
   --lh-ink: #1a1305;
-  --lh-surface: rgba(20, 35, 27, 0.72);
-  --lh-surface-hi: rgba(26, 44, 34, 0.86);
-  --lh-line: #22362b;
-  --lh-muted: #9aab9f;
-  --lh-ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --lh-core: linear-gradient(180deg, rgba(22, 36, 28, 0.94), rgba(12, 21, 16, 0.94));
+  --lh-hair: rgba(255, 255, 255, 0.07);
+  --lh-muted: #98a99d;
+  /* Spring-like settle: fast start, long soft landing. Never linear or ease-in-out. */
+  --lh-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --lh-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Double bezel: inner highlight, then the tray (6px), then the tray's hairline, then a wide
+     diffused shadow. Rings sit outside the box, so siblings keep their own gap. */
+  --lh-bezel:
+    inset 0 1px 1px rgba(255, 255, 255, 0.07),
+    0 0 0 6px rgba(255, 255, 255, 0.022),
+    0 0 0 7px rgba(255, 255, 255, 0.055),
+    0 48px 90px -60px rgba(0, 0, 0, 0.95);
 }
 
-/* ---- the field: dot grid, two soft glows, a darker horizon at the top ---- */
+/* ---- the field: mesh glows over near-black, a faint grain-dot grid, fixed film grain ---- */
 .stApp {
   background:
-    radial-gradient(ellipse 60% 45% at 88% -8%, rgba(224, 176, 74, 0.11), transparent 70%),
-    radial-gradient(ellipse 55% 50% at -5% 105%, rgba(63, 107, 82, 0.30), transparent 70%),
-    radial-gradient(circle, rgba(224, 176, 74, 0.075) 1px, transparent 1.7px) 0 0 / 26px 26px,
-    #0b1410;
+    radial-gradient(ellipse 55% 45% at 92% -6%, rgba(224, 176, 74, 0.12), transparent 70%),
+    radial-gradient(ellipse 50% 55% at -8% 108%, rgba(46, 125, 84, 0.26), transparent 70%),
+    radial-gradient(ellipse 35% 30% at 55% 55%, rgba(46, 125, 84, 0.07), transparent 70%),
+    radial-gradient(circle, rgba(224, 176, 74, 0.06) 1px, transparent 1.7px) 0 0 / 28px 28px,
+    #060b08;
   background-attachment: fixed;
 }
+.stApp::after {  /* film grain: fixed, never scrolls, never takes clicks */
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0.045;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
 [data-testid="stHeader"] { background: transparent; }
-[data-testid="stMainBlockContainer"] { padding-top: 3.5rem; max-width: 84rem; }
+[data-testid="stMainBlockContainer"] { padding-top: 4.5rem; padding-bottom: 6rem; max-width: 84rem; }
 
 /* ---- type ---- */
-[data-testid="stMain"] h1 { letter-spacing: -0.025em; line-height: 1.08; text-wrap: balance; }
+[data-testid="stMain"] h1 { letter-spacing: -0.03em; line-height: 1.05; text-wrap: balance; }
 [data-testid="stMain"] h2 { letter-spacing: -0.01em; }
 [data-testid="stCaptionContainer"] { color: var(--lh-muted); }
+.lh-eyebrow {  /* a small pill above a title that carries real context, e.g. the run id */
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 12px; border-radius: 999px; border: 1px solid var(--lh-gold-line);
+  background: var(--lh-gold-soft); color: #ecd29a;
+  font: 500 10.5px/1 Geist, "Segoe UI", sans-serif; letter-spacing: 0.2em; text-transform: uppercase;
+}
+.lh-eyebrow::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--lh-gold); }
 
-/* ---- surfaces: the form, the guide, sign-in card ---- */
+/* ---- icons: Material Symbols drawn light, never the thick default ---- */
+[data-testid="stIconMaterial"] { font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24; }
+
+/* ---- double-bezel surfaces: form, guide, sign-in card ---- */
 [data-testid="stForm"],
 [class*="st-key-lh-card"] {
-  background: linear-gradient(180deg, var(--lh-surface-hi), var(--lh-surface));
-  border: 1px solid var(--lh-line) !important;
-  border-radius: 18px !important;
-  box-shadow: inset 0 1px 0 rgba(224, 176, 74, 0.10), 0 24px 48px -32px rgba(0, 0, 0, 0.7);
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  background: var(--lh-core);
+  border: 1px solid var(--lh-hair) !important;
+  border-radius: 26px !important;
+  box-shadow: var(--lh-bezel);
+  padding: 1.6rem 1.6rem 1.4rem !important;
 }
 
-/* ---- metric cards: gold hairline on top, quiet label, lift on hover ---- */
+/* ---- metric cards: smaller bezel, gold hairline on the inner core, lift on hover ---- */
 [data-testid="stMetric"] {
-  background: linear-gradient(180deg, var(--lh-surface-hi), var(--lh-surface));
-  border-color: var(--lh-line) !important;
-  border-radius: 16px !important;
-  box-shadow: inset 0 1px 0 var(--lh-gold-line);
-  min-width: 9.5rem;
-  transition: transform 220ms var(--lh-ease), border-color 220ms ease;
+  background: var(--lh-core);
+  border: 1px solid var(--lh-hair) !important;
+  border-radius: 22px !important;
+  box-shadow:
+    inset 0 1px 0 var(--lh-gold-line),
+    0 0 0 5px rgba(255, 255, 255, 0.02),
+    0 0 0 6px rgba(255, 255, 255, 0.05),
+    0 36px 70px -50px rgba(0, 0, 0, 0.95);
+  padding: 0.85rem 1.15rem !important;
+  transition: transform 600ms var(--lh-spring);
 }
 [data-testid="stMetricLabel"] p {
-  text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72rem; color: var(--lh-muted);
+  text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.68rem; color: var(--lh-muted);
 }
-[data-testid="stMetricValue"] { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+[data-testid="stMetricValue"] { font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
 @media (hover: hover) and (pointer: fine) {
-  [data-testid="stMetric"]:hover { transform: translateY(-2px); border-color: var(--lh-gold-line) !important; }
+  [data-testid="stMetric"]:hover { transform: translateY(-3px); }
+}
+@media (max-width: 640px) {  /* phones: smaller figures so the cards pair up instead of stacking */
+  [data-testid="stMetric"] { padding: 0.6rem 0.85rem !important; }
+  [data-testid="stMetricValue"], [data-testid="stMetricValue"] * { font-size: 1.45rem !important; }
+  [data-testid="stMetricLabel"] p { letter-spacing: 0.1em; }
 }
 
-/* ---- buttons: gold primary with dark text (Streamlit defaults to white), tactile press ---- */
+/* ---- pill buttons with the icon nested in its own circle, trailing the label ---- */
+[data-testid^="stBaseButton-primary"],
+[data-testid^="stBaseButton-secondary"] {
+  padding: 0.5rem 0.55rem 0.5rem 1.35rem !important; min-height: 2.9rem;
+  transition: transform 500ms var(--lh-spring), filter 300ms var(--lh-out), border-color 300ms var(--lh-out);
+}
+/* Streamlit's markup: button > div > span > [span (icon wrapper), span (label)]. */
+[data-testid^="stBaseButton-primary"] > div > span,
+[data-testid^="stBaseButton-secondary"] > div > span { flex-direction: row-reverse; gap: 0.7rem; }
+[data-testid^="stBaseButton-primary"] > div > span > span:has([data-testid="stIconMaterial"]),
+[data-testid^="stBaseButton-secondary"] > div > span > span:has([data-testid="stIconMaterial"]) {
+  display: inline-grid; place-items: center; width: 1.95rem; height: 1.95rem; flex: none;
+  border-radius: 999px; background: rgba(255, 255, 255, 0.08); margin: 0;
+  transition: transform 500ms var(--lh-spring);
+}
 [data-testid^="stBaseButton-primary"] {
   color: var(--lh-ink) !important; font-weight: 600;
-  box-shadow: 0 10px 26px -14px rgba(224, 176, 74, 0.75);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 14px 32px -16px rgba(224, 176, 74, 0.7);
 }
 [data-testid^="stBaseButton-primary"] p,
 [data-testid^="stBaseButton-primary"] [data-testid="stIconMaterial"] { color: var(--lh-ink) !important; }
-[data-testid^="stBaseButton-secondary"] { background: rgba(20, 35, 27, 0.6); }
-[data-testid^="stBaseButton"] { transition: transform 140ms var(--lh-ease), border-color 200ms ease, filter 200ms ease; }
+[data-testid^="stBaseButton-primary"] > div > span > span:has([data-testid="stIconMaterial"]) { background: rgba(26, 19, 5, 0.13); }
+[data-testid^="stBaseButton-secondary"] {
+  background: rgba(16, 27, 21, 0.7); border-color: var(--lh-hair) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
 [data-testid^="stBaseButton"]:active { transform: scale(0.98); }
 @media (hover: hover) and (pointer: fine) {
-  [data-testid^="stBaseButton-primary"]:hover { filter: brightness(1.08); }
-  [data-testid^="stBaseButton-secondary"]:hover { border-color: var(--lh-gold-line); }
+  [data-testid^="stBaseButton-primary"]:hover { filter: brightness(1.07); }
+  [data-testid^="stBaseButton-secondary"]:hover { border-color: var(--lh-gold-line) !important; }
+  [data-testid^="stBaseButton-primary"]:hover > div > span > span:has([data-testid="stIconMaterial"]),
+  [data-testid^="stBaseButton-secondary"]:hover > div > span > span:has([data-testid="stIconMaterial"]) {
+    transform: translate(3px, -1px) scale(1.05);
+  }
+}
+
+/* ---- inputs: hairline ring and an inner highlight instead of a flat grey box ---- */
+[data-baseweb="input"], [data-baseweb="select"] > div, [data-testid="stNumberInputContainer"] {
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.04);
 }
 
 /* ---- chips in multiselects (Export to, Data sources): dark text on gold ---- */
@@ -79,25 +138,26 @@
 
 /* ---- table and expander ---- */
 [data-testid="stDataFrame"] {
-  border-radius: 14px; overflow: hidden;
-  box-shadow: 0 24px 48px -36px rgba(0, 0, 0, 0.8);
+  border-radius: 18px; overflow: hidden;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.02), 0 0 0 7px rgba(255, 255, 255, 0.05),
+              0 48px 90px -60px rgba(0, 0, 0, 0.95);
 }
-[data-testid="stExpander"] details { background: rgba(11, 20, 16, 0.55); border-radius: 12px; }
+[data-testid="stExpander"] details { background: rgba(6, 11, 8, 0.55); border-radius: 16px; }
 
-/* ---- sidebar: darker soil, the open run marked in gold ---- */
+/* ---- sidebar: deeper soil, the open run marked in gold ---- */
 [data-testid="stSidebar"] {
   background:
-    radial-gradient(ellipse 120% 40% at 0% 0%, rgba(224, 176, 74, 0.08), transparent 70%),
-    #070e0a;
-  border-right: 1px solid #16261d;
+    radial-gradient(ellipse 120% 35% at 0% 0%, rgba(224, 176, 74, 0.07), transparent 70%),
+    #040806;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 [data-testid="stSidebar"] h2 {
-  text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.72rem !important;
-  color: var(--lh-muted); margin-top: 0.5rem;
+  text-transform: uppercase; letter-spacing: 0.2em; font-size: 0.66rem !important;
+  color: var(--lh-muted); margin-top: 0.75rem;
 }
 [data-testid="stSidebar"] [data-testid="stRadioOption"] {
-  padding: 0.3rem 0.5rem; border-radius: 10px;
-  transition: background-color 180ms ease;
+  padding: 0.3rem 0.5rem; border-radius: 12px;
+  transition: background-color 300ms var(--lh-out);
 }
 [data-testid="stSidebar"] [data-testid="stRadioOption"]:has(input:checked) {
   background: var(--lh-gold-soft); box-shadow: inset 2px 0 0 var(--lh-gold);
@@ -106,18 +166,18 @@
   [data-testid="stSidebar"] [data-testid="stRadioOption"]:hover { background: rgba(224, 176, 74, 0.06); }
 }
 
-/* ---- motion: elements rise in once when they appear; lists stagger ---- */
-@keyframes lh-rise { from { opacity: 0; transform: translateY(8px); } }
+/* ---- motion: a heavy fade-up from a soft blur, once per element; lists stagger ---- */
+@keyframes lh-rise { from { opacity: 0; transform: translateY(16px); filter: blur(6px); } }
 @media (prefers-reduced-motion: no-preference) {
   [data-testid="stMain"] [data-testid="stElementContainer"],
   [data-testid="stMain"] [data-testid="stForm"],
-  [data-testid="stMetric"] { animation: lh-rise 420ms var(--lh-ease) backwards; }
-  [data-testid="stMetric"]:nth-of-type(2) { animation-delay: 50ms; }
-  [data-testid="stMetric"]:nth-of-type(3) { animation-delay: 100ms; }
-  [data-testid="stMetric"]:nth-of-type(4) { animation-delay: 150ms; }
-  [data-testid="stMetric"]:nth-of-type(5) { animation-delay: 200ms; }
-  [data-testid="stSidebar"] [data-testid="stRadioOption"] { animation: lh-rise 360ms var(--lh-ease) backwards; }
+  [data-testid="stMetric"] { animation: lh-rise 700ms var(--lh-spring) backwards; }
+  [data-testid="stMetric"]:nth-of-type(2) { animation-delay: 60ms; }
+  [data-testid="stMetric"]:nth-of-type(3) { animation-delay: 120ms; }
+  [data-testid="stMetric"]:nth-of-type(4) { animation-delay: 180ms; }
+  [data-testid="stMetric"]:nth-of-type(5) { animation-delay: 240ms; }
+  [data-testid="stSidebar"] [data-testid="stRadioOption"] { animation: lh-rise 600ms var(--lh-spring) backwards; }
 }
 @media (prefers-reduced-motion: reduce) {
-  [data-testid="stMetric"], [data-testid^="stBaseButton"] { transition: none; }
+  [data-testid="stMetric"], [data-testid^="stBaseButton"], [data-testid="stIconMaterial"] { transition: none; }
 }
