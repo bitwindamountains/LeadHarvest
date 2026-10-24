@@ -4,12 +4,11 @@
 
 **Status (end of 2026-10-11):** everything through `83a323b` is on `main` and pushed (239 tests, lint clean): the run-page redesign and data-honesty fixes, Overture as the default source (D6), dedupe rule 4 plus `leadharvest dedupe`, and multi-source runs that survive one failed source. Blueprint phases 0–6, 8 (except 8.6 Google Places) and 9 are built.
 
-**Uncommitted in the working tree:** run history grouped by search (direction A, step 1). 240 tests pass, lint clean, and it was checked in the browser. Files: `app/views/sidebar.py`, `app/views/run.py`, `src/leadharvest/ui_support.py`, `tests/integration/test_ui.py`, `docs/UI.md`, this file and CLAUDE.md. Commit it first next session (or review, then commit).
+**Also pushed (2026-10-24, `f8e14d2`):** run history grouped by search (direction A, step 1), 240 tests. Deployment check the same day: tests and lint pass, no secrets tracked. Open items: Pillow 12.3.0 has CVEs (fixed in 13, held back by Streamlit 1.64: raise the Streamlit floor), and the Weekly monitor workflow fails until its repo secrets and `config/monitor.csv` exist.
 
 **Next session, in order:**
-1. Commit and push the run-history grouping.
-2. Direction A, step 2: an "All runs" page (a table of every run, filterable, click to open) with the run id in the URL (`st.query_params`, `?run=<id>`). Today searches past the newest 15, and runs past the 500 scanned, can't be opened from the UI.
-3. Direction A, step 3: collapse each batch (`options.batch`) into one sidebar entry that opens a batch summary.
+1. Direction A, step 2: an "All runs" page (a table of every run, filterable, click to open) with the run id in the URL (`st.query_params`, `?run=<id>`). Today searches past the newest 15, and runs past the 500 scanned, can't be opened from the UI.
+2. Direction A, step 3: collapse each batch (`options.batch`) into one sidebar entry that opens a batch summary.
 
 **Also left:** live verification by the owner (two "Definition of done" items are still open), Phase 7 packaging, and decisions D1 (and D2 only if OSM is added to a client list). See the Roadmap below.
 
@@ -202,7 +201,7 @@ Blueprint section 18 has the phase list; section 19 has the Definition of Done (
 
 ### In progress: run history (direction A, from the 2026-10-11 idea session)
 The sidebar stacks one entry per run, so repeated searches, weekly monitors and batches crowd it, and older runs fall off the newest 15.
-- **Step 1, done (uncommitted):** group by search (category plus place). The sidebar shows each search once, and the run page has a "Run history" picker.
+- **Step 1, done (`f8e14d2`):** group by search (category plus place). The sidebar shows each search once, and the run page has a "Run history" picker.
 - **Step 2:** an "All runs" page with the run id in the URL.
 - **Step 3:** collapse batches into one entry.
 - **Not doing:** pins and tags, folders, searching leads from the sidebar, deleting runs automatically. Direction B, a "Leads library" (every lead, filtered by category and place, with runs as history), is the long-term model; build it only on demand.

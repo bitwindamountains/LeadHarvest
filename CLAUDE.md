@@ -19,8 +19,8 @@ Full spec: docs/BLUEPRINT.md. Read the relevant section before changing code.
 
 ## Status and roadmap
 Details, history and the full roadmap are in PROGRESS.md; keep this summary in sync with it.
-- **Built:** blueprint phases 0–6, 8 (except 8.6 Google Places) and 9, plus the 2026-10-09 audit fixes and UI redesign. On `main` and pushed through `83a323b` (239 tests): Overture is the default source (D6), dedupe rule 4 plus `leadharvest dedupe` merge one place from two sources, and a failed source no longer stops a multi-source run.
-- **Uncommitted:** run history grouped by search (sidebar shows each search once; the run page has a "Run history" picker). 240 tests pass. Commit it first.
+- **Built:** blueprint phases 0–6, 8 (except 8.6 Google Places) and 9, plus the 2026-10-09 audit fixes and UI redesign. On `main` and pushed through `f8e14d2` (240 tests): Overture is the default source (D6), dedupe rule 4 plus `leadharvest dedupe` merge one place from two sources, and a failed source no longer stops a multi-source run.
+- Also pushed: run history grouped by search (sidebar shows each search once; the run page has a "Run history" picker).
 - **Next (direction A, run history):** an "All runs" page with the run id in the URL, then collapse batches into one sidebar entry.
 - **Now (owner, live):**
   - CI green on GitHub;
@@ -31,7 +31,7 @@ Details, history and the full roadmap are in PROGRESS.md; keep this summary in s
 - **Then:** Phase 7, meaning README screenshots and real hit rate (first Argao numbers are in PROGRESS), the 90-second demo, and confirming the GitHub repo has no secrets or real data.
 - **Before selling:** decide D1, and D2 only if OSM goes into client lists (blueprint section 23), set up the monitor workflow secrets and `config/monitor.csv`.
 - **Backlog:**
-  - raise the Streamlit version floor and run `uv lock`;
+  - raise the Streamlit version floor and run `uv lock` (needed so Pillow can reach 13: 12.3.0 has CVEs);
   - background runs in the UI;
   - block SSRF at connect time;
   - Google Places (blocked on D1);
