@@ -843,7 +843,7 @@ Estimated time: **Phases 0–6 ≈ 7–9 focused days**, **Phase 7 ≈ 1 day**. 
 - [x] Every lead with a website has an `enrich_status` other than `pending`
 - [x] robots.txt disallow (incl. across a redirect) and the SSRF guard are proven by tests
 - [x] Re-exporting to the same Sheet updates rows, appends new ones, and keeps client columns intact even after the client reorders columns
-- [ ] Ctrl+C mid-run then `resume` finishes without re-fetching completed work (verified on Windows)
+- [x] Ctrl+C mid-run then `resume` finishes without re-fetching completed work (verified on Windows)
 - [x] `forget --domain x.com` removes the lead and the next run does not re-add it
 - [x] `uv run pytest` passes with no network
 - [x] README setup is under 10 steps; no secrets or real lead data in the repo

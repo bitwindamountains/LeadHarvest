@@ -298,7 +298,7 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 1. **CI:** done 2026-10-25, green on GitHub for every push through `4c48dcb` (real-browser tests on Ubuntu and Windows included).
 2. **Live tests:** done 2026-10-24, both pass (see Done).
 3. **DoD item 1:** done 2026-10-24 (run 5e5e7edb, see Done). D5 needs no change: no possible duplicates or phone conflicts came up. HubSpot is still untested live.
-4. **DoD item 8:** press Ctrl+C mid-run on Windows, then `resume`. Completed work must not be fetched again.
+4. **DoD item 8:** done 2026-10-25, checked by the owner: Ctrl+C mid-run on Windows paused the run, and `resume` finished it without fetching completed work again.
 5. **Real exports:** check a Google Sheet export (client columns kept, re-export updates rows) and HubSpot if a client uses it.
 6. **UI:** do one live run in the Streamlit UI, including Resume after a deliberate interruption.
 
