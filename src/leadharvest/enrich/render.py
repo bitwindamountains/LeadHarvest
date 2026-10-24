@@ -7,8 +7,9 @@ are not loaded; any main-frame navigation to another URL is re-checked against r
 Redirects bypass the route handler, so the page's final URL and server address are re-checked
 before its content is read.
 
-ponytail: like the fetcher's check_peer, this stops us reading a redirect target on a private
-address, not the browser sending that one GET. Blocking it needs a proxy in front of Chromium.
+ponytail: check_peer stops us reading a redirect target on a private address, not the browser
+sending that one GET (the plain fetcher blocks it at connect time). Blocking it here needs a
+proxy in front of Chromium.
 """
 
 from __future__ import annotations

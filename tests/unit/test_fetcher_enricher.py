@@ -8,6 +8,7 @@ import respx
 
 from leadharvest.enrich.enricher import Enricher
 from leadharvest.enrich.fetcher import FetchError, PoliteFetcher
+from leadharvest.enrich.netguard import BlockedAddress
 from leadharvest.http import make_client
 from leadharvest.models import Lead, Run, new_lead_id, utcnow_iso
 from tests.conftest import fake_resolver, read_fixture
@@ -77,29 +78,16 @@ async def test_private_ip_never_fetched_directly_or_via_redirect(
     assert private.call_count == 0
 
 
-class PeerStream:
-    """Stands in for httpx's network_stream extension: the address actually connected to."""
-
-    def __init__(self, address: str) -> None:
-        self.address = address
-
-    def get_extra_info(self, info: str) -> object:
-        return (self.address, 443) if info == "server_addr" else None
-
-
 @respx.mock
-async def test_dns_rebinding_response_is_never_read(settings, repo, clock, client) -> None:
-    # Our resolver says public, but the connection landed on a private address.
+async def test_dns_rebinding_is_refused_at_connect(settings, repo, clock, client) -> None:
+    # Our resolver said public; at connect time the host resolved to a private address, which
+    # the client's backend refuses before connecting (as respx's side effect stands in for).
     respx.get("https://rebind.ph/robots.txt").mock(return_value=ALLOW_ALL)
-    respx.get("https://rebind.ph/").mock(return_value=httpx.Response(
-        200, html="secret", headers=HTML, extensions={"network_stream": PeerStream("10.0.0.5")}
-    ))  # fmt: skip
+    respx.get("https://rebind.ph/").mock(side_effect=BlockedAddress("rebind.ph", "10.0.0.5"))
     fetcher = fetcher_for(settings, repo, clock, client)
-    fetcher.via_proxy = False
-    with pytest.raises(FetchError, match=r"non-public 10.0.0.5"):
+    with pytest.raises(FetchError, match=r"non-public address 10.0.0.5") as exc:
         await fetcher.get_page("https://rebind.ph/")
-    fetcher.via_proxy = True  # behind a proxy the peer is the proxy, so it can't be judged
-    assert (await fetcher.get_page("https://rebind.ph/")).text == "secret"
+    assert exc.value.kind == "failed"
 
 
 @respx.mock

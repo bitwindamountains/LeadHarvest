@@ -20,6 +20,7 @@ from tenacity import (
 )
 
 from leadharvest.config import Settings
+from leadharvest.enrich.netguard import public_only_transport
 
 MAX_RETRY_AFTER_SECONDS = 60.0
 
@@ -28,8 +29,10 @@ Clock = Callable[[], float]
 
 
 def make_client(settings: Settings, *, timeout: float | None = None) -> httpx.AsyncClient:
-    """Async client with our User-Agent. Redirects are off: callers decide how to follow them."""
+    """Async client with our User-Agent. Redirects are off: callers decide how to follow them.
+    It connects only to public addresses (the SSRF guard, enforced at connect time)."""
     return httpx.AsyncClient(
+        transport=public_only_transport(),
         headers={"User-Agent": settings.user_agent, "Accept-Language": "en,fil;q=0.8"},
         timeout=httpx.Timeout(timeout or settings.request_timeout_seconds),
         follow_redirects=False,

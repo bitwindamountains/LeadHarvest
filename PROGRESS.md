@@ -35,6 +35,11 @@
 - **Fixed, found live (a bug in the background-runs commit):** when a run ended, the progress fragment's `st.rerun()` left the sidebar picker unchecked in the browser, so the next click (Resume, a segment, anything) sent "nothing picked" and opened the search page. `live_progress` now calls `select_run(run_id)` before that rerun, which writes the picker's value and re-syncs the browser. AppTest can't see browser widget state, so this is checked live only.
 - **Checked live** (scratch DB, 3–8 lead runs in Pasig, Mandaluyong, San Juan and Marikina): Stop during search paused the run in 2.9 s, or after the Overture query finished (over 90 s once), as "Paused while searching for businesses. You stopped it."; the picker stayed selected; Resume continued and completed the run; a segment click on the finished page stayed there. Not seen live: a stop during website visits (search was slow each time); tests cover it and it is the CLI's Ctrl+C path.
 
+**Also pushed (2026-10-24):** the SSRF guard now also blocks at connect time. Every client from `http.make_client` connects through `netguard.PublicOnlyBackend`, an httpcore network backend that resolves the host, refuses any non-public address (`BlockedAddress`, unix sockets too), then connects to the very IP it checked, trying each in DNS order. So DNS rebinding between the fetcher's own check and the connection can no longer send even a request to a private address; before, the fetcher only refused to read the response (`check_peer`, now used by the JS renderer only). TLS still verifies the certificate against the URL's host name.
+- **How it plugs in:** httpx has no backend option, so `public_only_transport` swaps the backend on the transport's httpcore pool (`transport._pool._network_backend`, httpx 0.28 / httpcore 1.0); a test asserts it, so an upgrade that moves it fails loudly. Requests through an environment proxy use httpx's proxy transport and keep relying on the host check, as before.
+- **Tests:** backend refuses private addresses before connecting, connects to checked IPs in order, DNS failure is a connect error, an httpx request to a name resolving to loopback is refused with no network, and the fetcher reports a connect-time block as a failed fetch. 272 tests pass, the 2 live tests pass, lint clean.
+- **Checked live:** https://www.python.org/ fetched normally (certificate checked); localhost, 127.0.0.1, `localtest.me` (public DNS → 127.0.0.1) and 169.254.169.254 refused before connecting.
+
 **Next session, in order:**
 1. **Demo (7.2):** the owner records the 90-second demo (blueprint section 21). It shows the Google Sheet, so it needs the live Sheets export first.
 2. The owner's other live checks (below).
@@ -303,7 +308,7 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 12. **Go to market:** follow blueprint section 22 (platforms, pricing, honesty rule).
 
 ### Backlog (build only when needed)
-- **SSRF:** block the connection itself, not just the reading of the response (a custom httpcore network backend; see the `ponytail:` note in `enrich/fetcher.py`).
+- **SSRF in the JS renderer:** Chromium connects by itself, so a redirect to a private address is still sent (not read); blocking it needs a proxy in front of Chromium (`ponytail:` note in `enrich/render.py`).
 - **F14, Google Places source (8.6):** blocked on D1.
 - **F18, more directory adapters:** build per client request.
 - **D4:** remember rows a client deletes from the Sheet, so they are not appended again.

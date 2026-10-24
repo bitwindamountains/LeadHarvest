@@ -1,6 +1,14 @@
+import httpcore
+import httpx
 import pytest
 
-from leadharvest.enrich.netguard import BlockedAddress, assert_public_host, is_public_ip
+from leadharvest.enrich.netguard import (
+    BlockedAddress,
+    PublicOnlyBackend,
+    assert_public_host,
+    is_public_ip,
+    public_only_transport,
+)
 from leadharvest.enrich.robots import (
     RobotsChecker,
     origin_of,
@@ -105,3 +113,64 @@ async def test_assert_public_host() -> None:
     ):
         with pytest.raises(BlockedAddress):
             await assert_public_host(host, 80, fake_resolver)
+
+
+class RecordingBackend(httpcore.AsyncNetworkBackend):
+    """Stands in for httpcore's real backend: records connects, fails the listed addresses."""
+
+    def __init__(self, failing: tuple[str, ...] = ()) -> None:
+        self.calls: list[str] = []
+        self.failing = failing
+
+    async def connect_tcp(self, host, port, timeout=None, local_address=None,
+                          socket_options=None):  # fmt: skip
+        self.calls.append(host)
+        if host in self.failing:
+            raise httpcore.ConnectError(f"refused by {host}")
+        return "stream"
+
+    async def sleep(self, seconds: float) -> None:
+        pass
+
+
+def _resolving_to(*addresses: str):
+    async def resolver(host: str, port: int) -> list[str]:
+        return list(addresses)
+
+    return resolver
+
+
+async def test_backend_refuses_private_addresses_before_connecting() -> None:
+    inner = RecordingBackend()
+    backend = PublicOnlyBackend(inner, _resolving_to("93.184.216.34", "10.0.0.5"))
+    with pytest.raises(BlockedAddress, match=r"10.0.0.5"):
+        await backend.connect_tcp("rebind.ph", 443)
+    with pytest.raises(BlockedAddress):
+        await backend.connect_tcp("127.0.0.1", 80)  # an IP in the URL itself
+    with pytest.raises(BlockedAddress):
+        await backend.connect_unix_socket("/var/run/docker.sock")
+    assert inner.calls == []
+
+
+async def test_backend_connects_to_the_address_it_checked() -> None:
+    inner = RecordingBackend(failing=("2606:2800::1",))
+    backend = PublicOnlyBackend(inner, _resolving_to("2606:2800::1", "93.184.216.34"))
+    assert await backend.connect_tcp("site.ph", 443) == "stream"
+    assert inner.calls == ["2606:2800::1", "93.184.216.34"]  # IPs, not the name; next on failure
+
+
+async def test_backend_reports_dns_failure_as_a_connect_error() -> None:
+    async def no_dns(host: str, port: int) -> list[str]:
+        raise OSError("getaddrinfo failed")
+
+    with pytest.raises(httpcore.ConnectError, match="DNS lookup failed"):
+        await PublicOnlyBackend(RecordingBackend(), no_dns).connect_tcp("gone.ph", 443)
+
+
+async def test_client_never_connects_to_a_private_address() -> None:
+    """End to end through httpx, no network: the host resolves to loopback."""
+    transport = public_only_transport(_resolving_to("127.0.0.1"))
+    assert isinstance(transport._pool._network_backend, PublicOnlyBackend)  # httpx upgrades
+    async with httpx.AsyncClient(transport=transport) as client:
+        with pytest.raises(BlockedAddress, match=r"127.0.0.1"):
+            await client.get("http://rebind.test/")

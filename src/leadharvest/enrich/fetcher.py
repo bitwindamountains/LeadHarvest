@@ -156,12 +156,9 @@ class PoliteFetcher:
         return host
 
     def check_peer(self, host: str, address: str | None) -> None:
-        """DNS can change between our check and the client's own lookup (DNS rebinding), so the
-        address actually connected to must be public too.
-
-        ponytail: this stops us reading the response, not sending the GET. Blocking the connect
-        itself needs a custom httpcore network backend; add one if blind requests matter.
-        """
+        """For the JS renderer, whose browser connects by itself: the address it actually
+        connected to must be public too (DNS can change after our check). The fetcher's own
+        client refuses such addresses before connecting (netguard.PublicOnlyBackend)."""
         if address and not self.via_proxy and not is_public_ip(address):
             raise FetchError("failed", f"refusing {host}: connected to non-public {address}")
 
@@ -183,10 +180,9 @@ class PoliteFetcher:
             self.request_count += 1
             try:
                 async with self.client.stream("GET", url) as response:
-                    stream = response.extensions.get("network_stream")
-                    peer = stream.get_extra_info("server_addr") if stream is not None else None
-                    self.check_peer(host, peer[0] if peer else None)
                     body, truncated = await self._read_capped(response)
+            except BlockedAddress as exc:  # DNS changed since check_public (rebinding)
+                raise FetchError("failed", str(exc)) from exc
             except httpx.TimeoutException as exc:
                 raise FetchError("timeout", f"timeout fetching {url}") from exc
             except (httpx.ConnectError, httpx.RemoteProtocolError) as exc:
