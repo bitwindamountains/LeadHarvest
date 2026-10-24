@@ -4,9 +4,11 @@ server process, shared by every browser tab; the run page reads progress from it
 
 from __future__ import annotations
 
+import asyncio
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
+from typing import Any
 
 
 class Progress:
@@ -33,10 +35,32 @@ class Job:
     progress: Progress = field(default_factory=Progress)
     thread: threading.Thread | None = None
     message: str | None = None  # why it stopped early, in words for the person who started it
+    stopping: bool = False
+    _loop: asyncio.AbstractEventLoop | None = None
+    _task: asyncio.Task[Any] | None = None
 
     @property
     def running(self) -> bool:
         return self.thread is not None and self.thread.is_alive()
+
+    def run(self, work: Coroutine[Any, Any, Any]) -> None:
+        """On the job's thread: run `work` until it ends or `stop` cancels it (CancelledError)."""
+
+        async def main() -> None:
+            self._loop, self._task = asyncio.get_running_loop(), asyncio.current_task()
+            if self.stopping:  # stopped before it began
+                work.close()
+                raise asyncio.CancelledError
+            await work
+
+        asyncio.run(main())
+
+    def stop(self) -> None:
+        """From any thread: cancel the run at its next await, as Ctrl+C does in the CLI. Work
+        already on a worker thread (the Overture query) finishes first."""
+        self.stopping = True  # set before reading _task; `run` sets _task before reading this
+        if self._loop is not None and self._task is not None:
+            self._loop.call_soon_threadsafe(self._task.cancel)
 
 
 class Jobs:

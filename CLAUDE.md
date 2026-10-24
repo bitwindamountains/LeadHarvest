@@ -35,6 +35,7 @@ Details, history and the full roadmap are in PROGRESS.md; keep this summary in s
 - **Then:** the 90-second demo (7.2), recorded by the owner after a live Sheets export.
 - **Before selling:** decide D1, and D2 only if OSM goes into client lists (blueprint section 23), set up the monitor workflow secrets and `config/monitor.csv`, then `gh workflow enable "Weekly monitor"` (disabled 2026-10-24).
 - Also pushed: background runs in the UI (`ui_jobs.JOBS` threads; the run page shows live progress and survives clicks and reloads; 265 tests).
+- Also pushed: a Stop run button (`Job.stop` cancels the run's asyncio task; paused as "stopped", resumable; 268 tests).
 - **Backlog:**
   - block SSRF at connect time;
   - Google Places (blocked on D1);

@@ -58,7 +58,9 @@ def _work(settings: Settings, run_id: str, category: Category, force: bool, job:
     )
     handler = attach_run_log(settings.log_dir, run_id)
     try:
-        asyncio.run(pipeline.execute(run_id, category, force=force))
+        job.run(pipeline.execute(run_id, category, force=force))
+    except asyncio.CancelledError:  # Stop: the pipeline paused the run; say who stopped it
+        repo.update_run(run_id, error="stopped")
     except RunInProgress:
         job.message = "This run was started somewhere else (the CLI or another server) just now."
     except LocationNotFound as exc:
@@ -80,6 +82,9 @@ def live_progress(run_id: str, title: str) -> None:
     to show the results once the run stops."""
     job = JOBS.get(run_id)
     if job is None or not job.running:
+        # Re-select the run: after a rerun started from a fragment, the browser shows the
+        # sidebar picker unchecked, and its next click would send "nothing picked".
+        select_run(run_id)
         st.rerun()
         return
     steps = dict(job.progress.steps)
@@ -92,6 +97,13 @@ def live_progress(run_id: str, title: str) -> None:
     done, total = job.progress.done, job.progress.total
     if "enrich" in steps and total:
         box.progress(min(done / total, 1.0), text=f"Visited {done} of {total} websites")
-    st.caption(
-        "The run continues if you open another page or close this tab; come back here to see it."
-    )
+    with st.container(horizontal=True, vertical_alignment="center"):
+        st.button(
+            "Stopping…" if job.stopping else "Stop run", icon=":material/stop:",
+            key=f"stop-{run_id}", disabled=job.stopping, on_click=job.stop,
+            help="Pauses the run; finished work is kept and Resume continues it.",
+        )  # fmt: skip
+        st.caption(
+            "The run continues if you open another page or close this tab; come back here to "
+            "see it."
+        )

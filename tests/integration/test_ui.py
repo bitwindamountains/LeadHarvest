@@ -385,3 +385,32 @@ def test_ui_run_keeps_going_while_the_person_clicks_around(ui_env, monkeypatch) 
     assert not at.exception
     assert not at.status
     assert any("No businesses found" in i.value for i in at.info)  # the finished run's page
+
+
+def test_ui_stop_pauses_the_run_for_resume(ui_env, monkeypatch) -> None:
+    reported = threading.Event()
+
+    async def endless(self, run_id, category, **kwargs):
+        self.repo.update_run(run_id, status="running")
+        self.reporter.step_started("enrich")
+        reported.set()
+        try:
+            await asyncio.sleep(60)
+        except asyncio.CancelledError:  # what Pipeline.execute does when cancelled
+            self.repo.update_run(run_id, status="partial", error="interrupted")
+            raise
+
+    monkeypatch.setattr("leadharvest.pipeline.Pipeline.execute", endless)
+    at = _signed_in()
+    at.text_input[0].input("Makati, Philippines")
+    at.button(key="find").click().run()
+    reported.wait(10)
+    at.run()
+    run_id = at.sidebar.radio[0].value
+    at.button(key=f"stop-{run_id}").click().run()
+    JOBS.wait()
+    at.run()
+    assert not at.exception
+    assert not at.status
+    assert any("You stopped it." in w.value for w in at.warning)
+    assert any(b.label == "Resume run" for b in at.button)

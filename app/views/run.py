@@ -221,9 +221,11 @@ def status_banner(
             "over only if it stopped, for example because the app restarted mid-run."
         )
     else:
-        reason = {"interrupted": "The run was interrupted.", None: ""}.get(
-            run.error, f"{run.error}."
-        )
+        reason = {
+            "interrupted": "The run was interrupted.",
+            "stopped": "You stopped it.",
+            None: "",
+        }.get(run.error, f"{run.error}.")
         st.warning(
             f"Paused while **{step}**. {reason}  \n"
             "Resuming continues where it stopped; finished work is kept."
