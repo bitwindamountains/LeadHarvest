@@ -26,8 +26,8 @@ The Streamlit app (`app/`) is a tool for one operator or a small team, not a mar
 | Screen | Its job | Primary action | States it must show |
 |---|---|---|---|
 | Sign-in | Keep strangers out | Sign in | Password not configured (setup error), wrong password (inline, after a 1 s delay), success |
-| Search page | Start a run | Find leads | Setup problems (form hidden), validation errors (inline under the form), first visit (hint that runs appear in the sidebar), running (live progress per step) |
-| Run page | Understand and take the results | Download / open the export | Completed, paused (with Resume), running elsewhere (with Take over), failed (with the log path), no businesses found (with what to try), segment selected (count and download), leads with no way to contact hidden by default (switch, "N hidden"; disabled when none), all shown leads hidden (says to turn the switch off). Email and phone cells are `mailto:`/`tel:` links; a Messenger cell ("Message", `m.me/<page>`) for leads whose Facebook link is a page username or id |
+| Search page | Start a run | Find leads | Setup problems (form hidden), validation errors (inline under the form), first visit (hint that runs appear in the sidebar). Starting a run opens its run page |
+| Run page | Understand and take the results | Download / open the export | Completed, running here (live progress per step and websites visited, redrawn every second; the run keeps going on a background thread whatever is clicked, and the page shows the results when it stops), paused (with Resume), marked running but not by this app (the CLI, or a server that restarted mid-run; with Take over), location not found (names to try, in place of the failure banner), failed (with the log path), no businesses found (with what to try), segment selected (count and download), leads with no way to contact hidden by default (switch, "N hidden"; disabled when none), all shown leads hidden (says to turn the switch off). Email and phone cells are `mailto:`/`tel:` links; a Messenger cell ("Message", `m.me/<page>`) for leads whose Facebook link is a page username or id |
 | Sidebar | Move between searches | New search | No runs yet; one entry per search (category + place, `ui_support.group_runs`) showing its latest run's status, age and leads, plus "N runs" when repeated. The run page's "Run history" picker opens an earlier run of the same search. A batch (`options.batch`) is one entry, "Batch · name", captioned with its progress ("3 of 4 completed · 25 leads") and age. An "All runs" link under the list |
 | Batch page | See one batch's searches | Pick a row (opens the run; its run page links back with "Batch name") | Each row's latest run in row order, the batch's progress, no runs |
 | All runs | Reach any run, however old | Pick a row (opens the run) | No runs yet; filter by words (category, place, run id) and status; nothing matches; "Showing N of M runs" |
@@ -51,6 +51,6 @@ The Streamlit app (`app/`) is a tool for one operator or a small team, not a mar
 ## Code layout
 
 - **`app/streamlit_app.py`:** page setup and routing only.
-- **`app/views/`:** one module per screen, plus `common.py` for running a pipeline with live progress.
+- **`app/views/`:** one module per screen, plus `common.py` for starting a pipeline on a background thread (`leadharvest.ui_jobs.JOBS`, one registry per server process) and its live progress.
 - **`leadharvest.ui_support`:** all logic that can be tested without Streamlit.
 - **`app/assets/`:** the logo, the mark, and the sign-in brand panel. `st.html` strips `<svg>` and `data:` images, so the panel is pure CSS.

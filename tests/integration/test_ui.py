@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import threading
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -14,6 +16,7 @@ from leadharvest.models import Lead, Run, new_lead_id, utcnow_iso
 from leadharvest.sources.overture import default_source_names
 from leadharvest.storage.db import connect
 from leadharvest.storage.repository import Repository
+from leadharvest.ui_jobs import JOBS
 from leadharvest.ui_support import (
     SHOW_OPTIONS,
     ago,
@@ -24,7 +27,6 @@ from leadharvest.ui_support import (
     duration_text,
     export_choices,
     group_runs,
-    mark_interrupted,
     password_ok,
     percent,
     result_rows,
@@ -162,18 +164,6 @@ def test_presentation_helpers() -> None:
     assert "'=HYPERLINK(1)" in data.decode("utf-8-sig")  # same formula guard as the export
 
 
-def test_mark_interrupted_only_touches_running_runs(tmp_path) -> None:
-    repo = Repository(connect(tmp_path / "leads.db"))
-    repo.create_run(_run("live", status="running"))
-    repo.create_run(_run("done", status="completed", current_step="done"))
-    mark_interrupted(repo, "live")
-    mark_interrupted(repo, "done")
-    mark_interrupted(repo, "missing")
-    assert (repo.get_run("live").status, repo.get_run("live").error) == ("partial", "interrupted")
-    assert repo.get_run("done").status == "completed"
-    repo.conn.close()
-
-
 streamlit = pytest.importorskip("streamlit")
 
 
@@ -183,6 +173,7 @@ def ui_env(tmp_path, monkeypatch):
     monkeypatch.setenv("LH_USER_AGENT", TEST_UA)
     monkeypatch.setenv("LH_DB_PATH", str(tmp_path / "leads.db"))
     monkeypatch.setenv("LH_UI_PASSWORD", "correct horse")
+    monkeypatch.setattr(JOBS, "_jobs", {})  # runs started by earlier tests
     return tmp_path
 
 
@@ -321,6 +312,8 @@ def test_ui_resume_finishes_a_paused_run(ui_env, monkeypatch) -> None:
     at.sidebar.radio[0].set_value("run-paused").run()
     assert any("interrupted" in w.value for w in at.warning)
     next(b for b in at.button if b.label == "Resume run").click().run()
+    JOBS.wait()  # the run happens on a background thread
+    at.run()
     assert not at.exception
     assert not any(b.label == "Resume run" for b in at.button)
     assert any("No businesses found" in i.value for i in at.info)
@@ -331,6 +324,8 @@ def test_ui_new_run_opens_its_results(ui_env, monkeypatch) -> None:
     at = _signed_in()
     at.text_input[0].input("Makati, Philippines")
     at.button(key="find").click().run()
+    JOBS.wait()
+    at.run()
     assert not at.exception
     run_id = at.sidebar.radio[0].value
     assert run_id is not None  # the new run is selected in the history
@@ -339,13 +334,54 @@ def test_ui_new_run_opens_its_results(ui_env, monkeypatch) -> None:
 
 def test_ui_location_not_found_suggests_names(ui_env, monkeypatch) -> None:
     async def not_found(self, run_id, category, **kwargs):
+        self.repo.update_run(run_id, status="failed", error="Location not found")
         raise LocationNotFound("Atlantis", ["Atlanta, Georgia"])
 
     monkeypatch.setattr("leadharvest.pipeline.Pipeline.execute", not_found)
     at = _signed_in()
     at.text_input[0].input("Atlantis")
     at.button(key="find").click().run()
-    assert any("Atlanta, Georgia" in e.value for e in at.error)
-    at.run()  # next interaction: the failed run is listed, but not opened
-    assert len(at.sidebar.radio[0].options) == 1
-    assert at.sidebar.radio[0].value is None
+    JOBS.wait()
+    at.run()
+    assert not at.exception
+    # The failed run's page says what went wrong and suggests names, instead of the banner.
+    assert [e.value for e in at.error if "Atlanta, Georgia" in e.value]
+    assert not any("This run failed" in e.value for e in at.error)
+
+
+def test_ui_run_keeps_going_while_the_person_clicks_around(ui_env, monkeypatch) -> None:
+    release, reported = threading.Event(), threading.Event()
+
+    async def slow(self, run_id, category, **kwargs):
+        self.repo.update_run(run_id, status="running")
+        self.reporter.step_started("search")
+        self.reporter.step_finished("search")
+        self.reporter.step_started("enrich")
+        self.reporter.step_progress("enrich", 3, 10)
+        reported.set()
+        await asyncio.to_thread(release.wait, 10)
+        self.repo.update_run(run_id, status="completed", current_step="done")
+        return self.repo.get_run(run_id)
+
+    monkeypatch.setattr("leadharvest.pipeline.Pipeline.execute", slow)
+    at = _signed_in()
+    at.text_input[0].input("Makati, Philippines")
+    at.button(key="find").click().run()
+    reported.wait(10)  # the page draws whatever the thread reported so far; let it catch up
+    at.run()
+    assert not at.exception
+    assert at.status[0].label == "Visiting their websites…"
+    assert at.get("progress")[0].proto.text == "Visited 3 of 10 websites"
+    run_id = at.sidebar.radio[0].value
+    # Clicking elsewhere used to stop the run; now it only leaves the page.
+    at.sidebar.button(key="new_search").click().run()
+    assert at.button(key="find")
+    at.sidebar.radio[0].set_value(run_id).run()
+    assert at.status[0].label == "Visiting their websites…"
+    assert not any(b.label in ("Resume run", "Take over and resume") for b in at.button)
+    release.set()
+    JOBS.wait()
+    at.run()
+    assert not at.exception
+    assert not at.status
+    assert any("No businesses found" in i.value for i in at.info)  # the finished run's page

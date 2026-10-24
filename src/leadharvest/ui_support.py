@@ -21,7 +21,6 @@ from leadharvest.exporters.csv_export import write_rows
 from leadharvest.models import Lead, Run
 from leadharvest.segments import SEGMENTS, apply_segment
 from leadharvest.sources.overture import default_source_names, duckdb_installed
-from leadharvest.storage.repository import Repository
 
 MAX_UI_LIMIT = 1000
 
@@ -162,14 +161,6 @@ TABLE_COLUMNS = (
 def can_resume(run: Run) -> bool:
     """Paused runs, and runs left "running" when the app stopped mid-run."""
     return run.status in ("partial", "running") and run.current_step != "done"
-
-
-def mark_interrupted(repo: Repository, run_id: str) -> None:
-    """Any click in Streamlit while a run is in progress stops the script with a BaseException
-    the pipeline doesn't record. Mark the run paused so it can be resumed."""
-    run = repo.get_run(run_id)
-    if run is not None and run.status == "running":
-        repo.update_run(run_id, status="partial", error="interrupted")
 
 
 def category_label(key: str, categories: dict[str, Category]) -> str:

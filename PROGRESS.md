@@ -24,6 +24,13 @@
 - **Also:** the Messenger column is 100 px wide; "small" clipped its header (seen in the browser).
 - 264 tests pass, lint clean.
 
+**Also pushed (2026-10-24):** background runs in the UI. A run started or resumed in the UI now runs on a daemon thread (`ui_jobs.JOBS`, one registry per server process, each run with its own SQLite connection) instead of inside the page's script, so clicks, other pages, reloads and closed tabs no longer pause it.
+- **Run page:** while its run is running here, it shows live progress (`views.common.live_progress`, an `st.fragment(run_every=1)`: steps, then "Visited N of M websites") and reruns the page when the run stops. A run marked running with no thread here (the CLI, or the app restarted mid-run) still gets "Take over and resume"; its wording no longer mentions other tabs, which share the registry. Location not found shows its suggestions on the run page (the search page used to show them).
+- **Removed:** `mark_interrupted` and `StatusReporter`: nothing interrupts a UI run any more. The search page's "keep this tab open" note now says the run continues in the background.
+- **Limits:** stopping the server kills the thread; the run stays "running" and is taken over as before. Two runs at once each write the other's log lines too (one root logger), as two tabs already could.
+- **Tests:** `tests/unit/test_ui_jobs.py` (one thread per run, readable progress) and `test_ui_run_keeps_going_while_the_person_clicks_around` (live progress, leaving and returning mid-run, results after). 265 tests pass (the suite ran 3 times in a row), lint clean.
+- **Checked live** on a scratch DB, 5-lead runs in Makati and Taguig: progress went searching → "Visited 0/4/5 of 5 websites" → scoring, survived New search and a full page reload mid-run, and the page showed the completed results on its own. Found and fixed in the browser: the status box showed a check mark while running (`with st.status` marks it complete on exit).
+
 **Next session, in order:**
 1. **Demo (7.2):** the owner records the 90-second demo (blueprint section 21). It shows the Google Sheet, so it needs the live Sheets export first.
 2. The owner's other live checks (below).
@@ -292,7 +299,6 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 12. **Go to market:** follow blueprint section 22 (platforms, pricing, honesty rule).
 
 ### Backlog (build only when needed)
-- **Background runs in the UI:** a run would then survive clicks and page reloads. Today a click pauses the run, and Resume recovers it.
 - **SSRF:** block the connection itself, not just the reading of the response (a custom httpcore network backend; see the `ponytail:` note in `enrich/fetcher.py`).
 - **F14, Google Places source (8.6):** blocked on D1.
 - **F18, more directory adapters:** build per client request.

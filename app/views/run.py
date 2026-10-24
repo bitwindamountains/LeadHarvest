@@ -11,6 +11,7 @@ from leadharvest.config import Settings
 from leadharvest.models import Lead, Run
 from leadharvest.segments import segment_counts
 from leadharvest.storage.repository import Repository
+from leadharvest.ui_jobs import JOBS
 from leadharvest.ui_support import (
     RUNS_SCANNED,
     SOURCE_LABELS,
@@ -32,7 +33,7 @@ from leadharvest.ui_support import (
     viewer_tz,
 )
 
-from views.common import execute, eyebrow
+from views.common import execute, eyebrow, live_progress
 from views.leads import leads_table
 from views.runs import batch_link
 
@@ -43,7 +44,14 @@ def show_run(
     run_header(run, categories)
     batch_link(run)
     run_history(repo, run)
-    status_banner(settings, repo, run, categories)
+    job = JOBS.get(run.id)
+    if job is not None and job.running:
+        live_progress(run.id, run_title(run, categories))
+        return
+    if job is not None and job.message:  # replaces the banner: it says what to do instead
+        st.error(job.message)
+    else:
+        status_banner(settings, repo, run, categories)
     leads = repo.leads_for_run(run.id)
     if not leads:
         if run.current_step == "done":
@@ -208,8 +216,8 @@ def status_banner(
     running = run.status == "running"
     if running:
         st.warning(
-            f"This run is marked as running (**{step}**). It may still be running in another "
-            "tab or in the CLI; resuming it here too would visit every website twice. Take it "
+            f"This run is marked as running (**{step}**), but not by this app. It may still be "
+            "running in the CLI; resuming it here too would visit every website twice. Take it "
             "over only if it stopped, for example because the app restarted mid-run."
         )
     else:
@@ -226,7 +234,7 @@ def status_banner(
         st.caption(f"Category '{run.category}' is no longer configured, so it can't resume.")
     elif st.button(label, type="secondary" if running else "primary",
                    icon=":material/play_arrow:"):  # fmt: skip
-        execute(settings, repo, run, category, force=running)
+        execute(settings, run, category, force=running)
 
 
 def exports(settings: Settings, run: Run) -> None:

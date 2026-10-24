@@ -20,7 +20,7 @@ from leadharvest.ui_support import (
     validate_request,
 )
 
-from views.common import execute, eyebrow, select_run
+from views.common import execute, eyebrow
 
 REGION_NAMES = {"PH": "Philippines"}
 
@@ -58,8 +58,8 @@ def what_happens_next(first_time: bool) -> None:
         )
         st.caption(
             "Websites are visited politely, with a pause between requests, so 100 leads take a "
-            "few minutes. Keep this tab open until the run finishes. If you click elsewhere in "
-            "the app, the run pauses and you can resume it from its page."
+            "few minutes. The run keeps going in the background, so you can open other pages "
+            "or close the tab and come back to it."
         )
     if first_time:
         st.caption(":material/history: Finished runs appear in the sidebar, newest first.")
@@ -125,5 +125,4 @@ def run_form(settings: Settings, repo: Repository, categories: dict[str, Categor
         request.category, request.location, limit=request.limit, targets=request.targets,
         sources=request.sources, options={"js": request.js, "mx": request.mx},
     )  # fmt: skip
-    select_run(run.id)
-    execute(settings, repo, run, request.category)
+    execute(settings, run, request.category)

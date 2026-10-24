@@ -108,7 +108,7 @@ uv sync --extra js && uv run playwright install chromium
 - a leads table sorted by score, with one-click email, phone and Messenger links, and leads with no way to contact them hidden by default;
 - download buttons for the full list and for the segment on screen.
 
-The sidebar lists each search once (a batch is one entry with its own page); **All runs** lists and filters every run. The open run's id is in the URL, so a run can be bookmarked. A paused run, for example one stopped by an Overpass error or by clicking around mid-run, gets a **Resume run** button.
+The sidebar lists each search once (a batch is one entry with its own page); **All runs** lists and filters every run. The open run's id is in the URL, so a run can be bookmarked. Runs keep going in the background, so you can open other pages, or close the tab and come back. A paused run, for example one stopped by an Overpass error or by a server restart, gets a **Resume run** button.
 
 ```bash
 uv sync --extra ui
