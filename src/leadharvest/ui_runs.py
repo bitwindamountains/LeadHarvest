@@ -1,4 +1,5 @@
-"""Logic behind the UI's All runs page (app/views/runs.py), testable without Streamlit."""
+"""Logic behind the UI's run lists (app/views/runs.py: All runs and batch pages; the sidebar's
+batch entries), testable without Streamlit."""
 
 from __future__ import annotations
 
@@ -6,7 +7,7 @@ from datetime import UTC, tzinfo
 
 from leadharvest.categories import Category
 from leadharvest.models import Run
-from leadharvest.ui_support import STATUS_LABELS, category_label, short_time
+from leadharvest.ui_support import STATUS_LABELS, category_label, search_key, short_time
 
 
 def filter_runs(
@@ -42,3 +43,22 @@ def run_rows(
         }
         for r in runs
     ]
+
+
+def batch_name(run: Run) -> str | None:
+    """The batch a run belongs to (options.batch, see batch.py), if any."""
+    batch = run.options.get("batch")
+    return batch if isinstance(batch, str) else None
+
+
+def entry_key(run: Run) -> tuple[str, str]:
+    """Sidebar entries: a batch's runs share one entry, any other run its search's."""
+    batch = batch_name(run)
+    return ("batch", batch) if batch else search_key(run)
+
+
+def batch_caption(runs: list[Run], lead_counts: dict[str, int]) -> str:
+    """'3 of 4 completed · 25 leads' for a batch's runs."""
+    done = sum(r.status == "completed" for r in runs)
+    leads = sum(lead_counts.get(r.id, 0) for r in runs)
+    return f"{done} of {len(runs)} completed · {leads} leads"

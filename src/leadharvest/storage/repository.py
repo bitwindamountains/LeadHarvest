@@ -91,6 +91,19 @@ class Repository:
         ).fetchone()
         return _row_to_run(found) if found else None
 
+    def batch_runs(self, batch: str) -> list[Run]:
+        """Each row's latest run in a batch (see batch.py), in row order."""
+        rows = self.conn.execute(
+            "SELECT * FROM runs WHERE json_extract(options, '$.batch') = ? "
+            "ORDER BY json_extract(options, '$.row'), created_at DESC, rowid DESC",
+            (batch,),
+        ).fetchall()
+        latest: dict[object, Run] = {}
+        for row in rows:
+            run = _row_to_run(row)
+            latest.setdefault(run.options.get("row"), run)
+        return list(latest.values())
+
     def previous_run(self, run: Run) -> Run | None:
         """The latest earlier completed run of the same category over the same area.
 

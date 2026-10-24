@@ -8,12 +8,20 @@
 
 **Also pushed (2026-10-24):** the All runs page and the run id in the URL (direction A, step 2). 246 tests pass, lint clean, checked in the browser.
 
+**Also pushed (2026-10-24):** batches collapsed into one sidebar entry with a batch page (direction A, step 3, which finishes direction A). 249 tests pass, lint clean, checked in the browser.
+
 **Next session, in order:**
-1. Direction A, step 3: collapse each batch (`options.batch`) into one sidebar entry that opens a batch summary.
+1. Pick the next feature: "Reachable leads" under "Other ideas" below is the strongest candidate.
 
 **Also left:** live verification by the owner (two "Definition of done" items are still open), Phase 7 packaging, and decisions D1 (and D2 only if OSM is added to a client list). See the Roadmap below.
 
 ## Done (newest first)
+
+- 2026-10-24: Each batch is one sidebar entry with a batch page (direction A, step 3 of 3; 249 tests pass, lint clean).
+  - **Sidebar:** runs group by `ui_runs.entry_key`: a run with `options.batch` joins its batch's entry ("Batch · name", caption "N of M completed · L leads · age"), any other run its search's. Batch rows no longer count towards a search's duplicate label, so a search isn't given a run id suffix because a batch ran the same search. Lead counts for captions come from one `run_lead_counts()` query instead of one per entry.
+  - **Batch page (`views/runs.batch_page`):** each row's latest run (`Repository.batch_runs`) in row order, in the same table as All runs; picking a row opens its run. A batch row's run page has a "Batch name" back link. `open_batch` in session state shows the page; `select_run` clears it. The run page's "Run history" still groups by search, so a batch row lists the same search's other runs.
+  - **Not done:** monitor batches are named per ISO week (`name@YYYY-Www`), so each week is its own entry; folding weeks of one monitor into one entry is left until monitors are in use. The batch page has no URL of its own.
+  - **Checked live** on a copy of `data/leads.db` with two runs tagged as a batch: one entry, the page lists both, a row opens its run, the back link returns, and another entry leaves the batch.
 
 - 2026-10-24: All runs page and the run id in the URL (direction A, step 2 of 3; 246 tests pass, lint clean).
   - **Page (`app/views/runs.py`, logic in `ui_runs.py`):** an "All runs" link in the sidebar opens a table of every run, newest first (Started, Search, Status, Leads, Run), with a word filter (category, place, run id) and a status filter. Picking a row opens the run through the usual `select_run`, which also works for runs the sidebar doesn't list (the picker clears, `open_run` holds the run). `Repository.list_runs(None)` lists every run and `run_lead_counts()` counts leads per run in one query.
@@ -211,7 +219,7 @@ Blueprint section 18 has the phase list; section 19 has the Definition of Done (
 The sidebar stacks one entry per run, so repeated searches, weekly monitors and batches crowd it, and older runs fall off the newest 15.
 - **Step 1, done (`f8e14d2`):** group by search (category plus place). The sidebar shows each search once, and the run page has a "Run history" picker.
 - **Step 2, done:** an "All runs" page with the run id in the URL.
-- **Step 3:** collapse batches into one entry.
+- **Step 3, done:** collapse batches into one entry with a batch page.
 - **Not doing:** pins and tags, folders, searching leads from the sidebar, deleting runs automatically. Direction B, a "Leads library" (every lead, filtered by category and place, with runs as history), is the long-term model; build it only on demand.
 
 ### Other ideas from 2026-10-11 (not started)

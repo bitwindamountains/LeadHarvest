@@ -5,6 +5,7 @@ from __future__ import annotations
 import hmac
 import io
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, tzinfo
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -187,12 +188,14 @@ def search_key(run: Run) -> tuple[str, str]:
     return run.category, " ".join((run.area_name or run.location).casefold().split())
 
 
-def group_runs(runs: list[Run]) -> list[list[Run]]:
-    """Runs grouped by search, in the input order: newest runs in, newest search first and
-    each group's newest run first."""
+def group_runs(
+    runs: list[Run], key: Callable[[Run], tuple[str, str]] = search_key
+) -> list[list[Run]]:
+    """Runs grouped by `key` (by default the search), in the input order: newest runs in,
+    newest group first and each group's newest run first."""
     groups: dict[tuple[str, str], list[Run]] = {}
     for run in runs:
-        groups.setdefault(search_key(run), []).append(run)
+        groups.setdefault(key(run), []).append(run)
     return list(groups.values())
 
 

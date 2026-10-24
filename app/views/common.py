@@ -35,9 +35,10 @@ def inject_theme() -> None:
 
 def select_run(run_id: str | None) -> None:
     """Open a run (or, with None, the search page) on the next rerun. The sidebar picker owns
-    the current selection. Leaves the All runs page."""
+    the current selection. Leaves the All runs and batch pages."""
     st.session_state["select_run"] = run_id
     st.session_state.pop("all_runs", None)
+    st.session_state.pop("open_batch", None)
 
 
 class StatusReporter:

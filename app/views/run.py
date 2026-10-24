@@ -41,6 +41,7 @@ from leadharvest.ui_support import (
 )
 
 from views.common import execute, eyebrow
+from views.runs import batch_link
 
 _col = st.column_config
 # Business stays pinned while the table scrolls sideways. Pixel widths fit typical content: a
@@ -80,6 +81,7 @@ def show_run(
     settings: Settings, repo: Repository, run: Run, categories: dict[str, Category]
 ) -> None:
     run_header(run, categories)
+    batch_link(run)
     run_history(repo, run)
     status_banner(settings, repo, run, categories)
     leads = repo.leads_for_run(run.id)

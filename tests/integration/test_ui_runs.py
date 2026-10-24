@@ -7,7 +7,8 @@ from datetime import UTC
 from leadharvest.categories import load_categories
 from leadharvest.storage.db import connect
 from leadharvest.storage.repository import Repository
-from leadharvest.ui_runs import filter_runs, run_rows
+from leadharvest.ui_runs import batch_caption, batch_name, entry_key, filter_runs, run_rows
+from leadharvest.ui_support import group_runs
 from tests.integration.test_ui import _run, _seed, _signed_in, ui_env  # noqa: F401 (fixture)
 
 
@@ -98,3 +99,74 @@ def test_ui_ignores_an_unknown_run_in_the_url(ui_env) -> None:  # noqa: F811
     assert not at.exception
     assert at.button(key="find")  # the search page
     assert not at.query_params.get("run")
+
+
+# ---- batches: one sidebar entry, a batch page, and back ------------------------------------------
+
+
+def _seed_batch(path, name: str, rows: dict[int, tuple[str, str]], leads_row: int = 1) -> None:
+    """rows: {row: (run id, status)}; the run on `leads_row` gets 2 leads."""
+    for row, (run_id, status) in rows.items():
+        _seed(path, run_id, status, "done", leads=2 if row == leads_row else 0)
+    repo = Repository(connect(path))
+    for row, (run_id, _) in rows.items():
+        repo.conn.execute(
+            "UPDATE runs SET options = json_object('batch', ?, 'row', ?) WHERE id = ?",
+            (name, row, run_id),
+        )
+    repo.conn.commit()
+    repo.conn.close()
+
+
+def test_batch_helpers() -> None:
+    plain, in_batch = _run("a"), _run("b", options={"batch": "clinics", "row": 1})
+    assert (batch_name(plain), batch_name(in_batch)) == (None, "clinics")
+    assert entry_key(in_batch) == ("batch", "clinics")
+    other = _run("c", category="gym", options={"batch": "clinics", "row": 2})
+    groups = group_runs([in_batch, plain, other], key=entry_key)
+    assert [[r.id for r in g] for g in groups] == [["b", "c"], ["a"]]  # one entry per batch
+    assert [[r.id for r in g] for g in group_runs([in_batch, plain, other])] == [
+        ["b", "a"],
+        ["c"],
+    ]  # by search (the run page's history) a batch row joins its search
+    assert batch_caption([in_batch, _run("d", status="completed")], {"b": 3, "d": 2}) == (
+        "1 of 2 completed · 5 leads")  # fmt: skip
+
+
+def test_repository_batch_runs_keeps_each_rows_latest(ui_env) -> None:  # noqa: F811
+    _seed_batch(
+        ui_env / "leads.db", "clinics", {2: ("row2", "completed"), 1: ("row1-old", "failed")}
+    )
+    _seed_batch(ui_env / "leads.db", "clinics", {1: ("row1-new", "completed")})
+    _seed_batch(ui_env / "leads.db", "other", {1: ("elsewhere", "completed")})
+    repo = Repository(connect(ui_env / "leads.db"))
+    assert [r.id for r in repo.batch_runs("clinics")] == ["row1-new", "row2"]
+    assert repo.batch_runs("nope") == []
+    repo.conn.close()
+
+
+def test_ui_batch_is_one_sidebar_entry_with_its_own_page(ui_env) -> None:  # noqa: F811
+    _seed(ui_env / "leads.db", "solo", "completed", "done")
+    _seed_batch(ui_env / "leads.db", "clinics", {1: ("row1", "completed"), 2: ("row2", "partial")})
+    at = _signed_in()
+    picker = at.sidebar.radio[0]
+    # The batch's rows are dentist searches in Makati too, yet "solo" needs no run id suffix.
+    assert picker.options == ["Batch · clinics", "Dental clinics · Makati"]
+    at.sidebar.radio[0].set_value("row2").run()  # the batch's entry (its newest run)
+    assert not at.exception
+    assert at.title[0].value == "clinics"
+    assert at.dataframe[0].value["Run"].tolist() == ["row1", "row2"]  # row order
+    assert any("1 of 2 completed · 2 leads" in c.value for c in at.caption)
+    assert not at.query_params.get("run")
+    # A row opens its run (what picking a table row does), which links back to the batch.
+    at.session_state["select_run"] = "row1"
+    at.session_state["open_batch"] = None  # select_run clears it
+    at.run()
+    assert at.title[0].value != "clinics"
+    assert at.query_params["run"] == "row1"
+    assert at.sidebar.radio[0].value == "row2"  # the batch's entry stays selected
+    at.button(key="batch_link").click().run()
+    assert at.title[0].value == "clinics"
+    # Another entry leaves the batch.
+    at.sidebar.radio[0].set_value("solo").run()
+    assert at.title[0].value != "clinics" and at.query_params["run"] == "solo"

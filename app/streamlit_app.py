@@ -16,7 +16,7 @@ from leadharvest.storage.repository import Repository
 
 from views.common import MARK, inject_theme, select_run
 from views.run import show_run
-from views.runs import all_runs_page
+from views.runs import all_runs_page, batch_page
 from views.search import search_page
 from views.sidebar import sidebar
 from views.signin import sign_in
@@ -56,6 +56,9 @@ def main() -> None:
         if st.session_state.get("all_runs"):
             run = None
             all_runs_page(repo, categories)
+        elif batch := st.session_state.get("open_batch"):
+            run = None
+            batch_page(repo, batch, categories)
         elif run is None:
             search_page(settings, repo, categories, first_time=not repo.list_runs(1))
         else:
