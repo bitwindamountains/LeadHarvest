@@ -313,7 +313,11 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 
 ### Backlog (build only when needed)
 - **F14, Google Places source (8.6):** blocked on D1.
-- **F18, more directory adapters:** build per client request.
+- **F18, more directory adapters:** build per client request. **Researched 2026-10-24, none usable** (checked against the `_template.yaml` checklist):
+  - BusinessList.ph: robots.txt allows listing pages, but its terms of use allow automated access for search engines only, content "for your own use only", and no reproducing without written permission (they take requests via their Contact Us page).
+  - Kompass PH and Cybo: answer plain requests with 403 (bot protection); using them would need evasion, which is ruled out.
+  - Infobel: robots.txt blocks AI and data bots. Yellow Pages PH, PhilippineCompanies and ph-yp: unreachable or offline.
+  - So an adapter needs a directory whose owner allows it: written permission (e.g. BusinessList.ph), or a source a client brings with the rights to it (a member list, an association directory).
 - **D4:** remember rows a client deletes from the Sheet, so they are not appended again.
 
 ## Notes / decisions
