@@ -39,6 +39,12 @@ COLUMN_CONFIG = {
         "Email type", width="small", help="business, personal (a person's name) or unknown"
     ),
     "phone": _col.LinkColumn("Phone", width=160, display_text=r"tel:(.*)"),
+    "messenger": _col.LinkColumn(
+        "Messenger",
+        width="small",
+        display_text="Message",
+        help="Opens a chat with the business's Facebook page.",
+    ),
     # Show the domain; the link keeps the full URL.
     "website": _col.LinkColumn(
         "Website", width="medium", display_text=r"https?://(?:www\.)?([^/]+)"

@@ -16,8 +16,10 @@
 
 **Also pushed (2026-10-24):** reachable leads, slice 3 (export summary with reachable and opening counts; a Sheets summary tab). 252 tests pass, lint clean.
 
+**Also pushed (2026-10-24):** reachable leads, Messenger links. The leads table has a Messenger column ("Message", after Phone) linking to `m.me/<page>` (`clean.normalize.messenger_link`, used by `ui_support.result_rows`). Checked first in a real browser: `m.me/<numeric id>` (Overture's facebook.com/<id> links; 141 of 143 Facebook links in the DB) goes to `messenger.com/t/<id>` like a username does (`m.me/facebook`), through Messenger's sign-in when logged out. Group, `/pages/...` and `profile.php` links get no Messenger link. UI only: exports keep the Facebook column. 264 tests pass, lint clean.
+
 **Next session, in order:**
-1. Messenger links, once someone checks that `m.me/<numeric id>` opens Messenger for Overture's numeric Facebook page links.
+1. The owner's live checks (below); reachable leads is done.
 
 **Also left:** live verification by the owner (two "Definition of done" items are still open), Phase 7 packaging, and decisions D1 (and D2 only if OSM is added to a client list). See the Roadmap below.
 
@@ -47,7 +49,7 @@
 - 2026-10-24: Reachable leads, slice 1 (250 tests pass, lint clean).
   - **Reachable (`segments.reachable`):** a lead with an email, phone, website or any social page. Only leads with none of these count as unreachable, so nothing a person could still contact is hidden.
   - **Leads table:** a "Hide leads with no way to contact" switch, on by default, with "N hidden" beside it. It applies on top of the Show picker, and to "Download these N", but not to the number cards or the full exports. Its label is fixed and it's always drawn (disabled when nothing would be hidden), because Streamlit drops a widget's state when it's relabelled or not drawn, which turned hiding back on after a segment switch (caught by the AppTest).
-  - **Links:** email cells are `mailto:` links and phone cells `tel:` links (`ui_support.result_rows`), shown as the address and the formatted number. The `+` is sent as `%2B`: the table decodes a bare `+` in link text to a space, which dropped it ("63-966-…"), found in the browser. Messenger links wait for the `m.me` check.
+  - **Links:** email cells are `mailto:` links and phone cells `tel:` links (`ui_support.result_rows`), shown as the address and the formatted number. The `+` is sent as `%2B`: the table decodes a bare `+` in link text to a space, which dropped it ("63-966-…"), found in the browser. Messenger links followed (see the 2026-10-24 Messenger note above).
   - **Layout:** the table moved from `views/run.py` (320 lines) to `views/leads.py`.
   - **Checked live** on a copy of `data/leads.db`: Restaurants · Argao hides 3 of 29 leads; turning the switch off shows them; links render with the `+`.
 
@@ -92,7 +94,7 @@
   - **Restaurants:** OSM alone gave 4 leads, none reachable (no email, phone or social). OSM + Overture (run 1fb0356f) gave 30 leads, 26 reachable: email 9 (all free providers), phone 18, Facebook 26. Every reachable lead came from Overture; the 4 OSM-only leads still had nothing.
   - **Hotels:** run 496710d9 (OSM + Overture) stopped twice at search because both Overpass endpoints returned 504/500. A fresh Overture-only run (8b6160d0, the new default) finished in about 45 s: 17 leads, all 17 reachable (email 9, phone 15, Facebook 17, website 6), against OSM's 5 leads with 2 reachable. 4 of OSM's 5 hotels are also in Overture, under slightly different names ("Maayo stay Argao" / "Maayo Argao", "BJ's Seaside" / "BJs Seaside"). The only one missing, Sea Breeze Hotel & Spa, had no contact details anyway. Those 4 weren't matched to the existing leads ("17 new, 0 seen before"): the same name-variant dedupe gap as Kafe Marco. Run 496710d9 is still resumable. Finding: when Overpass is down the whole multi-source run stops, even though Overture alone would have worked.
   - **Dedupe gap:** "Kafe Marco" came from both sources about 10 m apart and wasn't merged (the OSM record has no street, so name + street + city can't match). Candidate rule: same name key within ~50 m.
-  - **Facebook links:** all 26 are numeric page URLs (facebook.com/<id>). Whether m.me/<id> opens Messenger for them is unverified.
+  - **Facebook links:** all 26 are numeric page URLs (facebook.com/<id>). m.me/<id> opens Messenger for them (checked in a browser 2026-10-24).
   - **Implication:** Overture is the main source of reachable leads here; it's off by default today. Next decision: make Overture the default when the `overture` extra is installed (see D2 for licence).
 
 - 2026-10-11: Data-honesty fixes on the run page numbers, from a design review (231 tests pass, lint clean).
@@ -257,7 +259,7 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 - **Not doing:** pins and tags, folders, searching leads from the sidebar, deleting runs automatically. Direction B, a "Leads library" (every lead, filtered by category and place, with runs as history), is the long-term model; build it only on demand.
 
 ### Other ideas from 2026-10-11 (not started)
-- **Reachable leads (slices 1–3 done 2026-10-24, see Done; Messenger links left):** hide unreachable leads by default ("7 hidden: no way to contact"); a "Contact via" column with one-tap phone, email and Messenger links (unverified: whether `m.me/<numeric id>` works for Overture's numeric Facebook page links); a one-line "why contact" reason from the flags; a summary tab in exports (extend `exporters/base.run_summary`).
+- **Reachable leads (done 2026-10-24: slices 1–3 and Messenger links):** hide unreachable leads by default ("7 hidden: no way to contact"); a "Contact via" column with one-tap phone, email and Messenger links (`m.me/<numeric id>` verified in a browser); a one-line "why contact" reason from the flags; a summary tab in exports (extend `exporters/base.run_summary`).
 - **Design review leftovers:** the leads table above the fold, a contrast and focus pass, the run id in the URL (folded into step 2 above).
 - **Overture tuning:** `MIN_CONFIDENCE` (0.5) on a live Makati run (D6 note).
 

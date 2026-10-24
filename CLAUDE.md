@@ -26,7 +26,7 @@ Details, history and the full roadmap are in PROGRESS.md; keep this summary in s
 - Also pushed: reachable leads, slice 1: the leads table hides leads with no way to contact (switch, on by default) and email/phone are one-click links (250 tests).
 - Also pushed: reachable leads, slice 2: a `why_contact` export column (top two flags in plain words; 251 tests).
 - Also pushed: reachable leads, slice 3: one export summary (`about_rows`) with reachable and per-opening counts, now also a Sheets summary tab (252 tests).
-- **Next (reachable leads):** Messenger links once `m.me/<numeric id>` is verified; otherwise the owner's live checks below.
+- Also pushed: reachable leads, Messenger links: a Messenger column in the leads table (`m.me/<page>`, `clean.normalize.messenger_link`; verified in a browser; 264 tests). Reachable leads is done.
 - **Now (owner, live):**
   - CI green on GitHub;
   - Ctrl+C then `resume` on Windows (DoD item 8);

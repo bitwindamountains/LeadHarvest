@@ -115,6 +115,24 @@ def social_platform(url: str) -> str | None:
     return None
 
 
+# A page's username or numeric id (Overture's links are facebook.com/<id>); not paths like
+# /groups/... or /profile.php?id=..., which m.me can't open.
+_FB_PAGE = re.compile(r"/([A-Za-z0-9.]{5,})/?")
+_FB_NOT_PAGES = frozenset({"groups", "pages", "events", "watch", "share", "people", "login"})
+
+
+def messenger_link(facebook: str | None) -> str | None:
+    """'https://www.facebook.com/105872085480167' → 'https://m.me/105872085480167', which opens a
+    chat with the page in Messenger (checked in a browser 2026-10-24, for ids and usernames)."""
+    if not facebook or social_platform(facebook) != "facebook":
+        return None
+    match = _FB_PAGE.fullmatch(urlsplit(facebook).path)
+    page = match.group(1) if match else None
+    if not page or page.lower() in _FB_NOT_PAGES or page.endswith(".php"):
+        return None
+    return f"https://m.me/{page}"
+
+
 def normalize_url(raw: str | None) -> str | None:
     """Clean a URL; returns None for anything that isn't a usable http(s) URL."""
     if not raw:

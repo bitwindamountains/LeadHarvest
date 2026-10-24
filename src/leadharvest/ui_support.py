@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import phonenumbers
 
 from leadharvest.categories import Category
+from leadharvest.clean.normalize import messenger_link
 from leadharvest.config import ConfigError, Settings
 from leadharvest.enrich.render import playwright_installed
 from leadharvest.exporters.base import lead_to_row
@@ -153,8 +154,8 @@ FLAG_LABELS = {
 # Columns shown in the results table, in order: who, how good, the sales openings, how to reach
 # them, then where. The rest stay in the downloads.
 TABLE_COLUMNS = (
-    "business_name", "score", "flags", "email", "email_kind", "phone", "website", "facebook",
-    "instagram", "address", "city", "tech", "opening_hours",
+    "business_name", "score", "flags", "email", "email_kind", "phone", "messenger", "website",
+    "facebook", "instagram", "address", "city", "tech", "opening_hours",
 )  # fmt: skip
 
 
@@ -289,6 +290,7 @@ def result_rows(leads: list[Lead], category: str) -> list[dict[str, object]]:
         row["flags"] = [FLAG_LABELS.get(f, f) for f in lead.flags]
         row["email"] = f"mailto:{lead.email}" if lead.email else None
         row["phone"] = _tel_link(lead.phone) if lead.phone else None
+        row["messenger"] = messenger_link(lead.facebook)
         rows.append(row)
     return rows
 

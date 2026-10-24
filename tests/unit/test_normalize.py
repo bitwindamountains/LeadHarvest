@@ -3,6 +3,7 @@ import pytest
 from leadharvest.clean.normalize import (
     city_key,
     is_shared_domain,
+    messenger_link,
     name_key,
     normalize_email,
     normalize_phones,
@@ -109,3 +110,22 @@ def test_city_key() -> None:
 def test_normalize_email() -> None:
     assert normalize_email("mailto:Info@Clinic.PH?subject=Hi") == "info@clinic.ph"
     assert normalize_email("not-an-email") is None
+
+
+@pytest.mark.parametrize(
+    ("facebook", "expected"),
+    [
+        ("https://www.facebook.com/105872085480167", "https://m.me/105872085480167"),  # Overture
+        ("https://facebook.com/SmileDental.PH/", "https://m.me/SmileDental.PH"),
+        ("https://m.facebook.com/smiledentalph", "https://m.me/smiledentalph"),
+        ("https://www.facebook.com/profile.php?id=1000123", None),
+        ("https://www.facebook.com/groups/12345678", None),
+        ("https://www.facebook.com/pages/Smile/12345678", None),
+        ("https://www.facebook.com/groups", None),
+        ("https://www.facebook.com/abc", None),  # too short to be a username
+        ("https://www.instagram.com/smiledentalph", None),
+        (None, None),
+    ],
+)
+def test_messenger_link(facebook: str | None, expected: str | None) -> None:
+    assert messenger_link(facebook) == expected

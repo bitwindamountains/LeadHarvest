@@ -148,6 +148,9 @@ def test_presentation_helpers() -> None:
     contact = {"email": "a@b.ph", "phone": "+639171234567"}
     linked = result_rows([leads[0].model_copy(update=contact)], "dentist")[0]
     assert (linked["email"], linked["phone"]) == ("mailto:a@b.ph", "tel:%2B63-917-123-4567")
+    assert rows[0]["messenger"] is None
+    page = leads[0].model_copy(update={"facebook": "https://www.facebook.com/105872085480167"})
+    assert result_rows([page], "dentist")[0]["messenger"] == "https://m.me/105872085480167"
     with_email = leads[0].model_copy(update={"email": "info@b0.ph"})
     assert shown_leads([with_email, *leads[1:]], "has-email") == [with_email]
     assert shown_leads(leads, "all") == leads
