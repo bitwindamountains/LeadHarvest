@@ -15,19 +15,21 @@ Full spec: docs/BLUEPRINT.md. Read the relevant section before changing code.
 - Sources (default `sources.overture.default_source_names()`: Overture when DuckDB is installed, else OSM; decision D6): `sources/osm_overpass.py`, `sources/overture.py` (DuckDB over the latest Overture places GeoParquet, filtered to the Nominatim boundary; tests build a synthetic parquet), YAML directory adapters (`config/directories/`); area resolution and boundaries in `geo/nominatim.py`. Export attribution follows the sources (`exporters/base.attribution`).
 - Schema changes: add `storage/migrations/NNN_*.sql` (applied in order by `storage/db.py`).
 - Exporters (`exporters/`) share `MANAGED_COLUMNS` in `base.py`; Sheets only touches managed columns.
-- UI: `app/streamlit_app.py` routes between `app/views/` (one module per screen: `signin`, `sidebar`, `search`, `run`, plus `common`). Design rules and the states each screen must show are in `docs/UI.md`. Put logic in `ui_support.py` (tested in `tests/integration/test_ui.py` with AppTest and a fake `Pipeline.execute`). Theme lives in `.streamlit/config.toml` (fonts, colours, sidebar), so launch from the repo root. Logo, mark and the sign-in brand panel live in `app/assets/`. `st.html` strips `<svg>` and `data:` images, so the panel is pure CSS. Use Material icons (`:material/...:`), never emojis. Radio and select options need unique labels.
+- UI: `app/streamlit_app.py` routes between `app/views/` (one module per screen: `signin`, `sidebar`, `search`, `run`, plus `common`). The sidebar lists one entry per search (`ui_support.group_runs`); its option values are each search's latest run id, and `open_run` in session state holds an earlier run picked on the run page. Design rules and the states each screen must show are in `docs/UI.md`. Put logic in `ui_support.py` (tested in `tests/integration/test_ui.py` with AppTest and a fake `Pipeline.execute`). Theme lives in `.streamlit/config.toml` (fonts, colours, sidebar), so launch from the repo root. Logo, mark and the sign-in brand panel live in `app/assets/`. `st.html` strips `<svg>` and `data:` images, so the panel is pure CSS. Use Material icons (`:material/...:`), never emojis. Radio and select options need unique labels.
 
 ## Status and roadmap
 Details, history and the full roadmap are in PROGRESS.md; keep this summary in sync with it.
-- **Built:** blueprint phases 0–6, 8 (except 8.6 Google Places) and 9, plus the 2026-10-09 audit fixes and UI redesign. On `main` and pushed. 239 tests pass. Overture is the default source (D6); dedupe rule 4 merges one place from two sources.
+- **Built:** blueprint phases 0–6, 8 (except 8.6 Google Places) and 9, plus the 2026-10-09 audit fixes and UI redesign. On `main` and pushed through `83a323b` (239 tests): Overture is the default source (D6), dedupe rule 4 plus `leadharvest dedupe` merge one place from two sources, and a failed source no longer stops a multi-source run.
+- **Uncommitted:** run history grouped by search (sidebar shows each search once; the run page has a "Run history" picker). 240 tests pass. Commit it first.
+- **Next (direction A, run history):** an "All runs" page with the run id in the URL, then collapse batches into one sidebar entry.
 - **Now (owner, live):**
   - CI green on GitHub;
   - `pytest -m live`;
   - a live Makati `run --limit 100` (DoD item 1), then tune D5;
   - Ctrl+C then `resume` on Windows (DoD item 8);
   - a real Sheets/HubSpot export, and one live UI run.
-- **Next:** Phase 7, meaning README screenshots and real hit rate, the 90-second demo, and confirming the GitHub repo has no secrets or real data.
-- **Before selling:** decide D1 and D2 (blueprint section 23), set up the monitor workflow secrets and `config/monitor.csv`.
+- **Then:** Phase 7, meaning README screenshots and real hit rate (first Argao numbers are in PROGRESS), the 90-second demo, and confirming the GitHub repo has no secrets or real data.
+- **Before selling:** decide D1, and D2 only if OSM goes into client lists (blueprint section 23), set up the monitor workflow secrets and `config/monitor.csv`.
 - **Backlog:**
   - raise the Streamlit version floor and run `uv lock`;
   - background runs in the UI;

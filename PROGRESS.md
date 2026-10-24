@@ -2,11 +2,24 @@
 
 ## Current task
 
-**Status (2026-10-11):** 0.3.0 plus the audit fixes, the UI redesign and the review fixes are on `main` (review fixes committed locally, not pushed yet). 214 tests pass and lint is clean. Blueprint phases 0–6, 8 (except 8.6 Google Places) and 9 are built.
+**Status (end of 2026-10-11):** everything through `83a323b` is on `main` and pushed (239 tests, lint clean): the run-page redesign and data-honesty fixes, Overture as the default source (D6), dedupe rule 4 plus `leadharvest dedupe`, and multi-source runs that survive one failed source. Blueprint phases 0–6, 8 (except 8.6 Google Places) and 9 are built.
 
-**What's left:** live verification by the owner (two "Definition of done" items are still open), Phase 7 packaging, and decisions D1/D2 before selling. See the Roadmap below.
+**Uncommitted in the working tree:** run history grouped by search (direction A, step 1). 240 tests pass, lint clean, and it was checked in the browser. Files: `app/views/sidebar.py`, `app/views/run.py`, `src/leadharvest/ui_support.py`, `tests/integration/test_ui.py`, `docs/UI.md`, this file and CLAUDE.md. Commit it first next session (or review, then commit).
+
+**Next session, in order:**
+1. Commit and push the run-history grouping.
+2. Direction A, step 2: an "All runs" page (a table of every run, filterable, click to open) with the run id in the URL (`st.query_params`, `?run=<id>`). Today searches past the newest 15, and runs past the 500 scanned, can't be opened from the UI.
+3. Direction A, step 3: collapse each batch (`options.batch`) into one sidebar entry that opens a batch summary.
+
+**Also left:** live verification by the owner (two "Definition of done" items are still open), Phase 7 packaging, and decisions D1 (and D2 only if OSM is added to a client list). See the Roadmap below.
 
 ## Done (newest first)
+
+- 2026-10-11: Run history grouped by search (direction A, step 1 of 3; 240 tests pass, lint clean).
+  - **Sidebar:** one entry per search (category plus place, from `ui_support.search_key`/`group_runs` over the newest `RUNS_SCANNED` = 500 runs), up to 15 searches. Each radio option's value is the search's latest run id, so `select_run()` works unchanged; captions add "· N runs" when a search repeats.
+  - **Run page:** a "Run history (N runs of this search)" picker under the header lists each run (time, status, leads, short id, "latest"). Picking one sets `open_run`, which the sidebar returns while that search stays selected; choosing a search in the sidebar opens its latest run again. Options are the labels themselves, as AppTest can't map values through `format_func` (CLAUDE.md: options need unique labels).
+  - **Checked live:** Hotels · Argao (3 runs) and Restaurants · Argao (2 runs) each show once, and picking the oldest hotel run opens 57ad2d96 with the sidebar entry kept.
+  - **Next (direction A):** an "All runs" page (searches older than the newest 15, or runs past the 500 scanned, are unreachable from the UI) with the run id in the URL; then collapse batches into one entry.
 
 - 2026-10-11: A failing source no longer stops a multi-source run (239 tests pass, lint clean).
   - `Pipeline.search` catches `SourceError` per source. With two or more sources, it logs a warning, records the source in `stats["search"]["source_errors"]` and keeps the others' results. If every source fails it raises a combined error, so the run pauses at search as before. A single-source run is unchanged.
@@ -185,7 +198,19 @@
 Blueprint section 18 has the phase list; section 19 has the Definition of Done (DoD).
 
 ### Value plan (2026-10-11)
-`docs/planning/04_LeadHarvest_Value_Plan.md` ranks the next features after research. Its top pick is an **Overture Maps places source**: permissive licence, no OSM data, and websites, phones, emails and socials. It fixes coverage and decision D2 together and fits Facebook-first PH SMEs. Next come zero-request website signals, email type labels and a per-run quality report. Its order is: live run first (below), then Overture, then signals, then the demo.
+`docs/planning/04_LeadHarvest_Value_Plan.md` ranks the next features after research. Its top pick is an **Overture Maps places source**: permissive licence, no OSM data, and websites, phones, emails and socials. It fixes coverage and decision D2 together and fits Facebook-first PH SMEs. Next come zero-request website signals, email type labels and a per-run quality report. Its order is: live run first (below), then Overture, then signals, then the demo. **Update 2026-10-11:** Overture is built and is now the default (D6). In live Argao runs it gave 26 of 30 restaurants and 17 of 17 hotels a way to contact them, against 0 of 4 and 2 of 5 from OSM. Website signals are built too.
+
+### In progress: run history (direction A, from the 2026-10-11 idea session)
+The sidebar stacks one entry per run, so repeated searches, weekly monitors and batches crowd it, and older runs fall off the newest 15.
+- **Step 1, done (uncommitted):** group by search (category plus place). The sidebar shows each search once, and the run page has a "Run history" picker.
+- **Step 2:** an "All runs" page with the run id in the URL.
+- **Step 3:** collapse batches into one entry.
+- **Not doing:** pins and tags, folders, searching leads from the sidebar, deleting runs automatically. Direction B, a "Leads library" (every lead, filtered by category and place, with runs as history), is the long-term model; build it only on demand.
+
+### Other ideas from 2026-10-11 (not started)
+- **Reachable leads:** hide unreachable leads by default ("7 hidden: no way to contact"); a "Contact via" column with one-tap phone, email and Messenger links (unverified: whether `m.me/<numeric id>` works for Overture's numeric Facebook page links); a one-line "why contact" reason from the flags; a summary tab in exports (extend `exporters/base.run_summary`).
+- **Design review leftovers:** the leads table above the fold, a contrast and focus pass, the run id in the URL (folded into step 2 above).
+- **Overture tuning:** `MIN_CONFIDENCE` (0.5) on a live Makati run (D6 note).
 
 ### Now: live verification (owner; needs a real contact email in `LH_USER_AGENT` in `.env`)
 1. **CI:** check that GitHub Actions passed for `879d552` (audit fixes) and `8db28b6` (UI). This is the first CI run of the new real-browser tests on Ubuntu and Windows.

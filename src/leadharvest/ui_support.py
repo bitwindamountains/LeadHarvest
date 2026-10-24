@@ -178,6 +178,24 @@ def run_title(run: Run, categories: dict[str, Category]) -> str:
     return f"{category_label(run.category, categories)} in {run.area_name or run.location}"
 
 
+RUNS_SCANNED = 500  # recent runs the sidebar groups; older searches drop off its list
+
+
+def search_key(run: Run) -> tuple[str, str]:
+    """Runs of one search share a category and place (the resolved area name, else the text
+    typed), compared without case or extra spaces."""
+    return run.category, " ".join((run.area_name or run.location).casefold().split())
+
+
+def group_runs(runs: list[Run]) -> list[list[Run]]:
+    """Runs grouped by search, in the input order: newest runs in, newest search first and
+    each group's newest run first."""
+    groups: dict[tuple[str, str], list[Run]] = {}
+    for run in runs:
+        groups.setdefault(search_key(run), []).append(run)
+    return list(groups.values())
+
+
 def run_labels(runs: list[Run], categories: dict[str, Category]) -> dict[str, str]:
     """Picker labels by run id. Streamlit tells radio options apart by their label, so repeat
     runs of one search (e.g. a weekly monitor) get a short run id to stay distinct."""

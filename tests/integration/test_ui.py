@@ -23,6 +23,7 @@ from leadharvest.ui_support import (
     display_phone,
     duration_text,
     export_choices,
+    group_runs,
     mark_interrupted,
     password_ok,
     percent,
@@ -90,6 +91,16 @@ def _run(run_id: str = "r1", **kw: object) -> Run:
     data = {"id": run_id, "category": "dentist", "location": "Makati, Philippines",
             "area_name": "Makati", "created_at": "2026-10-08T16:20:05+00:00", **kw}  # fmt: skip
     return Run.model_validate(data)
+
+
+def test_group_runs_by_search() -> None:
+    runs = [
+        _run("new"),
+        _run("gym", category="gym"),
+        _run("old", area_name="  makati "),  # same place, other case and spacing
+        _run("typed", area_name=None, location="Makati City"),  # never resolved: typed text
+    ]
+    assert [[r.id for r in g] for g in group_runs(runs)] == [["new", "old"], ["gym"], ["typed"]]
 
 
 def test_run_labels_stay_unique_for_repeat_searches() -> None:
@@ -251,13 +262,16 @@ def test_ui_history_switches_between_runs(ui_env) -> None:
     at = _signed_in()
     picker = at.sidebar.radio[0]
     assert picker.value is None  # nothing open until picked
-    # Same search twice: labels get a short run id so Streamlit can tell them apart.
-    assert len(set(picker.options)) == 2
-    for run_id in ("run-done", "run-paused", "run-done"):
-        at.sidebar.radio[0].set_value(run_id).run()
-        assert not at.exception
-        resumable = any(b.label == "Resume run" for b in at.button)
-        assert resumable is (run_id == "run-paused")
+    # Same search twice: one sidebar entry, opening the latest run (run-paused).
+    assert len(picker.options) == 1 and picker.options[0].endswith("· Makati")  # no run id
+    at.sidebar.radio[0].set_value("run-paused").run()
+    assert not at.exception
+    assert any(b.label == "Resume run" for b in at.button)
+    # The earlier run is one pick away on the run page, and the sidebar keeps it open.
+    at.selectbox(key="history-run-paused").select_index(1).run()  # the earlier run-done
+    assert not at.exception
+    assert not any(b.label == "Resume run" for b in at.button)
+    assert at.sidebar.radio[0].value == "run-paused"
     assert at.metric[0].value == "3"  # leads
     assert at.metric[1].value == "1" and at.metric[1].delta == "of 3 leads"  # with email
     assert at.dataframe[0].value["business_name"].tolist()[0] == "Clinic 2"  # best score first

@@ -13,6 +13,7 @@ from leadharvest.models import Lead, Run
 from leadharvest.segments import segment_counts
 from leadharvest.storage.repository import Repository
 from leadharvest.ui_support import (
+    RUNS_SCANNED,
     SHOW_OPTIONS,
     SOURCE_LABELS,
     STATUS_LABELS,
@@ -26,6 +27,7 @@ from leadharvest.ui_support import (
     coverage,
     csv_download,
     duration_text,
+    group_runs,
     percent,
     result_rows,
     run_seconds,
@@ -78,6 +80,7 @@ def show_run(
     settings: Settings, repo: Repository, run: Run, categories: dict[str, Category]
 ) -> None:
     run_header(run, categories)
+    run_history(repo, run)
     status_banner(settings, repo, run, categories)
     leads = repo.leads_for_run(run.id)
     if not leads:
@@ -104,6 +107,40 @@ def run_header(run: Run, categories: dict[str, Category]) -> None:
         icon, color = STATUS_STYLE[run.status]
         st.badge(STATUS_LABELS[run.status], icon=icon, color=color)
         st.caption(" · ".join(meta))
+
+
+def run_history(repo: Repository, run: Run) -> None:
+    """Earlier runs of the same search (the sidebar lists each search once, by its latest run)."""
+    group = next(
+        (g for g in group_runs(repo.list_runs(RUNS_SCANNED)) if any(r.id == run.id for r in g)),
+        [run],
+    )
+    if len(group) < 2:
+        return
+    tz = viewer_tz(st.context.timezone)
+    # Options are the labels themselves (with a short id, so two runs never share one); the
+    # callback maps the picked label back to its run.
+    by_label: dict[str, str] = {}
+    for r in group:
+        text = f"{short_time(r.created_at, tz)} · {STATUS_LABELS[r.status]}"
+        text += f" · {repo.count_run_leads(r.id)} leads · #{r.id[:6]}"
+        by_label[f"{text} · latest" if r is group[0] else text] = r.id
+    labels = list(by_label)
+    key = f"history-{run.id}"
+    st.selectbox(
+        f"Run history ({len(group)} runs of this search)",
+        labels,
+        index=list(by_label.values()).index(run.id),
+        key=key,
+        width=480,
+        on_change=_open_run,
+        args=(key, by_label),
+    )
+
+
+def _open_run(key: str, by_label: dict[str, str]) -> None:
+    """Runs before the rerun, so the sidebar returns the picked run instead of the latest."""
+    st.session_state["open_run"] = by_label[st.session_state[key]]
 
 
 def numbers(run: Run, leads: list[Lead]) -> None:
