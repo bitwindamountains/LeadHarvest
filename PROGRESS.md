@@ -295,7 +295,7 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 - **Overture tuning:** `MIN_CONFIDENCE` (0.5) on a live Makati run (D6 note).
 
 ### Now: live verification (owner; needs a real contact email in `LH_USER_AGENT` in `.env`)
-1. **CI:** check that GitHub Actions passed for `879d552` (audit fixes) and `8db28b6` (UI). This is the first CI run of the new real-browser tests on Ubuntu and Windows.
+1. **CI:** done 2026-10-25, green on GitHub for every push through `4c48dcb` (real-browser tests on Ubuntu and Windows included).
 2. **Live tests:** done 2026-10-24, both pass (see Done).
 3. **DoD item 1:** done 2026-10-24 (run 5e5e7edb, see Done). D5 needs no change: no possible duplicates or phone conflicts came up. HubSpot is still untested live.
 4. **DoD item 8:** press Ctrl+C mid-run on Windows, then `resume`. Completed work must not be fetched again.

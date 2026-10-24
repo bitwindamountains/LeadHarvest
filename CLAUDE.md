@@ -28,7 +28,6 @@ Details, history and the full roadmap are in PROGRESS.md; keep this summary in s
 - Also pushed: reachable leads, slice 3: one export summary (`about_rows`) with reachable and per-opening counts, now also a Sheets summary tab (252 tests).
 - Also pushed: reachable leads, Messenger links: a Messenger column in the leads table (`m.me/<page>`, `clean.normalize.messenger_link`; verified in a browser; 264 tests). Reachable leads is done.
 - **Now (owner, live):**
-  - CI green on GitHub;
   - Ctrl+C then `resume` on Windows (DoD item 8);
   - a real Sheets/HubSpot export, and one live UI run.
 - Also pushed: Phase 7 slice 1: README screenshots (`docs/images/`, contacts masked), real hit rates and redacted sample rows; repo checked clean of secrets and real data (7.1, 7.3 done).
