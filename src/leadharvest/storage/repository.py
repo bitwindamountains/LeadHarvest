@@ -126,9 +126,11 @@ class Repository:
         ).fetchall()
         return [_row_to_lead(r) for r in rows]
 
-    def list_runs(self, limit: int = 20) -> list[Run]:
+    def list_runs(self, limit: int | None = 20) -> list[Run]:
+        """Newest first; None lists every run (SQLite reads LIMIT -1 as no limit)."""
         rows = self.conn.execute(
-            "SELECT * FROM runs ORDER BY created_at DESC, rowid DESC LIMIT ?", (limit,)
+            "SELECT * FROM runs ORDER BY created_at DESC, rowid DESC LIMIT ?",
+            (-1 if limit is None else limit,),
         ).fetchall()
         return [_row_to_run(r) for r in rows]
 
@@ -317,6 +319,11 @@ class Repository:
             "SELECT COUNT(*) FROM run_leads WHERE run_id = ?", (run_id,)
         ).fetchone()
         return int(row[0])
+
+    def run_lead_counts(self) -> dict[str, int]:
+        """Leads per run id, in one query (runs with none are absent)."""
+        rows = self.conn.execute("SELECT run_id, COUNT(*) FROM run_leads GROUP BY run_id")
+        return {row[0]: int(row[1]) for row in rows}
 
     def leads_for_run(self, run_id: str) -> list[Lead]:
         rows = self.conn.execute(

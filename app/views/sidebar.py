@@ -1,4 +1,4 @@
-"""Sidebar: logo, New search, run history (one entry per search) and sign-out."""
+"""Sidebar: logo, New search, run history (one entry per search), All runs and sign-out."""
 
 from __future__ import annotations
 
@@ -15,7 +15,8 @@ HISTORY_SIZE = 15  # searches listed; their earlier runs are on the run page's h
 
 
 def sidebar(repo: Repository, categories: dict[str, Category]) -> str | None:
-    """Returns the id of the run to show, or None for the search page."""
+    """Returns the id of the run to show, or None for the search page (or All runs, when
+    session state's `all_runs` is set)."""
     st.logo(LOGO, icon_image=MARK, size="large")
     with st.sidebar:
         if st.button("New search", icon=":material/add:", width="stretch", key="new_search"):
@@ -49,6 +50,10 @@ def sidebar(repo: Repository, categories: dict[str, Category]) -> str | None:
                 captions=[_caption(repo, group) for group in groups],
                 on_change=_open_latest,
             )
+        st.button(
+            "All runs", icon=":material/history:", type="tertiary", key="all_runs_button",
+            on_click=_show_all_runs,
+        )  # fmt: skip
         st.divider()
         if st.button("Sign out", icon=":material/logout:", type="tertiary"):
             st.session_state.clear()
@@ -62,6 +67,12 @@ def sidebar(repo: Repository, categories: dict[str, Category]) -> str | None:
 def _open_latest() -> None:
     """Picking a search in the sidebar opens its latest run, not an earlier one picked before."""
     st.session_state.pop("open_run", None)
+    st.session_state.pop("all_runs", None)
+
+
+def _show_all_runs() -> None:
+    select_run(None)  # clears the picker, so any search can be picked from the page again
+    st.session_state["all_runs"] = True
 
 
 def _caption(repo: Repository, group: list[Run]) -> str:

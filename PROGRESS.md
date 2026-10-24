@@ -6,13 +6,19 @@
 
 **Also pushed (2026-10-24, `f8e14d2`):** run history grouped by search (direction A, step 1), 240 tests. Deployment check the same day: tests and lint pass, no secrets tracked. Pillow CVEs fixed the same day: the `ui` extra now needs `streamlit>=1.66.1` (the first release to allow Pillow 13), and the lock has Streamlit 1.66.1 and Pillow 13.0.0. pip-audit is clean, 240 tests pass, and the app boots. The Weekly monitor workflow is disabled on GitHub (it failed weekly without its repo secrets and `config/monitor.csv`); add those, then `gh workflow enable "Weekly monitor"`.
 
+**Also pushed (2026-10-24):** the All runs page and the run id in the URL (direction A, step 2). 246 tests pass, lint clean, checked in the browser.
+
 **Next session, in order:**
-1. Direction A, step 2: an "All runs" page (a table of every run, filterable, click to open) with the run id in the URL (`st.query_params`, `?run=<id>`). Today searches past the newest 15, and runs past the 500 scanned, can't be opened from the UI.
-2. Direction A, step 3: collapse each batch (`options.batch`) into one sidebar entry that opens a batch summary.
+1. Direction A, step 3: collapse each batch (`options.batch`) into one sidebar entry that opens a batch summary.
 
 **Also left:** live verification by the owner (two "Definition of done" items are still open), Phase 7 packaging, and decisions D1 (and D2 only if OSM is added to a client list). See the Roadmap below.
 
 ## Done (newest first)
+
+- 2026-10-24: All runs page and the run id in the URL (direction A, step 2 of 3; 246 tests pass, lint clean).
+  - **Page (`app/views/runs.py`, logic in `ui_runs.py`):** an "All runs" link in the sidebar opens a table of every run, newest first (Started, Search, Status, Leads, Run), with a word filter (category, place, run id) and a status filter. Picking a row opens the run through the usual `select_run`, which also works for runs the sidebar doesn't list (the picker clears, `open_run` holds the run). `Repository.list_runs(None)` lists every run and `run_lead_counts()` counts leads per run in one query.
+  - **URL:** the open run's id is kept in `?run=`. On a session's first page after sign-in, `?run=` (full id, unique prefix or `latest`) opens that run; an unknown one opens the search page and clears it. The All runs page and the search page have no URL of their own.
+  - **Tests:** `tests/integration/test_ui_runs.py` (filter, rows, repository, AppTest for the page and the URL). AppTest can't click a dataframe row, so picking a row was checked in a real browser on a copy of `data/leads.db`: a row opens its run, the URL updates, returning to All runs stays there, and a reloaded run link reopens the run after sign-in.
 
 - 2026-10-24: Pillow 12.3.0 → 13.0.0 (11 CVEs) by raising the Streamlit floor to 1.66.1. pip-audit clean, 240 tests pass, app boots.
 
@@ -204,7 +210,7 @@ Blueprint section 18 has the phase list; section 19 has the Definition of Done (
 ### In progress: run history (direction A, from the 2026-10-11 idea session)
 The sidebar stacks one entry per run, so repeated searches, weekly monitors and batches crowd it, and older runs fall off the newest 15.
 - **Step 1, done (`f8e14d2`):** group by search (category plus place). The sidebar shows each search once, and the run page has a "Run history" picker.
-- **Step 2:** an "All runs" page with the run id in the URL.
+- **Step 2, done:** an "All runs" page with the run id in the URL.
 - **Step 3:** collapse batches into one entry.
 - **Not doing:** pins and tags, folders, searching leads from the sidebar, deleting runs automatically. Direction B, a "Leads library" (every lead, filtered by category and place, with runs as history), is the long-term model; build it only on demand.
 
