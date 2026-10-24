@@ -10,7 +10,7 @@ import pytest
 from gspread.utils import a1_range_to_grid_range
 from openpyxl import load_workbook
 
-from leadharvest.exporters.base import MANAGED_COLUMNS, ExportError
+from leadharvest.exporters.base import MANAGED_COLUMNS, ExportError, why_contact
 from leadharvest.exporters.csv_export import CsvExporter, escape_cell
 from leadharvest.exporters.sheets_export import SheetsExporter, plan_upsert, tab_title
 from leadharvest.exporters.xlsx_export import XlsxExporter
@@ -43,6 +43,16 @@ def lead(lead_id: str, name: str = "Smile Dental", **kw: Any) -> Lead:
 
 
 # ---- CSV / XLSX -------------------------------------------------------------------------------
+
+
+def test_why_contact_names_the_top_two_openings() -> None:
+    assert why_contact([]) == "" and why_contact(["custom"]) == ""  # unknown flags: no reason
+    assert why_contact(["no_website"]) == "No website"
+    # Pitch order, not flag order; "no website" isn't repeated after "only on social media".
+    flags = ["no_website", "social_only", "free_email_provider", "no_analytics"]
+    assert why_contact(flags) == "Only on social media, no website; uses a free email address"
+    assert why_contact(["no_analytics", "no_https"]) == (
+        "Website isn't secure (no HTTPS); no analytics or ad tracking")  # fmt: skip
 
 
 def test_escape_cell() -> None:
@@ -83,6 +93,7 @@ def test_xlsx_export_text_phones_and_about_sheet(tmp_path) -> None:
     assert row["business_name"].value == "=1+1" and row["business_name"].data_type == "s"
     assert row["lat"].value == 14.5
     assert row["flags"].value == "no_https"
+    assert row["why_contact"].value == "Website isn't secure (no HTTPS)"
     assert ws.freeze_panes == "A2"
     assert "OpenStreetMap" in wb["About"]["B1"].value
 

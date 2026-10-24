@@ -12,14 +12,21 @@
 
 **Also pushed (2026-10-24):** reachable leads, slice 1 (hide leads with no way to contact; email and phone links). 250 tests pass, lint clean, checked in the browser.
 
+**Also pushed (2026-10-24):** reachable leads, slice 2 (the `why_contact` export column). 251 tests pass, lint clean.
+
 **Next session, in order:**
-1. Reachable leads, slice 2: a one-line "why contact" reason per lead from its flags (table column and export column).
-2. Slice 3: a summary tab in exports (extend `exporters/base.run_summary`).
-3. Messenger links, once someone checks that `m.me/<numeric id>` opens Messenger for Overture's numeric Facebook page links.
+1. Slice 3: a summary tab in exports (extend `exporters/base.run_summary`).
+2. Messenger links, once someone checks that `m.me/<numeric id>` opens Messenger for Overture's numeric Facebook page links.
 
 **Also left:** live verification by the owner (two "Definition of done" items are still open), Phase 7 packaging, and decisions D1 (and D2 only if OSM is added to a client list). See the Roadmap below.
 
 ## Done (newest first)
+
+- 2026-10-24: Reachable leads, slice 2: the `why_contact` export column (251 tests pass, lint clean).
+  - `exporters/base.why_contact` puts a lead's top two flags in plain words, in pitch order ("Only on social media, no website; uses a free email address"); no flags (or only unknown ones) give an empty cell. It's a managed column right after `flags`, so CSV, XLSX, "Download these N" and Sheets get it; an existing Sheet gets the new header after its last used column (the usual header-mapped rule), and client columns stay untouched. HubSpot is unchanged (a new property would have to exist in the portal first).
+  - Not in the run page's table: its "Openings" chips already show every flag in words.
+  - On the 73 stored leads: 33 "Only on social media, no website", 13 add "uses a free email address", 8 "Uses a free email address", 8 "No website", 3 "Website looks out of date; …", 2 "…; no analytics or ad tracking", 6 empty.
+  - Blueprint section 10.7's column list was out of date (no `email_kind`, `tech`); it now matches `MANAGED_COLUMNS`.
 
 - 2026-10-24: Reachable leads, slice 1 (250 tests pass, lint clean).
   - **Reachable (`segments.reachable`):** a lead with an email, phone, website or any social page. Only leads with none of these count as unreachable, so nothing a person could still contact is hidden.
@@ -234,7 +241,7 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 - **Not doing:** pins and tags, folders, searching leads from the sidebar, deleting runs automatically. Direction B, a "Leads library" (every lead, filtered by category and place, with runs as history), is the long-term model; build it only on demand.
 
 ### Other ideas from 2026-10-11 (not started)
-- **Reachable leads (slice 1 done 2026-10-24, see Done):** hide unreachable leads by default ("7 hidden: no way to contact"); a "Contact via" column with one-tap phone, email and Messenger links (unverified: whether `m.me/<numeric id>` works for Overture's numeric Facebook page links); a one-line "why contact" reason from the flags; a summary tab in exports (extend `exporters/base.run_summary`).
+- **Reachable leads (slices 1 and 2 done 2026-10-24, see Done):** hide unreachable leads by default ("7 hidden: no way to contact"); a "Contact via" column with one-tap phone, email and Messenger links (unverified: whether `m.me/<numeric id>` works for Overture's numeric Facebook page links); a one-line "why contact" reason from the flags; a summary tab in exports (extend `exporters/base.run_summary`).
 - **Design review leftovers:** the leads table above the fold, a contrast and focus pass, the run id in the URL (folded into step 2 above).
 - **Overture tuning:** `MIN_CONFIDENCE` (0.5) on a live Makati run (D6 note).
 

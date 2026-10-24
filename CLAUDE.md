@@ -24,7 +24,8 @@ Details, history and the full roadmap are in PROGRESS.md; keep this summary in s
 - Also pushed: the All runs page (every run, filterable, pick a row to open) and the run id in the URL (246 tests).
 - Also pushed: each batch is one sidebar entry that opens a batch page (direction A done, 249 tests).
 - Also pushed: reachable leads, slice 1: the leads table hides leads with no way to contact (switch, on by default) and email/phone are one-click links (250 tests).
-- **Next (reachable leads):** a one-line "why contact" reason from the flags, then a summary tab in exports; Messenger links once `m.me/<numeric id>` is verified.
+- Also pushed: reachable leads, slice 2: a `why_contact` export column (top two flags in plain words; 251 tests).
+- **Next (reachable leads):** a summary tab in exports; Messenger links once `m.me/<numeric id>` is verified.
 - **Now (owner, live):**
   - CI green on GitHub;
   - `pytest -m live`;

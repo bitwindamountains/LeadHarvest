@@ -564,7 +564,7 @@ Per lead with a website (only leads linked to the current run):
 
 ### 10.7 Google Sheets export
 - Tab name: `{category} - {area_name}` (sanitized, ≤ 100 chars).
-- Managed columns (default order for a new tab): `lead_id, business_name, category, phone, phones_extra, email, emails_extra, website, facebook, instagram, linkedin, tiktok, address, city, score, flags, opening_hours, lat, lon, sources, updated_at`. List values are written comma-separated.
+- Managed columns (default order for a new tab): `lead_id, business_name, category, phone, phones_extra, email, email_kind, emails_extra, website, facebook, instagram, linkedin, tiktok, address, city, score, flags, why_contact, tech, opening_hours, lat, lon, sources, updated_at` (`exporters/base.MANAGED_COLUMNS`). List values are written comma-separated. `why_contact` puts the top two flags in plain words ("Only on social media, no website; uses a free email address").
 - **Columns are located by header name, never by position.** Read row 1; for each managed header find its column. Managed headers missing from the sheet are appended after the last used column. Columns with any other header belong to the client and are never written, wherever they sit.
 - Upsert: read row 1 and the `lead_id` column once → map `lead_id` → row number → one `batch_update` for existing rows (per managed column range) → one append for new rows.
 - All writes use `valueInputOption=RAW`, so scraped text is never evaluated as a formula and `+63…` phones stay text.

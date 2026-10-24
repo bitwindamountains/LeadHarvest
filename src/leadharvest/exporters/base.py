@@ -32,7 +32,8 @@ def attribution(run: Run, leads: list[Lead]) -> str:
 MANAGED_COLUMNS: tuple[str, ...] = (
     "lead_id", "business_name", "category", "phone", "phones_extra", "email", "email_kind",
     "emails_extra", "website", "facebook", "instagram", "linkedin", "tiktok", "address", "city",
-    "score", "flags", "tech", "opening_hours", "lat", "lon", "sources", "updated_at",
+    "score", "flags", "why_contact", "tech", "opening_hours", "lat", "lon", "sources",
+    "updated_at",
 )  # fmt: skip
 PHONE_COLUMNS = frozenset({"phone", "phones_extra"})
 NUMERIC_COLUMNS = frozenset({"lat", "lon", "score"})
@@ -77,6 +78,29 @@ def email_kind(email: str | None, name_key: str = "") -> str:
     if _DOCTOR.fullmatch(local):
         return "personal"
     return "unknown"
+
+
+# Flags as sales openings in plain words, in the order a pitch would lead with them.
+_REASONS = {
+    "social_only": "only on social media, no website",
+    "no_website": "no website",
+    "no_https": "website isn't secure (no HTTPS)",
+    "no_mobile_viewport": "website isn't mobile-friendly",
+    "stale_site": "website looks out of date",
+    "no_online_booking": "no online booking",
+    "free_email_provider": "uses a free email address",
+    "no_analytics": "no analytics or ad tracking",
+}
+MAX_REASONS = 2  # one short line; the flags column has them all
+
+
+def why_contact(flags: list[str]) -> str:
+    """'Only on social media, no website; uses a free email address': the lead's top sales
+    openings, or '' when it has none."""
+    skip = {"no_website"} if "social_only" in flags else set()  # already said
+    reasons = [text for flag, text in _REASONS.items() if flag in flags and flag not in skip]
+    line = "; ".join(reasons[:MAX_REASONS])
+    return line[:1].upper() + line[1:]
 
 
 def _share(count: int, total: int) -> str:
@@ -127,6 +151,7 @@ def lead_to_row(lead: Lead, category: str) -> dict[str, str | float | int | None
         "city": lead.city,
         "score": lead.score,
         "flags": ", ".join(lead.flags),
+        "why_contact": why_contact(lead.flags),
         "tech": ", ".join(lead.tech),
         "opening_hours": lead.opening_hours,
         "lat": lead.lat,
