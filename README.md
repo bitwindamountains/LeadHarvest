@@ -11,6 +11,35 @@ LeadHarvest is a Python command-line tool that:
 
 It is not a cold-email tool, never logs in anywhere, and never evades blocks.
 
+![A finished run in the web UI: 100 dental clinics in Makati, 76 with an email and 98 with a phone, with segment counts and a score histogram](docs/images/run-page.png)
+
+![The leads table: business, score, sales openings, email and phone (masked here), sorted best first](docs/images/leads-table.png)
+
+*Screenshots from a real run, with every email and phone masked.*
+
+## Real results
+
+Hit rates from live runs with the default source (Overture Maps), enriching each lead from its own website. Emails are kept only if their domain can receive mail; that is a domain check, not proof the mailbox exists.
+
+| Run | Leads | Email | Phone | Website | Facebook | Some way to contact |
+|---|---|---|---|---|---|---|
+| Dental clinics, Makati (`--limit 100`, Oct 2026) | 100 | 76% | 98% | 46% | 100% | 100% |
+| Hotels, Argao, Cebu (Oct 2026) | 17 | 53% | 88% | 35% | 100% | 100% |
+
+Smaller towns and other categories will differ; many Philippine small businesses list only a Facebook page. Quote clients the rates from your own runs.
+
+A few rows of the Makati results (redacted; exports keep phones in E.164, e.g. `+639221234567`). Each lead also carries its address, coordinates, Facebook and Instagram links, website platform, opening hours and flags:
+
+| business_name | score | why_contact | email | phone | website |
+|---|---|---|---|---|---|
+| Dental World Manila | 95 | No online booking | o•••@d•••.com.ph | +63 922 ••• •••• | dentalworld.com.ph |
+| Bel-Air Dental Care | 95 | Website isn't secure (no HTTPS); no online booking | c•••@b•••.com | +63 908 ••• •••• | belairdentalcareclinic.com |
+| Dior San Buena Dental Care | 95 | Website isn't mobile-friendly; no online booking | s•••@d•••.com | +63 917 ••• •••• | diordentalcare.com |
+| Avm Ortho Incorporated | 70 | Only on social media, no website | a•••@p•••.net | +63 917 ••• •••• | |
+| New You Dental Clinic | 70 | Only on social media, no website; uses a free email address | n•••@g•••.com | +63 995 ••• •••• | |
+
+54 of the 100 had no website, the list web design agencies buy.
+
 ## Quick start
 
 Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
@@ -74,7 +103,12 @@ uv sync --extra js && uv run playwright install chromium
 
 **HubSpot (`--to hubspot`).** Create a HubSpot private app with the `crm.objects.companies.read` and `.write` scopes and put its token in `HUBSPOT_ACCESS_TOKEN`. Companies are matched by domain (or exact name when there's no domain). Existing companies only get fields that are empty in HubSpot; your team's edits are never overwritten.
 
-**Web UI.** A password-protected Streamlit page for non-technical users. Start a search with live progress, then browse the results: lead counts, a table sorted by score, and download buttons. **Recent runs** in the sidebar reopens any earlier run, including after a page reload. A paused run, for example one stopped by an Overpass error or by clicking around mid-run, gets a **Resume run** button.
+**Web UI.** A password-protected Streamlit app for non-technical users. Start a search with live progress, then work with the results:
+- the run's numbers (leads, email and phone coverage, score bands) and segment counts that filter the table;
+- a leads table sorted by score, with one-click email, phone and Messenger links, and leads with no way to contact them hidden by default;
+- download buttons for the full list and for the segment on screen.
+
+The sidebar lists each search once (a batch is one entry with its own page); **All runs** lists and filters every run. The open run's id is in the URL, so a run can be bookmarked. A paused run, for example one stopped by an Overpass error or by clicking around mid-run, gets a **Resume run** button.
 
 ```bash
 uv sync --extra ui
@@ -125,7 +159,9 @@ It's a heuristic label, not verification.
 
 `leadharvest export --run latest --segment no-website` writes them as extra files, for example `dentist-makati-1a2b3c4d-no-website.csv`, next to the full list. In the web UI, the **Show** picker above the results table filters to a segment and offers a CSV download of it.
 
-**Summary.** Each CSV's `.about.txt` and each XLSX `About` sheet list the run's hit rates: with email, phone, website and social profiles. They also count personal-name emails, duplicates merged, suppressed businesses and websites skipped by robots.txt.
+**Why contact.** The `why_contact` column turns each lead's top two flags into plain words, e.g. "Only on social media, no website", a ready opening line.
+
+**Summary.** Each CSV's `.about.txt`, each XLSX `About` sheet and a `<tab> - summary` tab in Google Sheets list the run's hit rates: with email, phone, website and social profiles, and how many leads have some way to contact them. They also count each opening, personal-name emails, duplicates merged, suppressed businesses and websites skipped by robots.txt.
 
 ### Weekly monitoring on GitHub Actions
 
@@ -156,7 +192,7 @@ If your clients send email to these leads, they must follow anti-spam law (CAN-S
 
 Business listings come from **© OpenStreetMap contributors**, available under the [Open Database License](https://www.openstreetmap.org/copyright), and/or from **Overture Maps Foundation**, whose places data is under CDLA Permissive 2.0, Apache 2.0 or CC0 depending on the provider, with no OpenStreetMap data and no share-alike. Every export carries the attribution for the sources it used: the XLSX `About` sheet, a `.about.txt` next to each CSV, and a note on the Google Sheet's header cell. A list that mixes OpenStreetMap data in falls under the ODbL. Coverage is good in Metro Manila and thinner in the provinces.
 
-Expect an email for only part of the leads: many small businesses publish only a Facebook page. Quote clients the hit rate from your own runs.
+Expect an email for only part of the leads: many small businesses publish only a Facebook page. See [Real results](#real-results), and quote clients the hit rate from your own runs.
 
 ## Operator runbook
 

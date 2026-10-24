@@ -41,7 +41,7 @@ COLUMN_CONFIG = {
     "phone": _col.LinkColumn("Phone", width=160, display_text=r"tel:(.*)"),
     "messenger": _col.LinkColumn(
         "Messenger",
-        width="small",
+        width=100,  # "small" clips the header
         display_text="Message",
         help="Opens a chat with the business's Facebook page.",
     ),

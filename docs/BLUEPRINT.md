@@ -813,9 +813,9 @@ Estimated time: **Phases 0–6 ≈ 7–9 focused days**, **Phase 7 ≈ 1 day**. 
 **Gate:** the Definition of Done (section 19) passes.
 
 ### Phase 7 — Portfolio packaging
-- [ ] 7.1 (P0) README: problem, features, setup, screenshots/GIF, sample output (redacted), OSM attribution, honest hit-rate note
+- [x] 7.1 (P0) README: problem, features, setup, screenshots/GIF, sample output (redacted), OSM attribution, honest hit-rate note
 - [ ] 7.2 (P0) Record the 90-second demo (section 21)
-- [ ] 7.3 (P0) Push to public GitHub: no secrets, no real lead database
+- [x] 7.3 (P0) Push to public GitHub: no secrets, no real lead database
 
 ### Phase 8 — V1
 - [x] 8.1 (P1) YAML-driven directory adapter + `_template.yaml` + `leadharvest test-adapter` + fixture tests

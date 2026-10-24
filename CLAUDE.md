@@ -31,7 +31,8 @@ Details, history and the full roadmap are in PROGRESS.md; keep this summary in s
   - CI green on GitHub;
   - Ctrl+C then `resume` on Windows (DoD item 8);
   - a real Sheets/HubSpot export, and one live UI run.
-- **Then:** Phase 7, meaning README screenshots and real hit rate (first Argao numbers are in PROGRESS), the 90-second demo, and confirming the GitHub repo has no secrets or real data.
+- Also pushed: Phase 7 slice 1: README screenshots (`docs/images/`, contacts masked), real hit rates and redacted sample rows; repo checked clean of secrets and real data (7.1, 7.3 done).
+- **Then:** the 90-second demo (7.2), recorded by the owner after a live Sheets export.
 - **Before selling:** decide D1, and D2 only if OSM goes into client lists (blueprint section 23), set up the monitor workflow secrets and `config/monitor.csv`, then `gh workflow enable "Weekly monitor"` (disabled 2026-10-24).
 - **Backlog:**
   - background runs in the UI;

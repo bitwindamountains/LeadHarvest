@@ -18,8 +18,15 @@
 
 **Also pushed (2026-10-24):** reachable leads, Messenger links. The leads table has a Messenger column ("Message", after Phone) linking to `m.me/<page>` (`clean.normalize.messenger_link`, used by `ui_support.result_rows`). Checked first in a real browser: `m.me/<numeric id>` (Overture's facebook.com/<id> links; 141 of 143 Facebook links in the DB) goes to `messenger.com/t/<id>` like a username does (`m.me/facebook`), through Messenger's sign-in when logged out. Group, `/pages/...` and `profile.php` links get no Messenger link. UI only: exports keep the Facebook column. 264 tests pass, lint clean.
 
+**Also pushed (2026-10-24):** Phase 7, slice 1 (7.1 README and 7.3 repo check).
+- **README:** two UI screenshots (`docs/images/run-page.png`, `leads-table.png`), taken from a copy of the DB with every email and phone masked and `raw_records` emptied, then reduced to 256 colours (~840 KB together). A "Real results" section with hit rates (Makati dentists 5e5e7edb, Argao hotels 8b6160d0) and five redacted sample rows; the web UI paragraph brought up to date (All runs, batch pages, links, hiding); `why_contact` and the Sheets summary tab documented.
+- **7.3, checked:** the repo is public; no `.env`, `secrets/`, `data/` or `.db` file is tracked or was ever in history; no key-like strings beyond a fake test PEM; fixtures are synthetic. The owner's email appears only as the git commit author (GitHub shows it on commits; switch to the GitHub noreply address if that matters).
+- **Also:** the Messenger column is 100 px wide; "small" clipped its header (seen in the browser).
+- 264 tests pass, lint clean.
+
 **Next session, in order:**
-1. The owner's live checks (below); reachable leads is done.
+1. **Demo (7.2):** the owner records the 90-second demo (blueprint section 21). It shows the Google Sheet, so it needs the live Sheets export first.
+2. The owner's other live checks (below).
 
 **Also left:** live verification by the owner (two "Definition of done" items are still open), Phase 7 packaging, and decisions D1 (and D2 only if OSM is added to a client list). See the Roadmap below.
 
@@ -272,9 +279,9 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 6. **UI:** do one live run in the Streamlit UI, including Resume after a deliberate interruption.
 
 ### Next: Phase 7, portfolio packaging
-7. **README (7.1):** add screenshots or a GIF (the UI, the Sheet), redacted sample output, and an honest email/phone hit rate taken from the live Makati run.
+7. **README (7.1), done 2026-10-24:** UI screenshots, redacted sample output and real hit rates. A Sheet screenshot can follow the owner's first live Sheets export.
 8. **Demo (7.2):** record the 90-second demo (blueprint section 21). Blur emails and phones.
-9. **Publish (7.3):** the repo is on GitHub (`bitwindamountains/LeadHarvest`). Confirm its visibility is what you want, and that it contains no secrets or real lead data.
+9. **Publish (7.3), done 2026-10-24:** the repo is public on GitHub (`bitwindamountains/LeadHarvest`), with no secrets or real lead data in its files or history.
 
 ### Before selling
 10. **Decide D1** (Google Places storage terms) and **D2** (ODbL share-alike for client lists). Both are in blueprint section 23.
