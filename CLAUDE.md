@@ -31,7 +31,6 @@ Details, history and the full roadmap are in PROGRESS.md; keep this summary in s
 - **Then:** Phase 7, meaning README screenshots and real hit rate (first Argao numbers are in PROGRESS), the 90-second demo, and confirming the GitHub repo has no secrets or real data.
 - **Before selling:** decide D1, and D2 only if OSM goes into client lists (blueprint section 23), set up the monitor workflow secrets and `config/monitor.csv`.
 - **Backlog:**
-  - raise the Streamlit version floor and run `uv lock` (needed so Pillow can reach 13: 12.3.0 has CVEs);
   - background runs in the UI;
   - block SSRF at connect time;
   - Google Places (blocked on D1);
