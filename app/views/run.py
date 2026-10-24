@@ -8,73 +8,33 @@ import streamlit as st
 
 from leadharvest.categories import Category
 from leadharvest.config import Settings
-from leadharvest.exporters.base import export_basename
 from leadharvest.models import Lead, Run
 from leadharvest.segments import segment_counts
 from leadharvest.storage.repository import Repository
 from leadharvest.ui_support import (
     RUNS_SCANNED,
-    SHOW_OPTIONS,
     SOURCE_LABELS,
     STATUS_LABELS,
     STATUS_STYLE,
     STEP_LABELS,
-    TABLE_COLUMNS,
-    TABLE_ROW_PX,
     TARGET_LABELS,
     ago,
     can_resume,
     coverage,
-    csv_download,
     duration_text,
     group_runs,
     percent,
-    result_rows,
     run_seconds,
     run_title,
     score_bands,
     sheet_url,
     short_time,
-    shown_leads,
-    table_height,
     viewer_tz,
 )
 
 from views.common import execute, eyebrow
+from views.leads import leads_table
 from views.runs import batch_link
-
-_col = st.column_config
-# Business stays pinned while the table scrolls sideways. Pixel widths fit typical content: a
-# 180 px pin still leaves room on phones, 240 px fits most emails, 280 px fits two openings.
-COLUMN_CONFIG = {
-    "business_name": _col.TextColumn("Business", width=180, pinned=True),
-    "score": _col.ProgressColumn(
-        "Score",
-        min_value=0,
-        max_value=100,
-        format="%d",
-        width="small",
-        help="From 0 to 100: higher means more ways to reach the business.",
-    ),
-    "flags": _col.ListColumn(
-        "Openings", width=280, help="Sales openings, e.g. no website or no HTTPS."
-    ),
-    "email": _col.TextColumn("Email", width=240),
-    "email_kind": _col.TextColumn(
-        "Email type", width="small", help="business, personal (a person's name) or unknown"
-    ),
-    "phone": _col.TextColumn("Phone", width=140),
-    # Show the domain; the link keeps the full URL.
-    "website": _col.LinkColumn(
-        "Website", width="medium", display_text=r"https?://(?:www\.)?([^/]+)"
-    ),
-    "facebook": _col.LinkColumn("Facebook", width="small", display_text="Facebook"),
-    "instagram": _col.LinkColumn("Instagram", width="small", display_text="Instagram"),
-    "address": _col.TextColumn("Address", width="large"),
-    "city": _col.TextColumn("City", width="small"),
-    "tech": _col.TextColumn("Site platform", width="small"),
-    "opening_hours": _col.TextColumn("Opening hours", width="medium"),
-}
 
 
 def show_run(
@@ -227,37 +187,6 @@ def segment_ledger(run: Run, leads: list[Lead]) -> None:
 def toggle_show(show_key: str, segment: str) -> None:
     """Runs before the rerun, so the selectbox below picks the new value up."""
     st.session_state[show_key] = "all" if st.session_state.get(show_key) == segment else segment
-
-
-def leads_table(run: Run, leads: list[Lead]) -> None:
-    st.header("Leads", anchor=False)
-    pick, action = st.columns([1.1, 2], vertical_alignment="bottom")
-    show = pick.selectbox(
-        "Show", list(SHOW_OPTIONS), format_func=SHOW_OPTIONS.__getitem__, key=f"show-{run.id}",
-        help="Segments agencies buy, e.g. businesses with no website. Each can be downloaded.",
-    )  # fmt: skip
-    shown = shown_leads(leads, show)
-    if show != "all":
-        # Left of the table's own toolbar, which appears top right on hover.
-        with action.container(horizontal=True, vertical_alignment="center"):
-            st.download_button(
-                f"Download these {len(shown)} (CSV)", csv_download(shown, run.category),
-                file_name=f"{export_basename(run)}-{show}.csv", icon=":material/download:",
-                disabled=not shown, key=f"download-shown-{run.id}",
-            )  # fmt: skip
-            st.caption(f"{len(shown)} of {len(leads)} leads, all columns")
-    if not shown:
-        st.info("No leads in this segment for this run.", icon=":material/filter_alt_off:")
-        return
-    st.dataframe(
-        result_rows(shown, run.category), hide_index=True, width="stretch", placeholder="—",
-        column_order=TABLE_COLUMNS, column_config=COLUMN_CONFIG,
-        row_height=TABLE_ROW_PX, height=table_height(len(shown)),
-    )  # fmt: skip
-    clean, enrich = run.stats.get("clean", {}), run.stats.get("enrich", {})
-    dups = len(clean.get("possible_duplicates", [])) + len(enrich.get("possible_duplicates", []))
-    if dups:
-        st.caption(f"{dups} possible duplicate(s) to review; the run log lists the lead ids.")
 
 
 def status_banner(

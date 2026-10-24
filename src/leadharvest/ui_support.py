@@ -281,14 +281,22 @@ def csv_download(leads: list[Lead], category: str) -> bytes:
 
 
 def result_rows(leads: list[Lead], category: str) -> list[dict[str, object]]:
-    """Table rows, best leads first, with flags as readable labels (shown as chips)."""
+    """Table rows, best leads first, with flags as readable labels (shown as chips) and email
+    and phone as links that open the mail app or dialler."""
     rows = []
     for lead in sorted(leads, key=lambda x: -(x.score or 0)):  # stable: ties keep run order
         row = lead_to_row(lead, category)
         row["flags"] = [FLAG_LABELS.get(f, f) for f in lead.flags]
-        row["phone"] = display_phone(lead.phone)
+        row["email"] = f"mailto:{lead.email}" if lead.email else None
+        row["phone"] = _tel_link(lead.phone) if lead.phone else None
         rows.append(row)
     return rows
+
+
+def _tel_link(phone: str) -> str:
+    """'+639171234567' → 'tel:%2B63-917-123-4567'. Hyphens are tel: URIs' visual separators
+    (RFC 3966; spaces aren't allowed), and the table decodes a bare '+' in link text to a space."""
+    return "tel:" + str(display_phone(phone)).replace(" ", "-").replace("+", "%2B")
 
 
 def sheet_url(settings: Settings) -> str | None:

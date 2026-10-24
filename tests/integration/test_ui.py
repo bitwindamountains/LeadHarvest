@@ -144,6 +144,10 @@ def test_presentation_helpers() -> None:
     rows = result_rows(leads, "dentist")
     assert [r["lead_id"] for r in rows] == ["L1", "L0", "L2"]  # best first, unscored last
     assert rows[0]["flags"] == ["No HTTPS", "custom"]  # readable; unknown flags pass through
+    assert rows[0]["email"] is None and rows[0]["phone"] is None
+    contact = {"email": "a@b.ph", "phone": "+639171234567"}
+    linked = result_rows([leads[0].model_copy(update=contact)], "dentist")[0]
+    assert (linked["email"], linked["phone"]) == ("mailto:a@b.ph", "tel:%2B63-917-123-4567")
     with_email = leads[0].model_copy(update={"email": "info@b0.ph"})
     assert shown_leads([with_email, *leads[1:]], "has-email") == [with_email]
     assert shown_leads(leads, "all") == leads
@@ -274,15 +278,24 @@ def test_ui_history_switches_between_runs(ui_env) -> None:
     assert at.sidebar.radio[0].value == "run-paused"
     assert at.metric[0].value == "3"  # leads
     assert at.metric[1].value == "1" and at.metric[1].delta == "of 3 leads"  # with email
+    # Only Clinic 0 has a way to contact it (an email, as a mailto: link); the rest are hidden.
+    hide = at.toggle(key="hide-unreachable-run-done")
+    assert hide.value and not hide.disabled
+    assert any(c.value == "2 hidden" for c in at.caption)
+    table = at.dataframe[0].value
+    assert table["business_name"].tolist() == ["Clinic 0"]
+    assert table["email"].tolist() == ["mailto:info@clinic.ph"]
+    hide.set_value(False).run()
     assert at.dataframe[0].value["business_name"].tolist()[0] == "Clinic 2"  # best score first
     # Ledger rows filter the table; the same row again shows everything.
     assert at.button(key="lh-seg-no-booking").disabled  # no leads in it
     at.button(key="lh-seg-business-email").click().run()
     assert at.selectbox(key="show-run-done").value == "business-email"
     assert len(at.dataframe[0].value) == 1
+    assert at.toggle(key="hide-unreachable-run-done").disabled  # all reachable: nothing to hide
     at.button(key="lh-seg-business-email").click().run()
     assert at.selectbox(key="show-run-done").value == "all"
-    assert len(at.dataframe[0].value) == 3
+    assert len(at.dataframe[0].value) == 3  # hiding stayed off across the segment switch
 
 
 def test_ui_names_a_skipped_source(ui_env) -> None:

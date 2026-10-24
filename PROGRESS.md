@@ -10,12 +10,23 @@
 
 **Also pushed (2026-10-24):** batches collapsed into one sidebar entry with a batch page (direction A, step 3, which finishes direction A). 249 tests pass, lint clean, checked in the browser.
 
+**Also pushed (2026-10-24):** reachable leads, slice 1 (hide leads with no way to contact; email and phone links). 250 tests pass, lint clean, checked in the browser.
+
 **Next session, in order:**
-1. Pick the next feature: "Reachable leads" under "Other ideas" below is the strongest candidate.
+1. Reachable leads, slice 2: a one-line "why contact" reason per lead from its flags (table column and export column).
+2. Slice 3: a summary tab in exports (extend `exporters/base.run_summary`).
+3. Messenger links, once someone checks that `m.me/<numeric id>` opens Messenger for Overture's numeric Facebook page links.
 
 **Also left:** live verification by the owner (two "Definition of done" items are still open), Phase 7 packaging, and decisions D1 (and D2 only if OSM is added to a client list). See the Roadmap below.
 
 ## Done (newest first)
+
+- 2026-10-24: Reachable leads, slice 1 (250 tests pass, lint clean).
+  - **Reachable (`segments.reachable`):** a lead with an email, phone, website or any social page. Only leads with none of these count as unreachable, so nothing a person could still contact is hidden.
+  - **Leads table:** a "Hide leads with no way to contact" switch, on by default, with "N hidden" beside it. It applies on top of the Show picker, and to "Download these N", but not to the number cards or the full exports. Its label is fixed and it's always drawn (disabled when nothing would be hidden), because Streamlit drops a widget's state when it's relabelled or not drawn, which turned hiding back on after a segment switch (caught by the AppTest).
+  - **Links:** email cells are `mailto:` links and phone cells `tel:` links (`ui_support.result_rows`), shown as the address and the formatted number. The `+` is sent as `%2B`: the table decodes a bare `+` in link text to a space, which dropped it ("63-966-…"), found in the browser. Messenger links wait for the `m.me` check.
+  - **Layout:** the table moved from `views/run.py` (320 lines) to `views/leads.py`.
+  - **Checked live** on a copy of `data/leads.db`: Restaurants · Argao hides 3 of 29 leads; turning the switch off shows them; links render with the `+`.
 
 - 2026-10-24: Each batch is one sidebar entry with a batch page (direction A, step 3 of 3; 249 tests pass, lint clean).
   - **Sidebar:** runs group by `ui_runs.entry_key`: a run with `options.batch` joins its batch's entry ("Batch · name", caption "N of M completed · L leads · age"), any other run its search's. Batch rows no longer count towards a search's duplicate label, so a search isn't given a run id suffix because a batch ran the same search. Lead counts for captions come from one `run_lead_counts()` query instead of one per entry.
@@ -223,7 +234,7 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 - **Not doing:** pins and tags, folders, searching leads from the sidebar, deleting runs automatically. Direction B, a "Leads library" (every lead, filtered by category and place, with runs as history), is the long-term model; build it only on demand.
 
 ### Other ideas from 2026-10-11 (not started)
-- **Reachable leads:** hide unreachable leads by default ("7 hidden: no way to contact"); a "Contact via" column with one-tap phone, email and Messenger links (unverified: whether `m.me/<numeric id>` works for Overture's numeric Facebook page links); a one-line "why contact" reason from the flags; a summary tab in exports (extend `exporters/base.run_summary`).
+- **Reachable leads (slice 1 done 2026-10-24, see Done):** hide unreachable leads by default ("7 hidden: no way to contact"); a "Contact via" column with one-tap phone, email and Messenger links (unverified: whether `m.me/<numeric id>` works for Overture's numeric Facebook page links); a one-line "why contact" reason from the flags; a summary tab in exports (extend `exporters/base.run_summary`).
 - **Design review leftovers:** the leads table above the fold, a contrast and focus pass, the run id in the URL (folded into step 2 above).
 - **Overture tuning:** `MIN_CONFIDENCE` (0.5) on a live Makati run (D6 note).
 
