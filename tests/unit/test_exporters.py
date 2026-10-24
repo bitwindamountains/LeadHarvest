@@ -12,7 +12,12 @@ from openpyxl import load_workbook
 
 from leadharvest.exporters.base import MANAGED_COLUMNS, ExportError, why_contact
 from leadharvest.exporters.csv_export import CsvExporter, escape_cell
-from leadharvest.exporters.sheets_export import SheetsExporter, plan_upsert, tab_title
+from leadharvest.exporters.sheets_export import (
+    SUMMARY_TAB_SUFFIX,
+    SheetsExporter,
+    plan_upsert,
+    tab_title,
+)
 from leadharvest.exporters.xlsx_export import XlsxExporter
 from leadharvest.models import Lead, Run, utcnow_iso
 
@@ -79,6 +84,7 @@ def test_csv_export_bom_and_injection(tmp_path) -> None:
     about = (tmp_path / "dentist-makati-abcdef12.about.txt").read_text(encoding="utf-8")
     assert "OpenStreetMap contributors" in about
     assert "With email: 0 (0%)" in about and "Leads: 2" in about  # the quality summary
+    assert "Reachable (email, phone, website or social): 2 (100%)" in about  # both have a phone
 
 
 def test_xlsx_export_text_phones_and_about_sheet(tmp_path) -> None:
@@ -153,14 +159,25 @@ class FakeWorksheet:
     def update_note(self, cell: str, content: str) -> None:
         self.notes[cell] = content
 
+    def clear(self) -> None:
+        self.calls.append("clear")
+        self.grid = []
+
     def column(self, header: str) -> list[Any]:
         idx = [str(h) for h in self.grid[0]].index(header)
         return [r[idx] if idx < len(r) else "" for r in self.grid[1:]]
 
 
-def export_to(ws: FakeWorksheet, leads: list[Lead]):
-    exporter = SheetsExporter(lambda title, n: ws, sleep=lambda s: None)
-    return exporter.export(leads, run())
+def export_to(ws: FakeWorksheet, leads: list[Lead], tabs: dict[str, FakeWorksheet] | None = None):
+    """Export into `ws`; other tabs (the summary) go to `tabs`, by title."""
+    tabs = {} if tabs is None else tabs
+
+    def opener(title: str, n: int) -> FakeWorksheet:
+        if title.endswith(SUMMARY_TAB_SUFFIX):
+            return tabs.setdefault(title, FakeWorksheet())
+        return ws
+
+    return SheetsExporter(opener, sleep=lambda s: None).export(leads, run())
 
 
 def test_new_sheet_gets_header_and_rows() -> None:
@@ -258,6 +275,21 @@ def test_retry_on_429_then_error() -> None:
     with pytest.raises(ExportError):
         SheetsExporter(flaky_open, sleep=lambda s: None, attempts=3).export([lead("L-1")], run())
     assert attempts["n"] == 3
+
+
+def test_summary_tab_is_rewritten_next_to_the_leads_tab() -> None:
+    tabs: dict[str, FakeWorksheet] = {}
+    ws = FakeWorksheet()
+    export_to(ws, [lead("L-1", flags=["no_website"]), lead("L-2")], tabs)
+    summary = tabs["dentist - Makati - summary"]
+    values = {row[0]: row[1] for row in summary.grid}
+    assert "OpenStreetMap" in values["Attribution"] and values["Leads"] == "2"
+    assert values["Opening: no website"] == "1 (50%)"
+    assert summary.input_options == ["RAW"]
+    assert [str(h) for h in ws.grid[0]] == list(MANAGED_COLUMNS)  # leads tab untouched by it
+    summary._set(60, 0, "stale row from an older, longer summary")
+    export_to(ws, [lead("L-1")], tabs)
+    assert len(summary.grid) == len(values) and summary.calls.count("clear") == 2
 
 
 def test_tab_title() -> None:

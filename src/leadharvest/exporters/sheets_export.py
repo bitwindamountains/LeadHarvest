@@ -2,6 +2,8 @@
 
 - Columns are found by header name; client columns (any other header) are never written.
 - One read (all values) → one batch update. Writes use RAW so nothing is evaluated.
+- A "<tab> - summary" tab next to each leads tab holds `about_rows` (the XLSX About sheet). It
+  is ours, so it's cleared and rewritten on every export.
 """
 
 from __future__ import annotations
@@ -16,11 +18,18 @@ from typing import Any, Protocol
 from gspread.utils import rowcol_to_a1
 from tenacity import Retrying, retry_if_exception, stop_after_attempt, wait_exponential
 
-from leadharvest.exporters.base import MANAGED_COLUMNS, ExportError, attribution, lead_to_row
+from leadharvest.exporters.base import (
+    MANAGED_COLUMNS,
+    ExportError,
+    about_rows,
+    attribution,
+    lead_to_row,
+)
 from leadharvest.models import ExportResult, Lead, Run
 
 MAX_TAB_LEN = 100
 NEW_TAB_SUFFIX = " - new"
+SUMMARY_TAB_SUFFIX = " - summary"
 NEW_TAB_COLUMNS: tuple[str, ...] = ("found_on", *MANAGED_COLUMNS)
 
 
@@ -36,6 +45,7 @@ class WorksheetLike(Protocol):
     def format(self, ranges: str, cell_format: dict[str, Any]) -> Any: ...
     def set_basic_filter(self, name: str | None = None) -> Any: ...
     def update_note(self, cell: str, content: str) -> Any: ...
+    def clear(self) -> Any: ...
 
 
 @dataclass
@@ -214,12 +224,25 @@ class SheetsExporter:
         title = tab_title(run.category, run.area_name or run.location)
         rows: list[dict[str, object]] = [lead_to_row(lead, run.category) for lead in leads]
         plan = self._upsert(title, rows, MANAGED_COLUMNS, attribution(run, leads))
+        self._write_summary(title[: MAX_TAB_LEN - len(SUMMARY_TAB_SUFFIX)] + SUMMARY_TAB_SUFFIX,
+                            about_rows(run, leads))  # fmt: skip
         return ExportResult(
             exporter=self.name,
             target=f"{self.target_label} / {title}",
             rows_updated=plan.updated,
             rows_appended=plan.appended,
         )
+
+    def _write_summary(self, title: str, rows: list[tuple[str, str]]) -> None:
+        try:
+            ws = self._call(self.open_worksheet, title, len(rows))
+            self._call(ws.clear)  # ours: a shorter summary leaves no stale rows below
+            values = [list(row) for row in rows]
+            data = [{"range": f"A1:B{len(rows)}", "values": values}]
+            self._call(ws.batch_update, data, value_input_option="RAW")
+            self._call(ws.format, "A:A", {"textFormat": {"bold": True}})
+        except Exception as exc:
+            raise ExportError(f"Google Sheets summary failed: {exc}") from exc
 
     def export_new(self, leads: list[Lead], run: Run) -> ExportResult:
         """Monitoring: upsert into a '<tab> - new' history tab with the date each lead was found.

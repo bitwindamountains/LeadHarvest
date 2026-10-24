@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from leadharvest.exporters.base import reachable
 from leadharvest.models import Lead, utcnow_iso
-from leadharvest.segments import SEGMENTS, apply_segment, reachable, segment_counts
+from leadharvest.segments import SEGMENTS, apply_segment, segment_counts
 
 
 def lead(name: str, **kw: Any) -> Lead:

@@ -5,9 +5,8 @@ from __future__ import annotations
 
 import streamlit as st
 
-from leadharvest.exporters.base import export_basename
+from leadharvest.exporters.base import export_basename, reachable
 from leadharvest.models import Lead, Run
-from leadharvest.segments import reachable
 from leadharvest.ui_support import (
     SHOW_OPTIONS,
     TABLE_COLUMNS,

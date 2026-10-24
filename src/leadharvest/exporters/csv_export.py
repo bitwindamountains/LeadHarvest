@@ -9,10 +9,9 @@ from typing import TextIO
 from leadharvest.exporters.base import (
     MANAGED_COLUMNS,
     PHONE_COLUMNS,
-    attribution,
+    about_rows,
     export_basename,
     lead_to_row,
-    run_summary,
 )
 from leadharvest.models import ExportResult, Lead, Run
 
@@ -59,9 +58,7 @@ class CsvExporter:
         with path.open("w", encoding="utf-8-sig", newline="") as fh:
             write_rows(fh, leads, run.category)
         path.with_suffix(".about.txt").write_text(
-            f"{attribution(run, leads)}\nCategory: {run.category}\nLocation: {run.location}\n"
-            f"Run ID: {run.id}\n"
-            + "".join(f"{label}: {value}\n" for label, value in run_summary(run, leads))
+            "".join(f"{label}: {value}\n" for label, value in about_rows(run, leads))
             + "Tip: open the .xlsx in Excel; Excel converts +63... phone numbers in CSV files.\n",
             encoding="utf-8",
         )

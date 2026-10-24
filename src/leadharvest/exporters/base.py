@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Protocol
 
-from leadharvest.models import ExportResult, Lead, Run
+from leadharvest.models import ExportResult, Lead, Run, utcnow_iso
 
 OSM_ATTRIBUTION = (
     "Data © OpenStreetMap contributors, ODbL 1.0 — https://www.openstreetmap.org/copyright"
@@ -103,18 +103,26 @@ def why_contact(flags: list[str]) -> str:
     return line[:1].upper() + line[1:]
 
 
+def reachable(lead: Lead) -> bool:
+    """Any way to contact the business: an email, phone, website or social page."""
+    return any((lead.email, lead.phone, lead.website, lead.facebook, lead.instagram,
+                lead.linkedin, lead.tiktok))  # fmt: skip
+
+
 def _share(count: int, total: int) -> str:
     return f"{count} ({count * 100 // total}%)" if total else "0"
 
 
 def run_summary(run: Run, leads: list[Lead]) -> list[tuple[str, str]]:
-    """What a client sees first: how complete the list is and what was filtered out."""
+    """What a client sees first: how complete the list is, how many leads have each sales
+    opening (worded as in why_contact) and what was filtered out."""
     clean = run.stats.get("clean", {})
     outcomes = run.stats.get("enrich", {}).get("outcomes", {})
     total = len(leads)
     return [
         ("Leads", str(total)),
         ("New this run", str(clean.get("new", "—"))),
+        ("Reachable (email, phone, website or social)", _share(sum(map(reachable, leads)), total)),
         ("With email", _share(sum(1 for x in leads if x.email), total)),
         ("With phone", _share(sum(1 for x in leads if x.phone), total)),
         ("With website", _share(sum(1 for x in leads if x.website), total)),
@@ -126,9 +134,26 @@ def run_summary(run: Run, leads: list[Lead]) -> list[tuple[str, str]]:
             "Personal-name emails (email_kind)",
             str(sum(1 for x in leads if email_kind(x.email, x.name_key) == "personal")),
         ),
+        *(
+            (f"Opening: {text}", _share(sum(1 for x in leads if flag in x.flags), total))
+            for flag, text in _REASONS.items()
+        ),
         ("Duplicates merged", str(clean.get("duplicates_merged", 0))),
         ("Removed on request (suppressed)", str(clean.get("suppressed", 0))),
         ("Websites not read (robots.txt)", str(outcomes.get("robots_blocked", 0))),
+    ]
+
+
+def about_rows(run: Run, leads: list[Lead]) -> list[tuple[str, str]]:
+    """The summary every export carries (XLSX "About" sheet, CSV .about.txt, Sheets summary
+    tab): attribution, what was searched, then run_summary."""
+    return [
+        ("Attribution", attribution(run, leads)),
+        ("Category", run.category),
+        ("Location", run.location),
+        ("Run ID", run.id),
+        ("Exported at (UTC)", utcnow_iso()),
+        *run_summary(run, leads),
     ]
 
 

@@ -43,12 +43,6 @@ SEGMENTS: dict[str, Segment] = {
 }
 
 
-def reachable(lead: Lead) -> bool:
-    """Any way to contact the business: an email, phone, website or social page."""
-    return any((lead.email, lead.phone, lead.website, lead.facebook, lead.instagram,
-                lead.linkedin, lead.tiktok))  # fmt: skip
-
-
 def segment_counts(leads: list[Lead]) -> list[tuple[str, str, int]]:
     """Each segment's name, short label and how many of these leads it holds, in SEGMENTS order."""
     return [(k, s.short, sum(1 for x in leads if s.keep(x))) for k, s in SEGMENTS.items()]

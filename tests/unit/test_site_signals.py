@@ -85,3 +85,5 @@ def test_run_summary_counts() -> None:
     assert summary["Duplicates merged"] == "1"
     assert summary["Removed on request (suppressed)"] == "3"
     assert summary["Websites not read (robots.txt)"] == "4"
+    assert summary["Reachable (email, phone, website or social)"] == "2 (100%)"
+    assert summary["Opening: no website"] == "0 (0%)"  # every opening is listed, even at zero

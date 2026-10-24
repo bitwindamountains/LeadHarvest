@@ -14,13 +14,20 @@
 
 **Also pushed (2026-10-24):** reachable leads, slice 2 (the `why_contact` export column). 251 tests pass, lint clean.
 
+**Also pushed (2026-10-24):** reachable leads, slice 3 (export summary with reachable and opening counts; a Sheets summary tab). 252 tests pass, lint clean.
+
 **Next session, in order:**
-1. Slice 3: a summary tab in exports (extend `exporters/base.run_summary`).
-2. Messenger links, once someone checks that `m.me/<numeric id>` opens Messenger for Overture's numeric Facebook page links.
+1. Messenger links, once someone checks that `m.me/<numeric id>` opens Messenger for Overture's numeric Facebook page links.
 
 **Also left:** live verification by the owner (two "Definition of done" items are still open), Phase 7 packaging, and decisions D1 (and D2 only if OSM is added to a client list). See the Roadmap below.
 
 ## Done (newest first)
+
+- 2026-10-24: Reachable leads, slice 3: the export summary (252 tests pass, lint clean).
+  - **One summary for every export:** `exporters/base.about_rows` (attribution, category, location, run id, export time, then `run_summary`). The XLSX `About` sheet, the CSV `.about.txt` (now "Label: value" lines, attribution included) and the new Sheets tab all use it.
+  - **New rows in `run_summary`:** "Reachable (email, phone, website or social)" and one "Opening: …" row per flag, worded as in `why_contact`, always listed (even at 0) so the rows stay stable between exports. `reachable()` moved from `segments.py` to `exporters/base.py`, as base can't import segments (segments imports base).
+  - **Sheets:** `export` also writes `<tab> - summary` (clear, one RAW `batch_update` of A:B, bold labels); a failure there is an `ExportError` like the leads tab. Monitor "new" tabs get no summary. Tests use a separate fake worksheet per tab (`export_to(..., tabs)`), and check a stale row is cleared.
+  - Restaurants · Argao: 29 leads, 26 reachable (89%), 21 "only on social media, no website", 24 "no website", 9 "uses a free email address".
 
 - 2026-10-24: Reachable leads, slice 2: the `why_contact` export column (251 tests pass, lint clean).
   - `exporters/base.why_contact` puts a lead's top two flags in plain words, in pitch order ("Only on social media, no website; uses a free email address"); no flags (or only unknown ones) give an empty cell. It's a managed column right after `flags`, so CSV, XLSX, "Download these N" and Sheets get it; an existing Sheet gets the new header after its last used column (the usual header-mapped rule), and client columns stay untouched. HubSpot is unchanged (a new property would have to exist in the portal first).
@@ -241,7 +248,7 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 - **Not doing:** pins and tags, folders, searching leads from the sidebar, deleting runs automatically. Direction B, a "Leads library" (every lead, filtered by category and place, with runs as history), is the long-term model; build it only on demand.
 
 ### Other ideas from 2026-10-11 (not started)
-- **Reachable leads (slices 1 and 2 done 2026-10-24, see Done):** hide unreachable leads by default ("7 hidden: no way to contact"); a "Contact via" column with one-tap phone, email and Messenger links (unverified: whether `m.me/<numeric id>` works for Overture's numeric Facebook page links); a one-line "why contact" reason from the flags; a summary tab in exports (extend `exporters/base.run_summary`).
+- **Reachable leads (slices 1–3 done 2026-10-24, see Done; Messenger links left):** hide unreachable leads by default ("7 hidden: no way to contact"); a "Contact via" column with one-tap phone, email and Messenger links (unverified: whether `m.me/<numeric id>` works for Overture's numeric Facebook page links); a one-line "why contact" reason from the flags; a summary tab in exports (extend `exporters/base.run_summary`).
 - **Design review leftovers:** the leads table above the fold, a contrast and focus pass, the run id in the URL (folded into step 2 above).
 - **Overture tuning:** `MIN_CONFIDENCE` (0.5) on a live Makati run (D6 note).
 

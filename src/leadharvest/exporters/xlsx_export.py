@@ -12,12 +12,11 @@ from openpyxl.utils import get_column_letter
 from leadharvest.exporters.base import (
     MANAGED_COLUMNS,
     NUMERIC_COLUMNS,
-    attribution,
+    about_rows,
     export_basename,
     lead_to_row,
-    run_summary,
 )
-from leadharvest.models import ExportResult, Lead, Run, utcnow_iso
+from leadharvest.models import ExportResult, Lead, Run
 
 _MAX_WIDTH = 50
 
@@ -66,16 +65,9 @@ class XlsxExporter:
         ws.auto_filter.ref = ws.dimensions
 
         about = wb.create_sheet("About")
-        for row in (
-            ("Attribution", attribution(run, leads)),
-            ("Category", run.category),
-            ("Location", run.location),
-            ("Run ID", run.id),
-            ("Exported at (UTC)", utcnow_iso()),
-            *run_summary(run, leads),
-        ):
+        for row in about_rows(run, leads):
             about.append(row)
-        about.column_dimensions["A"].width = 20
+        about.column_dimensions["A"].width = 44
         about.column_dimensions["B"].width = 90
         wb.save(path)
         return ExportResult(exporter=self.name, target=str(path), rows_appended=len(leads))

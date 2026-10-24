@@ -570,11 +570,12 @@ Per lead with a website (only leads linked to the current run):
 - All writes use `valueInputOption=RAW`, so scraped text is never evaluated as a formula and `+63…` phones stay text.
 - Rows a client deletes are re-appended on the next export (decision D4); documented in the README.
 - Header row bold + frozen + filter. Back off on 429 (Sheets allows roughly 60 requests/minute per user).
+- Summary: a `{tab} - summary` tab beside each leads tab holds the same rows as the XLSX `About` sheet (`exporters/base.about_rows`). It belongs to LeadHarvest, so it's cleared and rewritten on every export. Monitor "new" tabs get none.
 
 ### 10.7b CSV / XLSX export
 - Same managed columns. Files are `{category}-{area}-{run_id[:8]}.csv|.xlsx` in `LH_EXPORT_DIR`.
 - CSV: UTF-8 **with BOM** (so Excel reads non-ASCII names). Cells in non-phone columns that start with `=`, `+`, `-`, `@`, tab or CR are prefixed with `'` (formula-injection guard). Phones stay `+63…`; the README tells clients to open the XLSX in Excel.
-- XLSX: every cell is written as a string except `lat`, `lon`, `score`; bold frozen header, auto-filter, column widths; a second sheet `About` carries the ODbL attribution and run metadata.
+- XLSX: every cell is written as a string except `lat`, `lon`, `score`; bold frozen header, auto-filter, column widths; a second sheet `About` carries the attribution, run metadata and the run summary (`about_rows`: leads, reachable, email/phone/website/social coverage, how many leads have each sales opening, what was filtered out). CSV writes the same rows to `<file>.about.txt`.
 
 ### 10.8 Scoring (V1)
 | Signal | Points |
