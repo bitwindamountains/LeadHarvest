@@ -836,7 +836,7 @@ Estimated time: **Phases 0–6 ≈ 7–9 focused days**, **Phase 7 ≈ 1 day**. 
 
 ## 19. Definition of done (MVP)
 
-- [ ] `leadharvest run --category dentist --location "Makati, Philippines" --limit 100` completes on a normal connection
+- [x] `leadharvest run --category dentist --location "Makati, Philippines" --limit 100` completes on a normal connection
 - [x] No duplicate businesses in output under the section 10.4 rules; re-running the same search creates 0 new leads
 - [x] Two branches sharing a chain hotline stay separate leads
 - [x] All phones E.164; all websites normalized; phones show as `+63…` text in Sheets and XLSX
