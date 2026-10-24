@@ -29,7 +29,6 @@ Details, history and the full roadmap are in PROGRESS.md; keep this summary in s
 - **Next (reachable leads):** Messenger links once `m.me/<numeric id>` is verified; otherwise the owner's live checks below.
 - **Now (owner, live):**
   - CI green on GitHub;
-  - a live Makati `run --limit 100` (DoD item 1), then tune D5;
   - Ctrl+C then `resume` on Windows (DoD item 8);
   - a real Sheets/HubSpot export, and one live UI run.
 - **Then:** Phase 7, meaning README screenshots and real hit rate (first Argao numbers are in PROGRESS), the 90-second demo, and confirming the GitHub repo has no secrets or real data.

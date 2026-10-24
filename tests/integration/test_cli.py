@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
+
 import pytest
 from typer.testing import CliRunner
 
@@ -61,6 +65,17 @@ def test_help_and_categories(env) -> None:
     result = runner.invoke(app, ["categories"])
     assert result.exit_code == 0
     assert "dentist" in result.output
+
+
+def test_help_survives_a_non_utf8_pipe() -> None:
+    """Windows encodes piped output as cp1252, which can't hold the "→" in `run --help`."""
+    env = {**os.environ, "PYTHONIOENCODING": "cp1252"}  # the Windows default, on any OS
+    result = subprocess.run(
+        [sys.executable, "-c", "from leadharvest.cli import cli; cli()", "run", "--help"],
+        capture_output=True, env=env, timeout=60, check=False,
+    )  # fmt: skip
+    assert result.returncode == 0, result.stderr.decode("utf-8", "replace")[-500:]
+    assert "→" in result.stdout.decode("utf-8")
 
 
 def test_run_refuses_placeholder_user_agent(env, monkeypatch) -> None:

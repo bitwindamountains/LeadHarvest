@@ -28,7 +28,7 @@ overture = ["duckdb>=1.1"]  # the Overture Maps places source reads GeoParquet o
 ui = ["streamlit>=1.66.1"]  # horizontal containers, st.context.timezone; 1.66.1 is the first to allow Pillow 13 (CVE fixes)
 
 [project.scripts]
-leadharvest = "leadharvest.cli:app"
+leadharvest = "leadharvest.cli:cli"
 
 [dependency-groups]
 dev = [

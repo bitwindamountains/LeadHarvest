@@ -23,6 +23,13 @@
 
 ## Done (newest first)
 
+- 2026-10-24: DoD item 1, the live Makati run: `leadharvest run --category dentist --location "Makati, Philippines" --limit 100` (run 5e5e7edb; Overture, CSV + XLSX; database backed up first). Completed in about 2 min (search 65 s, enrich 39 s).
+  - 150 raw records, 5 duplicates merged, 100 leads kept (truncated at the limit), all new. Clean and enrich found 0 possible duplicates, so D5 (phone radius, shared-phone threshold) stays as it is.
+  - **Hit rate (for the README):** email 76%, phone 98%, website 46%, Facebook 100%; every lead reachable. Emails by kind: 60 business, 13 unknown, 3 personal; 10 protected (Cloudflare) emails not decoded; MX dropped 1 email on a dead domain. Average score 70.9.
+  - **Enrichment:** 46 websites tried with 173 requests: 30 read, 4 blocked by robots.txt, 12 failed (6 DNS failures on lapsed domains, 3 HTTP 404 including 2 shut-down `business.site` pages, 3 HTTP 403). No SSRF blocks and no host skipped. The 12 dead sites are real data, not bugs; "website is down" could become a sales opening flag.
+  - **why_contact:** 33 "Only on social media, no website; uses a free email address", 21 "Only on social media, no website", 9 "No online booking", 9 "Uses a free email address", 7 "No online booking; uses a free email address", 7 empty.
+  - **Bug found:** `leadharvest run --help` crashes with `UnicodeEncodeError` ('→', a "→" in the help text) when output goes to a non-UTF-8 pipe or console code page (cp1252); fine with `PYTHONIOENCODING=utf-8` or a UTF-8 terminal. Fixed the same day: the `leadharvest` script now starts at `cli.cli()`, which switches stdout and stderr to UTF-8 before running the Typer app (any non-cp1252 character, such as a business name in another script, could crash a piped run the same way). Test: `test_help_survives_a_non_utf8_pipe` forces `PYTHONIOENCODING=cp1252` in a subprocess, so it reproduces on Linux CI too; the old entry point fails it. Needs `uv sync` once to regenerate the script (254 tests pass, pushed).
+
 - 2026-10-24: Live tests (`pytest -m live`) pass, both of them: Overture in Makati stays inside the city, and a Makati search + clean (limit 10) finds leads. The first try of the second test paused at search with `Could not find the latest Overture release: [Errno 11001] getaddrinfo failed`, a one-off DNS failure (the host resolved and answered 200 straight after, and the other test reached Overture in the same session); the re-run passed. Finding: one DNS blip on the Overture catalog lookup pauses a single-source run at search (it can be resumed). Fixed the same day: the lookup now goes through `http.request_with_retry` (3 tries, 1 s then 2 s apart; DNS and connection errors, 429 and 5xx), like Nominatim and Overpass. Tested with a respx DNS failure then success, and three failures giving the usual `SourceError` (253 tests pass).
 
 - 2026-10-24: Reachable leads, slice 3: the export summary (252 tests pass, lint clean).
@@ -257,7 +264,7 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 ### Now: live verification (owner; needs a real contact email in `LH_USER_AGENT` in `.env`)
 1. **CI:** check that GitHub Actions passed for `879d552` (audit fixes) and `8db28b6` (UI). This is the first CI run of the new real-browser tests on Ubuntu and Windows.
 2. **Live tests:** done 2026-10-24, both pass (see Done).
-3. **DoD item 1:** a live `leadharvest run --category dentist --location "Makati, Philippines" --limit 100`. It is also the first real-world test of the SSRF checks, the MX batching and HubSpot (if used). Afterwards, tune decision D5 (phone radius and shared-phone threshold) from what it finds.
+3. **DoD item 1:** done 2026-10-24 (run 5e5e7edb, see Done). D5 needs no change: no possible duplicates or phone conflicts came up. HubSpot is still untested live.
 4. **DoD item 8:** press Ctrl+C mid-run on Windows, then `resume`. Completed work must not be fetched again.
 5. **Real exports:** check a Google Sheet export (client columns kept, re-export updates rows) and HubSpot if a client uses it.
 6. **UI:** do one live run in the Streamlit UI, including Resume after a deliberate interruption.

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import sqlite3
+import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import date
@@ -860,5 +862,15 @@ def purge(
     console.print(f"Purged {deleted} lead(s).")
 
 
-if __name__ == "__main__":  # pragma: no cover
+def cli() -> None:
+    """The `leadharvest` command. Output is UTF-8 even when piped or redirected: Windows would
+    otherwise encode it as cp1252, which can't hold "→" in the help text or many business names,
+    and the command would crash."""
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(encoding="utf-8")
     app()
+
+
+if __name__ == "__main__":  # pragma: no cover
+    cli()
