@@ -4,12 +4,9 @@ Install with `uv sync --extra js && uv run playwright install chromium`.
 The browser obeys the same rules as the plain fetcher: the page URL passes robots.txt, the SSRF
 guard and the per-host delay; every sub-request passes the SSRF guard; images, media and fonts
 are not loaded; any main-frame navigation to another URL is re-checked against robots.txt.
-Redirects bypass the route handler, so the page's final URL and server address are re-checked
-before its content is read.
-
-ponytail: check_peer stops us reading a redirect target on a private address, not the browser
-sending that one GET (the plain fetcher blocks it at connect time). Blocking it here needs a
-proxy in front of Chromium.
+Chromium reaches the network only through `render_proxy.GuardProxy`, which refuses private
+addresses at connect time, so redirect hops (which bypass the route handler) and DNS rebinding
+can't reach one either. The page's final URL is still re-checked against robots.txt.
 """
 
 from __future__ import annotations
@@ -20,6 +17,7 @@ from typing import Any, Protocol
 
 from leadharvest.config import Settings
 from leadharvest.enrich.fetcher import FetchError, PoliteFetcher
+from leadharvest.enrich.render_proxy import BLOCKED_HEADER, GuardProxy
 from leadharvest.logging_setup import get_logger
 
 log = get_logger("render")
@@ -48,10 +46,12 @@ class PlaywrightRenderer:
         *,
         concurrency: int = 2,
         launch_args: list[str] | None = None,
+        proxy: GuardProxy | None = None,
     ) -> None:
         self.settings = settings
         self.fetcher = fetcher
         self.launch_args = launch_args or []
+        self.proxy = proxy or GuardProxy(timeout=settings.request_timeout_seconds)
         self._semaphore = asyncio.Semaphore(concurrency)
         self._pw: Any = None
         self._browser: Any = None
@@ -64,11 +64,16 @@ class PlaywrightRenderer:
             raise RenderUnavailable(
                 "--js needs Playwright: uv sync --extra js && uv run playwright install chromium"
             ) from exc
+        await self.proxy.__aenter__()
         self._pw = await async_playwright().start()
         try:
-            self._browser = await self._pw.chromium.launch(headless=True, args=self.launch_args)
+            # Playwright also sends loopback addresses through the proxy (<-loopback>).
+            self._browser = await self._pw.chromium.launch(
+                headless=True, args=self.launch_args, proxy={"server": self.proxy.url}
+            )
         except Exception as exc:
             await self._pw.stop()
+            await self.proxy.__aexit__(None, None, None)
             raise RenderUnavailable(
                 f"Could not start Chromium ({exc}). Run: uv run playwright install chromium"
             ) from exc
@@ -86,6 +91,7 @@ class PlaywrightRenderer:
             await self._browser.close()
         if self._pw is not None:
             await self._pw.stop()
+        await self.proxy.__aexit__(None, None, None)
 
     async def _guard(self, route: Any, target: str) -> None:
         request = route.request
@@ -109,13 +115,14 @@ class PlaywrightRenderer:
         await route.continue_()
 
     async def _check_landing(self, final_url: str, response: Any) -> None:
-        """The route guard never sees redirect hops, so re-check where the page landed and
-        the address that actually served it (DNS rebinding)."""
-        host = await self.fetcher.check_public(final_url)
+        """The route guard never sees redirect hops: if the proxy refused the landing address,
+        say so instead of reading its 403; and re-check where the page landed."""
+        blocked = await response.header_value(BLOCKED_HEADER) if response is not None else None
+        if blocked:
+            raise FetchError("failed", blocked)
+        await self.fetcher.check_public(final_url)
         if not await self.fetcher.robots.allowed(final_url):
             raise FetchError("robots_blocked", f"robots.txt disallows {final_url}")
-        addr = await response.server_addr() if response is not None else None
-        self.fetcher.check_peer(host, addr["ipAddress"] if addr else None)
 
     async def render(self, url: str) -> str:
         await self.fetcher.admit(url)

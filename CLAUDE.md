@@ -37,6 +37,7 @@ Details, history and the full roadmap are in PROGRESS.md; keep this summary in s
 - Also pushed: background runs in the UI (`ui_jobs.JOBS` threads; the run page shows live progress and survives clicks and reloads; 265 tests).
 - Also pushed: a Stop run button (`Job.stop` cancels the run's asyncio task; paused as "stopped", resumable; 268 tests).
 - Also pushed: the SSRF guard also runs at connect time (`netguard.PublicOnlyBackend` in every `make_client` client; 272 tests).
+- Also pushed: the JS renderer's Chromium connects only through a local SSRF guard proxy (`enrich/render_proxy.py`); redirect hops can't reach private addresses (276 tests).
 - **Backlog:**
   - Google Places (blocked on D1);
   - more directory adapters;

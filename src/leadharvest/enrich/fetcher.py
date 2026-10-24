@@ -11,7 +11,6 @@ import re
 import time
 from dataclasses import dataclass, field
 from urllib.parse import urljoin, urlsplit, urlunsplit
-from urllib.request import getproxies
 
 import httpx
 
@@ -20,7 +19,6 @@ from leadharvest.enrich.netguard import (
     BlockedAddress,
     Resolver,
     assert_public_host,
-    is_public_ip,
     system_resolver,
 )
 from leadharvest.enrich.robots import UNREACHABLE, RobotsChecker
@@ -89,10 +87,6 @@ class PoliteFetcher:
         self.blocked_hosts: set[str] = set()
         self.robots = RobotsChecker(repo, settings.ua_product, self._fetch_robots)
         self.request_count = 0
-        # Same proxy lookup httpx uses (urllib's getproxies); behind a proxy the peer is the proxy.
-        self.via_proxy = client.trust_env and any(
-            k in ("http", "https", "all") for k in getproxies()
-        )
 
     # ---- public API -------------------------------------------------------------------------
 
@@ -154,13 +148,6 @@ class PoliteFetcher:
         except OSError as exc:
             raise FetchError("connect", f"DNS lookup failed for {host}: {exc}") from exc
         return host
-
-    def check_peer(self, host: str, address: str | None) -> None:
-        """For the JS renderer, whose browser connects by itself: the address it actually
-        connected to must be public too (DNS can change after our check). The fetcher's own
-        client refuses such addresses before connecting (netguard.PublicOnlyBackend)."""
-        if address and not self.via_proxy and not is_public_ip(address):
-            raise FetchError("failed", f"refusing {host}: connected to non-public {address}")
 
     async def admit(self, url: str) -> None:
         """All politeness checks for a page fetched by something else (the JS renderer):

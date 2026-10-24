@@ -40,6 +40,10 @@
 - **Tests:** backend refuses private addresses before connecting, connects to checked IPs in order, DNS failure is a connect error, an httpx request to a name resolving to loopback is refused with no network, and the fetcher reports a connect-time block as a failed fetch. 272 tests pass, the 2 live tests pass, lint clean.
 - **Checked live:** https://www.python.org/ fetched normally (certificate checked); localhost, 127.0.0.1, `localtest.me` (public DNS → 127.0.0.1) and 169.254.169.254 refused before connecting.
 
+**Also pushed (2026-10-24):** the JS renderer's SSRF gap is closed. Chromium now reaches the network only through `enrich/render_proxy.GuardProxy`, a local forward proxy started with the renderer: it resolves each host, refuses non-public addresses (a 403 with `X-LeadHarvest-Blocked`, which the renderer turns into the usual `FetchError`) and connects to the very address it checked. https goes through CONNECT tunnels; plain http is forwarded one request per connection (`Connection: close`) so a reused connection can't switch hosts. Redirect hops, which bypass the route handler, and DNS rebinding can no longer even send a request to a private address. Playwright sends loopback traffic through the proxy too (tested). `PoliteFetcher.check_peer` and `via_proxy` are gone: behind the proxy the browser's peer is always the proxy.
+- **Tests:** `tests/unit/test_render_proxy.py` (origin-form forwarding to the checked IP, refusals before connecting, CONNECT tunnel) and the real-browser tests now go through the proxy: redirect to metadata.test, redirect to a 127.0.0.1 literal, and rebinding each leave only the first request on the server. 276 tests pass, lint clean.
+- **Checked live:** https://www.python.org/ rendered through the proxy (59 KB, real DNS and certificates).
+
 **Next session, in order:**
 1. **Demo (7.2):** the owner records the 90-second demo (blueprint section 21). It shows the Google Sheet, so it needs the live Sheets export first.
 2. The owner's other live checks (below).
@@ -308,7 +312,6 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 12. **Go to market:** follow blueprint section 22 (platforms, pricing, honesty rule).
 
 ### Backlog (build only when needed)
-- **SSRF in the JS renderer:** Chromium connects by itself, so a redirect to a private address is still sent (not read); blocking it needs a proxy in front of Chromium (`ponytail:` note in `enrich/render.py`).
 - **F14, Google Places source (8.6):** blocked on D1.
 - **F18, more directory adapters:** build per client request.
 - **D4:** remember rows a client deletes from the Sheet, so they are not appended again.
