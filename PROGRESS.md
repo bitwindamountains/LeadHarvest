@@ -235,7 +235,6 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 12. **Go to market:** follow blueprint section 22 (platforms, pricing, honesty rule).
 
 ### Backlog (build only when needed)
-- **Streamlit version floor:** `pyproject.toml` says `streamlit>=1.36`, but the UI uses newer APIs (tested on 1.64). Raise the floor and run `uv lock`.
 - **Background runs in the UI:** a run would then survive clicks and page reloads. Today a click pauses the run, and Resume recovers it.
 - **SSRF:** block the connection itself, not just the reading of the response (a custom httpcore network backend; see the `ponytail:` note in `enrich/fetcher.py`).
 - **F14, Google Places source (8.6):** blocked on D1.
