@@ -162,6 +162,25 @@ async def test_source_finds_latest_release() -> None:
 
 
 @respx.mock
+async def test_release_lookup_rides_out_a_dns_blip() -> None:
+    dns = httpx.ConnectError("[Errno 11001] getaddrinfo failed")
+    route = respx.get("https://stac.overturemaps.org/catalog.json")
+    route.side_effect = [dns, httpx.Response(200, json={"latest": "2026-09-23.1"})]
+    waits: list[float] = []
+
+    async def sleep(seconds: float) -> None:
+        waits.append(seconds)
+
+    async with httpx.AsyncClient() as client:
+        source = OvertureSource(client, FakeGeo(None), sleep=sleep)  # type: ignore[arg-type]
+        assert "2026-09-23.1" in await source._release_path()
+        assert route.call_count == 2 and waits == [1.0]
+        route.side_effect = [dns, dns, dns]  # still down after three tries: a clear error
+        with pytest.raises(SourceError, match=r"latest Overture release.*getaddrinfo"):
+            await source._release_path()
+
+
+@respx.mock
 async def test_nominatim_boundary_looks_up_by_osm_id_and_caches(settings, repo) -> None:
     route = respx.get("https://nominatim.test/lookup").respond(
         json=[{"osm_id": 1520040, **BOUNDARY}]

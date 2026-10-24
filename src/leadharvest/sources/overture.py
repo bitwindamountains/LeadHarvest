@@ -20,6 +20,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from leadharvest.geo.nominatim import NominatimClient
+from leadharvest.http import Sleep, request_with_retry
 from leadharvest.logging_setup import get_logger
 from leadharvest.models import RawBusiness, SearchQuery
 from leadharvest.sources.base import SourceError
@@ -155,17 +156,20 @@ class OvertureSource:
         geo: NominatimClient,
         *,
         path: str | None = None,
+        sleep: Sleep = asyncio.sleep,
     ) -> None:
         self.client = client
         self.geo = geo
         self.path = path  # a local file or glob in tests; the latest release otherwise
+        self._sleep = sleep
         self.last_total: int | None = None
 
     async def _release_path(self) -> str:
         if self.path:
             return self.path
         try:
-            response = await self.client.get(STAC_CATALOG)
+            # Retries DNS and connection failures, 429 and 5xx: one blip shouldn't pause a run.
+            response = await request_with_retry(self.client, "GET", STAC_CATALOG, sleep=self._sleep)
             response.raise_for_status()
             release = response.json()["latest"]
         except (httpx.HTTPError, ValueError, KeyError) as exc:

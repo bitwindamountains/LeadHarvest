@@ -23,6 +23,8 @@
 
 ## Done (newest first)
 
+- 2026-10-24: Live tests (`pytest -m live`) pass, both of them: Overture in Makati stays inside the city, and a Makati search + clean (limit 10) finds leads. The first try of the second test paused at search with `Could not find the latest Overture release: [Errno 11001] getaddrinfo failed`, a one-off DNS failure (the host resolved and answered 200 straight after, and the other test reached Overture in the same session); the re-run passed. Finding: one DNS blip on the Overture catalog lookup pauses a single-source run at search (it can be resumed). Fixed the same day: the lookup now goes through `http.request_with_retry` (3 tries, 1 s then 2 s apart; DNS and connection errors, 429 and 5xx), like Nominatim and Overpass. Tested with a respx DNS failure then success, and three failures giving the usual `SourceError` (253 tests pass).
+
 - 2026-10-24: Reachable leads, slice 3: the export summary (252 tests pass, lint clean).
   - **One summary for every export:** `exporters/base.about_rows` (attribution, category, location, run id, export time, then `run_summary`). The XLSX `About` sheet, the CSV `.about.txt` (now "Label: value" lines, attribution included) and the new Sheets tab all use it.
   - **New rows in `run_summary`:** "Reachable (email, phone, website or social)" and one "Opening: …" row per flag, worded as in `why_contact`, always listed (even at 0) so the rows stay stable between exports. `reachable()` moved from `segments.py` to `exporters/base.py`, as base can't import segments (segments imports base).
@@ -254,7 +256,7 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 
 ### Now: live verification (owner; needs a real contact email in `LH_USER_AGENT` in `.env`)
 1. **CI:** check that GitHub Actions passed for `879d552` (audit fixes) and `8db28b6` (UI). This is the first CI run of the new real-browser tests on Ubuntu and Windows.
-2. **Live tests:** run `uv run pytest -m live`.
+2. **Live tests:** done 2026-10-24, both pass (see Done).
 3. **DoD item 1:** a live `leadharvest run --category dentist --location "Makati, Philippines" --limit 100`. It is also the first real-world test of the SSRF checks, the MX batching and HubSpot (if used). Afterwards, tune decision D5 (phone radius and shared-phone threshold) from what it finds.
 4. **DoD item 8:** press Ctrl+C mid-run on Windows, then `resume`. Completed work must not be fetched again.
 5. **Real exports:** check a Google Sheet export (client columns kept, re-export updates rows) and HubSpot if a client uses it.
