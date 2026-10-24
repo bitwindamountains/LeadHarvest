@@ -4,6 +4,8 @@
 - One read (all values) → one batch update. Writes use RAW so nothing is evaluated.
 - A "<tab> - summary" tab next to each leads tab holds `about_rows` (the XLSX About sheet). It
   is ours, so it's cleared and rewritten on every export.
+- Each lead written to a tab is remembered (`SentRows`, the database's `sheet_rows`), so a row
+  the client deletes stays deleted instead of coming back on the next export (decision D4).
 """
 
 from __future__ import annotations
@@ -48,6 +50,13 @@ class WorksheetLike(Protocol):
     def clear(self) -> Any: ...
 
 
+class SentRows(Protocol):
+    """Which leads were written to a tab before (storage.Repository implements it)."""
+
+    def sheet_lead_ids(self, sheet_id: str, tab: str) -> set[str]: ...
+    def add_sheet_lead_ids(self, sheet_id: str, tab: str, lead_ids: list[str]) -> None: ...
+
+
 @dataclass
 class SheetPlan:
     updates: list[dict[str, Any]] = field(default_factory=list)
@@ -55,6 +64,8 @@ class SheetPlan:
     required_cols: int = 0
     updated: int = 0
     appended: int = 0
+    skipped: int = 0  # written before, then deleted by the client
+    written: list[str] = field(default_factory=list)  # lead_ids of the rows written
 
 
 def tab_title(category: str, area: str) -> str:
@@ -85,11 +96,13 @@ def plan_upsert(
     grid: list[list[str]],
     rows: list[dict[str, object]],
     columns: tuple[str, ...] = MANAGED_COLUMNS,
+    sent_before: set[str] | frozenset[str] = frozenset(),
 ) -> SheetPlan:
     """Plan writes for `rows` (dicts keyed by managed column) against the current sheet values.
 
     `columns` are the managed headers (must include lead_id); every other column is the
-    client's and is never written.
+    client's and is never written. A lead in `sent_before` (written to this tab by an earlier
+    export) that is no longer in the sheet was deleted by the client, so it isn't appended.
 
     Indices here are 0-based; ranges in the plan are A1 notation.
     """
@@ -126,10 +139,14 @@ def plan_upsert(
         if lead_id in existing:
             targets[existing[lead_id]] = row
             plan.updated += 1
+        elif lead_id in sent_before:
+            plan.skipped += 1
+            continue
         else:
             targets[n_rows] = row
             n_rows += 1
             plan.appended += 1
+        plan.written.append(lead_id)
 
     managed_cols = sorted(col_of[name] for name in columns)
     name_at = {col_of[name]: name for name in columns}
@@ -182,9 +199,13 @@ class SheetsExporter:
         target_label: str = "Google Sheet",
         sleep: Callable[[float], None] = time.sleep,
         attempts: int = 4,
+        sent: SentRows | None = None,
+        sheet_id: str = "",
     ) -> None:
         self.open_worksheet = open_worksheet
         self.target_label = target_label
+        self.sent = sent  # None: every missing row is appended (no memory, e.g. tests)
+        self.sheet_id = sheet_id
         self._retrying = Retrying(
             stop=stop_after_attempt(attempts),
             wait=wait_exponential(multiplier=2, max=60),
@@ -202,7 +223,8 @@ class SheetsExporter:
         try:
             ws = self._call(self.open_worksheet, title, len(rows) + 1)
             grid = self._call(ws.get_all_values)
-            plan = plan_upsert(grid, rows, columns)
+            sent_before = self.sent.sheet_lead_ids(self.sheet_id, title) if self.sent else set()
+            plan = plan_upsert(grid, rows, columns, sent_before)
             if plan.required_rows > ws.row_count or plan.required_cols > ws.col_count:
                 self._call(
                     ws.resize,
@@ -211,6 +233,8 @@ class SheetsExporter:
                 )
             if plan.updates:
                 self._call(ws.batch_update, plan.updates, value_input_option="RAW")
+            if self.sent is not None:  # only after the rows are really in the sheet
+                self.sent.add_sheet_lead_ids(self.sheet_id, title, plan.written)
             self._call(ws.format, "1:1", {"textFormat": {"bold": True}})
             self._call(ws.freeze, rows=1)
             self._call(ws.set_basic_filter)
@@ -231,6 +255,7 @@ class SheetsExporter:
             target=f"{self.target_label} / {title}",
             rows_updated=plan.updated,
             rows_appended=plan.appended,
+            rows_skipped=plan.skipped,
         )
 
     def _write_summary(self, title: str, rows: list[tuple[str, str]]) -> None:
@@ -261,4 +286,5 @@ class SheetsExporter:
             target=f"{self.target_label} / {title}",
             rows_updated=plan.updated,
             rows_appended=plan.appended,
+            rows_skipped=plan.skipped,
         )

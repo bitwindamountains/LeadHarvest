@@ -568,7 +568,7 @@ Per lead with a website (only leads linked to the current run):
 - **Columns are located by header name, never by position.** Read row 1; for each managed header find its column. Managed headers missing from the sheet are appended after the last used column. Columns with any other header belong to the client and are never written, wherever they sit.
 - Upsert: read row 1 and the `lead_id` column once → map `lead_id` → row number → one `batch_update` for existing rows (per managed column range) → one append for new rows.
 - All writes use `valueInputOption=RAW`, so scraped text is never evaluated as a formula and `+63…` phones stay text.
-- Rows a client deletes are re-appended on the next export (decision D4); documented in the README.
+- Rows a client deletes stay deleted (decision D4): the `sheet_rows` table remembers each lead written to each tab (by sheet id and tab name), and a remembered lead that is no longer in the tab is left out of the append. Recorded only after the write succeeds.
 - Header row bold + frozen + filter. Back off on 429 (Sheets allows roughly 60 requests/minute per user).
 - Summary: a `{tab} - summary` tab beside each leads tab holds the same rows as the XLSX `About` sheet (`exporters/base.about_rows`). It belongs to LeadHarvest, so it's cleared and rewritten on every export. Monitor "new" tabs get none.
 
@@ -912,6 +912,6 @@ Blur emails and phone numbers in any public video.
 | D1 | Google Places (F14) storage terms vs. a persistent lead DB and delivered Sheets | **Open** — owner to verify current Maps Platform terms | F14 stays out until verified; do not sell "Places leads" |
 | D2 | ODbL share-alike when delivering OSM-derived lists to paying clients | **Open** — owner to read the OSMF licence FAQ before pricing | Attribution in every export regardless (built) |
 | D3 | Cloudflare-obfuscated emails | Decided | Not decoded; counted as `protected_emails` |
-| D4 | Rows a client deletes from the Sheet | Decided (MVP) | Re-appended on next export; documented. V2 may track removals |
+| D4 | Rows a client deletes from the Sheet | Decided (2026-10-24) | Not re-appended: `sheet_rows` remembers what was written to each tab (MVP re-appended them) |
 | D5 | Phone-match radius and shared-phone threshold | Decided (tunable) | 250 m, 3 names; tune after the first real Makati run |
 | D6 | Default source for client lists: Overture-only (no share-alike) vs. OSM+Overture (ODbL) | **Decided 2026-10-11: Overture-only** — after a live Argao restaurant run (OSM 4 leads, 0 reachable; OSM+Overture 30 leads, 26 reachable, all from Overture) | `sources.overture.default_source_names()`: Overture when DuckDB is installed, else OSM. OSM stays opt-in (`--sources osm,overture` or the UI's Advanced options). Overture's `MIN_CONFIDENCE` (0.5) is still to tune on a live Makati run |

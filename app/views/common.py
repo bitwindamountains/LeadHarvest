@@ -54,7 +54,7 @@ def execute(settings: Settings, run: Run, category: Category, *, force: bool = F
 def _work(settings: Settings, run_id: str, category: Category, force: bool, job: Job) -> None:
     repo = Repository(connect(settings.db_path))  # SQLite connections stay in their thread
     pipeline = Pipeline(
-        settings, repo, exporter_factory=exporter_factory(settings), reporter=job.progress
+        settings, repo, exporter_factory=exporter_factory(settings, repo), reporter=job.progress
     )
     handler = attach_run_log(settings.log_dir, run_id)
     try:

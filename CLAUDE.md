@@ -38,10 +38,10 @@ Details, history and the full roadmap are in PROGRESS.md; keep this summary in s
 - Also pushed: a Stop run button (`Job.stop` cancels the run's asyncio task; paused as "stopped", resumable; 268 tests).
 - Also pushed: the SSRF guard also runs at connect time (`netguard.PublicOnlyBackend` in every `make_client` client; 272 tests).
 - Also pushed: the JS renderer's Chromium connects only through a local SSRF guard proxy (`enrich/render_proxy.py`); redirect hops can't reach private addresses (276 tests).
+- Also pushed: D4, rows a client deletes from a Sheet stay deleted (`sheet_rows`, migration 006; `exporter_factory(settings, repo)`; 280 tests).
 - **Backlog:**
   - Google Places (blocked on D1);
-  - more directory adapters;
-  - D4 (rows a client deletes).
+  - more directory adapters (none usable yet; see PROGRESS).
 
 ## Rules
 - Work only on the task I name. Stop and summarize when done.

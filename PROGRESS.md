@@ -44,6 +44,10 @@
 - **Tests:** `tests/unit/test_render_proxy.py` (origin-form forwarding to the checked IP, refusals before connecting, CONNECT tunnel) and the real-browser tests now go through the proxy: redirect to metadata.test, redirect to a 127.0.0.1 literal, and rebinding each leave only the first request on the server. 276 tests pass, lint clean.
 - **Checked live:** https://www.python.org/ rendered through the proxy (59 KB, real DNS and certificates).
 
+**Also pushed (2026-10-24):** D4: rows a client deletes from a Google Sheet tab stay deleted. Migration `006_sheet_rows.sql` adds `sheet_rows (sheet_id, tab, lead_id, written_at)` (FK to leads, so `forget`/`purge` clean it); `SheetsExporter` gets it through `exporter_factory(settings, repo)` (every caller passes its repo now) and `plan_upsert(..., sent_before)` leaves out a lead that was written to the tab before but is no longer there. Recorded only after the batch write succeeds. Covers the monitor's `- new` tabs too. `ExportResult.rows_skipped` counts them; the CLI summary and the run page say "N you deleted from the Sheet left out".
+- **Limits:** tabs exported before this change have no memory yet, so a row deleted before it can come back once (then it's remembered). A deleted lead can't be brought back from LeadHarvest; paste the row back, or delete its `sheet_rows` entry. Renaming a tab starts a fresh memory (the key is the tab name).
+- **Tests:** deleted rows stay deleted (skipped count, memory updated), no memory = old behaviour, a failed write remembers nothing, repository per sheet and tab with cleanup on delete. 280 tests pass, lint clean. Not checked against a real Sheet (no `GOOGLE_SHEET_ID` here).
+
 **Next session, in order:**
 1. **Demo (7.2):** the owner records the 90-second demo (blueprint section 21). It shows the Google Sheet, so it needs the live Sheets export first.
 2. The owner's other live checks (below).
@@ -318,7 +322,6 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
   - Kompass PH and Cybo: answer plain requests with 403 (bot protection); using them would need evasion, which is ruled out.
   - Infobel: robots.txt blocks AI and data bots. Yellow Pages PH, PhilippineCompanies and ph-yp: unreachable or offline.
   - So an adapter needs a directory whose owner allows it: written permission (e.g. BusinessList.ph), or a source a client brings with the rights to it (a member list, an association directory).
-- **D4:** remember rows a client deletes from the Sheet, so they are not appended again.
 
 ## Notes / decisions
 

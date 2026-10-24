@@ -229,3 +229,18 @@ def test_caches(repo: Repository) -> None:
     repo.conn.execute("UPDATE robots_cache SET fetched_at = ?", (old,))
     assert repo.robots_cache_get("https://a.ph:443") is None
     assert json.loads(json.dumps(repo.suppressions()["domain"], default=list)) == []
+
+
+def test_sheet_rows_are_remembered_per_tab(repo) -> None:
+    make_run(repo)
+    kept, gone = make_lead(), make_lead(business_name="Bright")
+    repo.insert_lead(kept)
+    repo.insert_lead(gone)
+    ids = [kept.lead_id, gone.lead_id, "not-a-lead"]
+    repo.add_sheet_lead_ids("sheet-1", "dentist - Makati", ids)
+    repo.add_sheet_lead_ids("sheet-1", "dentist - Makati", [kept.lead_id])  # again: no error
+    assert repo.sheet_lead_ids("sheet-1", "dentist - Makati") == {kept.lead_id, gone.lead_id}
+    assert repo.sheet_lead_ids("sheet-1", "gym - Makati") == set()  # per tab
+    assert repo.sheet_lead_ids("sheet-2", "dentist - Makati") == set()  # per sheet
+    repo.delete_leads([gone.lead_id])  # forget/purge: the memory goes with the lead
+    assert repo.sheet_lead_ids("sheet-1", "dentist - Makati") == {kept.lead_id}

@@ -120,7 +120,7 @@ def run_form(settings: Settings, repo: Repository, categories: dict[str, Categor
         for error in request:
             st.error(error)
         return
-    pipeline = Pipeline(settings, repo, exporter_factory=exporter_factory(settings))
+    pipeline = Pipeline(settings, repo, exporter_factory=exporter_factory(settings, repo))
     run = pipeline.create_run(
         request.category, request.location, limit=request.limit, targets=request.targets,
         sources=request.sources, options={"js": request.js, "mx": request.mx},

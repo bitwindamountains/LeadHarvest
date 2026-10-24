@@ -168,7 +168,10 @@ class FakeWorksheet:
         return [r[idx] if idx < len(r) else "" for r in self.grid[1:]]
 
 
-def export_to(ws: FakeWorksheet, leads: list[Lead], tabs: dict[str, FakeWorksheet] | None = None):
+def export_to(
+    ws: FakeWorksheet, leads: list[Lead], tabs: dict[str, FakeWorksheet] | None = None,
+    sent: FakeSent | None = None,
+):  # fmt: skip
     """Export into `ws`; other tabs (the summary) go to `tabs`, by title."""
     tabs = {} if tabs is None else tabs
 
@@ -177,7 +180,21 @@ def export_to(ws: FakeWorksheet, leads: list[Lead], tabs: dict[str, FakeWorkshee
             return tabs.setdefault(title, FakeWorksheet())
         return ws
 
-    return SheetsExporter(opener, sleep=lambda s: None).export(leads, run())
+    exporter = SheetsExporter(opener, sleep=lambda s: None, sent=sent, sheet_id="sheet-1")
+    return exporter.export(leads, run())
+
+
+class FakeSent:
+    """The database's memory of rows written per tab (SentRows)."""
+
+    def __init__(self) -> None:
+        self.ids: dict[tuple[str, str], set[str]] = {}
+
+    def sheet_lead_ids(self, sheet_id: str, tab: str) -> set[str]:
+        return set(self.ids.get((sheet_id, tab), set()))
+
+    def add_sheet_lead_ids(self, sheet_id: str, tab: str, lead_ids: list[str]) -> None:
+        self.ids.setdefault((sheet_id, tab), set()).update(lead_ids)
 
 
 def test_new_sheet_gets_header_and_rows() -> None:
@@ -296,3 +313,33 @@ def test_tab_title() -> None:
     assert tab_title("dentist", "Makati") == "dentist - Makati"
     assert tab_title("x", "a/b:c[d]") == "x - a b c d"
     assert len(tab_title("x", "y" * 300)) == 100
+
+
+def test_rows_the_client_deleted_stay_deleted() -> None:
+    ws, sent = FakeWorksheet(), FakeSent()
+    export_to(ws, [lead("L-1"), lead("L-2", "Bright")], sent=sent)
+    assert sent.ids == {("sheet-1", "dentist - Makati"): {"L-1", "L-2"}}
+    del ws.grid[1]  # the client deletes L-1's row
+    result = export_to(ws, [lead("L-1"), lead("L-2", "Bright"), lead("L-3", "New")], sent=sent)
+    assert ws.column("lead_id") == ["L-2", "L-3"]  # L-1 not appended again
+    assert (result.rows_updated, result.rows_appended, result.rows_skipped) == (1, 1, 1)
+    assert sent.ids[("sheet-1", "dentist - Makati")] == {"L-1", "L-2", "L-3"}
+
+
+def test_without_memory_deleted_rows_come_back() -> None:
+    ws = FakeWorksheet()
+    export_to(ws, [lead("L-1"), lead("L-2", "Bright")])
+    del ws.grid[1]
+    result = export_to(ws, [lead("L-1"), lead("L-2", "Bright")])
+    assert ws.column("lead_id") == ["L-2", "L-1"] and result.rows_skipped == 0
+
+
+def test_a_failed_write_is_not_remembered() -> None:
+    class Failing(FakeWorksheet):
+        def batch_update(self, data: list[dict[str, Any]], **kwargs: Any) -> None:
+            raise RuntimeError("quota")
+
+    sent = FakeSent()
+    with pytest.raises(ExportError):
+        export_to(Failing(), [lead("L-1")], sent=sent)
+    assert sent.ids == {}  # so the next export appends L-1 instead of skipping it

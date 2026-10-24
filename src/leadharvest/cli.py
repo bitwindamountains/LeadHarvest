@@ -129,7 +129,9 @@ def _run_options(js: bool, mx: bool) -> dict[str, bool]:
     return {"js": js, "mx": mx}
 
 
-def exporter_factory(settings: Settings):
+def exporter_factory(settings: Settings, repo: Repository):
+    """`repo` remembers the rows written to each Sheet tab (decision D4)."""
+
     def build(name: str) -> Exporter:
         if name == "csv":
             return CsvExporter(settings.export_dir)
@@ -138,14 +140,19 @@ def exporter_factory(settings: Settings):
         if name == "sheets":
             settings.require_sheets()
             return SheetsExporter(
-                gspread_opener(settings.google_service_account_file, settings.google_sheet_id)
-            )
+                gspread_opener(settings.google_service_account_file, settings.google_sheet_id),
+                sent=repo, sheet_id=settings.google_sheet_id,
+            )  # fmt: skip
         if name == "hubspot":
             settings.require_hubspot()
             return HubSpotExporter(settings.hubspot_access_token)
         raise ValueError(f"unknown export target: {name}")
 
     return build
+
+
+def _skipped_note(skipped: int) -> str:
+    return f", {skipped} you deleted from the Sheet left out" if skipped else ""
 
 
 @contextmanager
@@ -222,7 +229,7 @@ def _execute_run(
             pipeline = Pipeline(
                 settings,
                 repo,
-                exporter_factory=exporter_factory(settings),
+                exporter_factory=exporter_factory(settings, repo),
                 reporter=RichReporter(progress),
             )
             return asyncio.run(
@@ -345,7 +352,8 @@ def print_summary(repo: Repository, run: Run) -> None:
     for result in stats.get("export_results", []):
         table.add_row(
             f"Export: {result['exporter']}",
-            f"{result['target']} (+{result['rows_appended']} / ~{result['rows_updated']})",
+            f"{result['target']} (+{result['rows_appended']} / ~{result['rows_updated']})"
+            + _skipped_note(result.get("rows_skipped", 0)),
         )
     if run.error:
         table.add_row("Error", run.error)
@@ -412,7 +420,7 @@ def run(
     source_list = _parse_sources(sources)
     options = _run_options(js, mx and settings.mx_check)
     with _repository(settings) as repo:
-        pipeline = Pipeline(settings, repo, exporter_factory=exporter_factory(settings))
+        pipeline = Pipeline(settings, repo, exporter_factory=exporter_factory(settings, repo))
         new_run = pipeline.create_run(
             cat, location, limit=limit, targets=targets, sources=source_list, options=options
         )
@@ -446,7 +454,7 @@ def search(
     cat = _category(category, settings)
     source_list = _parse_sources(sources)
     with _repository(settings) as repo:
-        pipeline = Pipeline(settings, repo, exporter_factory=exporter_factory(settings))
+        pipeline = Pipeline(settings, repo, exporter_factory=exporter_factory(settings, repo))
         new_run = pipeline.create_run(
             cat, location, limit=limit, targets=["csv", "xlsx"], sources=source_list,
             options={"js": False, "mx": settings.mx_check},
@@ -520,7 +528,7 @@ def enrich(
                 pipeline = Pipeline(
                     settings,
                     repo,
-                    exporter_factory=exporter_factory(settings),
+                    exporter_factory=exporter_factory(settings, repo),
                     reporter=RichReporter(progress),
                 )
                 stats = asyncio.run(
@@ -562,7 +570,7 @@ def export(
         run_id = _run_id(repo, run_ref)
         existing = repo.get_run(run_id)
         assert existing is not None
-        pipeline = Pipeline(settings, repo, exporter_factory=exporter_factory(settings))
+        pipeline = Pipeline(settings, repo, exporter_factory=exporter_factory(settings, repo))
         try:
             if segment is None:
                 results = pipeline.export(existing, targets)
@@ -574,6 +582,7 @@ def export(
             console.print(
                 f"{result.exporter}: {result.target} "
                 f"({result.rows_appended} appended, {result.rows_updated} updated)"
+                + _skipped_note(result.rows_skipped)
             )
 
 
@@ -630,7 +639,7 @@ def _batch_command(
         console.print(f"\n[bold]Row {job.row}[/bold]: {job.category} in {job.location} ({action})")
 
     with _repository(settings) as repo:
-        pipeline = Pipeline(settings, repo, exporter_factory=exporter_factory(settings))
+        pipeline = Pipeline(settings, repo, exporter_factory=exporter_factory(settings, repo))
         try:
             results = run_batch(
                 name, job_list, repo=repo, pipeline=pipeline, categories=categories,

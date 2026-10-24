@@ -151,6 +151,7 @@ class ExportResult(BaseModel):
     target: str
     rows_updated: int = 0
     rows_appended: int = 0
+    rows_skipped: int = 0  # Sheets: rows the client deleted, so not added back (D4)
 
     @property
     def rows_written(self) -> int:

@@ -522,6 +522,23 @@ class Repository:
             (domain, int(has_mail), utcnow_iso()),
         )
 
+    # ---- Google Sheet rows already written (decision D4) -------------------------------------
+
+    def sheet_lead_ids(self, sheet_id: str, tab: str) -> set[str]:
+        rows = self.conn.execute(
+            "SELECT lead_id FROM sheet_rows WHERE sheet_id = ? AND tab = ?", (sheet_id, tab)
+        )
+        return {row["lead_id"] for row in rows}
+
+    def add_sheet_lead_ids(self, sheet_id: str, tab: str, lead_ids: list[str]) -> None:
+        now = utcnow_iso()
+        with self.transaction():
+            self.conn.executemany(
+                "INSERT OR IGNORE INTO sheet_rows (sheet_id, tab, lead_id, written_at) "
+                "SELECT ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM leads WHERE lead_id = ?)",
+                [(sheet_id, tab, lead_id, now, lead_id) for lead_id in lead_ids],
+            )
+
     def robots_cache_put(self, origin: str, robots_txt: str | None, status: int) -> None:
         self.conn.execute(
             "INSERT OR REPLACE INTO robots_cache (origin, robots_txt, status, fetched_at) "

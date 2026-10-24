@@ -83,7 +83,7 @@ Press **Ctrl+C** at any time. The run is marked `partial`, and `leadharvest resu
 4. Copy the Sheet ID from its URL into `GOOGLE_SHEET_ID` in `.env`.
 5. Run with `--to sheets`.
 
-Each run writes to a tab named `{category} - {area}`. Columns are matched **by header name**, so clients can add, move, or reorder their own columns freely. Rows a client deletes reappear on the next export.
+Each run writes to a tab named `{category} - {area}`. Columns are matched **by header name**, so clients can add, move, or reorder their own columns freely. Rows a client deletes stay deleted: LeadHarvest remembers (in `data/leads.db`) which leads it wrote to each tab and doesn't add a deleted one back. The export summary counts them.
 
 ## Optional features
 

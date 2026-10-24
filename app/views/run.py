@@ -255,6 +255,8 @@ def exports(settings: Settings, run: Run) -> None:
                 )  # fmt: skip
             elif result["exporter"] == "sheets" and (url := sheet_url(settings)):
                 st.link_button(f"Open {kind}", url, icon=":material/open_in_new:")
+                if skipped := result.get("rows_skipped"):
+                    st.caption(f"{skipped} rows you deleted from the Sheet were left out")
             else:
                 st.caption(
                     f"{kind}: {result['rows_appended']} added, {result['rows_updated']} updated"
