@@ -4,7 +4,7 @@
 
 **Status (end of 2026-10-11):** everything through `83a323b` is on `main` and pushed (239 tests, lint clean): the run-page redesign and data-honesty fixes, Overture as the default source (D6), dedupe rule 4 plus `leadharvest dedupe`, and multi-source runs that survive one failed source. Blueprint phases 0–6, 8 (except 8.6 Google Places) and 9 are built.
 
-**Also pushed (2026-10-24, `f8e14d2`):** run history grouped by search (direction A, step 1), 240 tests. Deployment check the same day: tests and lint pass, no secrets tracked. Pillow CVEs fixed the same day: the `ui` extra now needs `streamlit>=1.66.1` (the first release to allow Pillow 13), and the lock has Streamlit 1.66.1 and Pillow 13.0.0. pip-audit is clean, 240 tests pass, and the app boots. Still open: the Weekly monitor workflow fails until its repo secrets and `config/monitor.csv` exist.
+**Also pushed (2026-10-24, `f8e14d2`):** run history grouped by search (direction A, step 1), 240 tests. Deployment check the same day: tests and lint pass, no secrets tracked. Pillow CVEs fixed the same day: the `ui` extra now needs `streamlit>=1.66.1` (the first release to allow Pillow 13), and the lock has Streamlit 1.66.1 and Pillow 13.0.0. pip-audit is clean, 240 tests pass, and the app boots. The Weekly monitor workflow is disabled on GitHub (it failed weekly without its repo secrets and `config/monitor.csv`); add those, then `gh workflow enable "Weekly monitor"`.
 
 **Next session, in order:**
 1. Direction A, step 2: an "All runs" page (a table of every run, filterable, click to open) with the run id in the URL (`st.query_params`, `?run=<id>`). Today searches past the newest 15, and runs past the 500 scanned, can't be opened from the UI.
