@@ -305,7 +305,7 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 3. **DoD item 1:** done 2026-10-24 (run 5e5e7edb, see Done). D5 needs no change: no possible duplicates or phone conflicts came up. HubSpot is still untested live.
 4. **DoD item 8:** done 2026-10-25, checked by the owner: Ctrl+C mid-run on Windows paused the run, and `resume` finished it without fetching completed work again.
 5. **Real exports:** Google Sheets done 2026-10-25 (client column kept, moved column, deleted rows stay deleted; see Current task). HubSpot only if a client uses it.
-6. **UI:** do one live run in the Streamlit UI, including Resume after a deliberate interruption.
+6. **UI:** done 2026-10-25 (run e28d12cf, dentist, Pasig, limit 20, driven in a browser with a temporary password): search took ~106 s, the run kept going while All runs was open, Stop during website visits paused it as "Paused while visiting their websites. You stopped it." (partial, enrich, error stopped; 4 of 5 sites done), Resume visited only the 1 site left and completed (20 leads, 90% email, 100% phone, average score 71, CSV and XLSX). No browser console errors. Found: the search form's caption says "Google Sheets and HubSpot appear here once set up" even when Sheets is set up (Sheets is in the Export to list; only HubSpot is missing), and the footer of the search page shows the OpenStreetMap credit although Overture is the default source.
 
 ### Next: Phase 7, portfolio packaging
 7. **README (7.1), done 2026-10-24:** UI screenshots, redacted sample output and real hit rates. A Sheet screenshot can follow the owner's first live Sheets export.

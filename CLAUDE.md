@@ -28,7 +28,7 @@ Details, history and the full roadmap are in PROGRESS.md; keep this summary in s
 - Also pushed: reachable leads, slice 3: one export summary (`about_rows`) with reachable and per-opening counts, now also a Sheets summary tab (252 tests).
 - Also pushed: reachable leads, Messenger links: a Messenger column in the leads table (`m.me/<page>`, `clean.normalize.messenger_link`; verified in a browser; 264 tests). Reachable leads is done.
 - **Now (owner, live):**
-  - one live UI run (the real Sheets export passed 2026-10-25; HubSpot only if a client uses it).
+  - none left: the live Sheets export and a live UI run with Stop and Resume passed 2026-10-25 (HubSpot only if a client uses it).
 - 2026-10-25 deployment review: blockers and recommended fixes done (286 tests). The UI now serves on 127.0.0.1 only, and HTTP clients ignore environment proxies (`trust_env=False`).
 - Also pushed: Phase 7 slice 1: README screenshots (`docs/images/`, contacts masked), real hit rates and redacted sample rows; repo checked clean of secrets and real data (7.1, 7.3 done).
 - **Then:** the 90-second demo (7.2), recorded by the owner after a live Sheets export.
