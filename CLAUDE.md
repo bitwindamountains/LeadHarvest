@@ -19,7 +19,7 @@ Full spec: docs/BLUEPRINT.md. Read the relevant section before changing code.
 
 ## Status and roadmap
 Details, history and the full roadmap are in PROGRESS.md; keep this summary in sync with it.
-- **Built:** blueprint phases 0–6, 8 (except 8.6 Google Places) and 9, plus the 2026-10-09 audit fixes and UI redesign. On `main` and pushed through `f8e14d2` (240 tests): Overture is the default source (D6), dedupe rule 4 plus `leadharvest dedupe` merge one place from two sources, and a failed source no longer stops a multi-source run.
+- **Built:** blueprint phases 0–6, 8 (8.6 Google Places dropped, D1) and 9, plus the 2026-10-09 audit fixes and UI redesign. On `main` and pushed through `f8e14d2` (240 tests): Overture is the default source (D6), dedupe rule 4 plus `leadharvest dedupe` merge one place from two sources, and a failed source no longer stops a multi-source run.
 - Also pushed: run history grouped by search (sidebar shows each search once; the run page has a "Run history" picker).
 - Also pushed: the All runs page (every run, filterable, pick a row to open) and the run id in the URL (246 tests).
 - Also pushed: each batch is one sidebar entry that opens a batch page (direction A done, 249 tests).
@@ -32,14 +32,13 @@ Details, history and the full roadmap are in PROGRESS.md; keep this summary in s
 - 2026-10-25 deployment review: blockers and recommended fixes done (286 tests). The UI now serves on 127.0.0.1 only, and HTTP clients ignore environment proxies (`trust_env=False`).
 - Also pushed: Phase 7 slice 1: README screenshots (`docs/images/`, contacts masked), real hit rates and redacted sample rows; repo checked clean of secrets and real data (7.1, 7.3 done).
 - **Then:** the 90-second demo (7.2), recorded by the owner after a live Sheets export.
-- **Before selling:** confirm D1 (researched 2026-10-25: drop Google Places; D2 decided: no OSM in client lists; blueprint section 23), set up the monitor workflow secrets and `config/monitor.csv`, then `gh workflow enable "Weekly monitor"` (disabled 2026-10-24).
+- **Before selling:** D1 and D2 are decided (2026-10-25: no Google Places, no OSM in client lists; blueprint section 23); set up the monitor workflow secrets and `config/monitor.csv`, then `gh workflow enable "Weekly monitor"` (disabled 2026-10-24).
 - Also pushed: background runs in the UI (`ui_jobs.JOBS` threads; the run page shows live progress and survives clicks and reloads; 265 tests).
 - Also pushed: a Stop run button (`Job.stop` cancels the run's asyncio task; paused as "stopped", resumable; 268 tests).
 - Also pushed: the SSRF guard also runs at connect time (`netguard.PublicOnlyBackend` in every `make_client` client; 272 tests).
 - Also pushed: the JS renderer's Chromium connects only through a local SSRF guard proxy (`enrich/render_proxy.py`); redirect hops can't reach private addresses (276 tests).
 - Also pushed: D4, rows a client deletes from a Sheet stay deleted (`sheet_rows`, migration 006; `exporter_factory(settings, repo)`; 280 tests).
 - **Backlog:**
-  - Google Places (blocked on D1);
   - more directory adapters (none usable yet; see PROGRESS).
 
 ## Rules

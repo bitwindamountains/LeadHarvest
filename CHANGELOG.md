@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Google Places is dropped as a source (decision D1): Google's terms forbid storing Places content and exporting it outside Google's services. `GOOGLE_PLACES_API_KEY` is removed from `.env.example`.
 - Web UI colour theme is now "harvest ledger":
   - **Paper and ink:** sage-tinted paper ruled like a ledger, with espresso ink.
   - **Sidebar:** dark olive.

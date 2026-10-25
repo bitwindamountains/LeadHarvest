@@ -101,7 +101,7 @@ Version 1.1 · October 2026 · Status: ready to build
 | F12 | Streamlit UI | Form → progress → table → download buttons; password-protected |
 | F13 | HubSpot push | Find company by domain, update or create |
 | F3 | Directory source (template) | Config-driven HTML scraper (CSS selectors in YAML) for a public directory you are allowed to scrape; Playwright optional for JS-rendered pages |
-| F14 | Google Places source | Official API, better PH coverage; needs API key + billing account. **Blocked on decision D1** (storage terms) |
+| F14 | ~~Google Places source~~ | **Dropped 2026-10-25 (D1):** Google's terms forbid storing Places content and exporting it outside Google's services |
 
 ### V2 (P2–P3)
 | ID | Feature | Summary |
@@ -195,7 +195,6 @@ flowchart LR
     P --> S["Source adapters"]
     S --> OVP[("Overpass API")]
     S --> DIR[("Public directory site")]
-    S --> GPL[("Google Places API - V1")]
     P --> C["Normalize + dedupe"]
     P --> E["Enricher"]
     E --> R["robots.txt check + rate limiter"]
@@ -251,8 +250,7 @@ leadharvest/
 │   ├── sources/
 │   │   ├── base.py            # Source protocol + registry
 │   │   ├── osm_overpass.py    # MVP default source
-│   │   ├── directory.py       # YAML-driven HTML directory scraper
-│   │   └── google_places.py   # V1
+│   │   └── directory.py       # YAML-driven HTML directory scraper
 │   ├── clean/
 │   │   ├── normalize.py       # phones, URLs, names, addresses
 │   │   └── dedupe.py          # match keys + merge rules
@@ -624,7 +622,6 @@ GOOGLE_SERVICE_ACCOUNT_FILE=secrets/service_account.json
 GOOGLE_SHEET_ID=
 
 # --- V1 (optional) ---
-GOOGLE_PLACES_API_KEY=
 HUBSPOT_ACCESS_TOKEN=
 LH_UI_PASSWORD=
 ```
@@ -731,7 +728,6 @@ uv sync --extra js && uv run playwright install chromium
 | Google Sheets API | $0 |
 | Streamlit Community Cloud (V1) | $0 |
 | HubSpot free CRM (V1) | $0 |
-| Google Places API (V1) | Free monthly usage caps, then pay per request; requires a billing account with a card. Check current pricing before quoting clients. |
 
 ---
 
@@ -823,7 +819,7 @@ Estimated time: **Phases 0–6 ≈ 7–9 focused days**, **Phase 7 ≈ 1 day**. 
 - [x] 8.3 (P1) MX check
 - [x] 8.4 (P1) Streamlit UI with password; per-session DB connection
 - [x] 8.5 (P2) HubSpot exporter
-- [ ] 8.6 (P2) Google Places source — only if decision D1 clears
+- [x] ~~8.6 (P2) Google Places source~~ — dropped 2026-10-25 (decision D1)
 
 ### Phase 9 — V2 *(only when a client pays for it)*
 - [x] 9.1 (P3) Weekly monitoring workflow + "New since last run" tab (uses `--refresh-days` and derived `is_new`)
@@ -909,7 +905,7 @@ Blur emails and phone numbers in any public video.
 
 | # | Decision | Status | Resolution |
 |---|---|---|---|
-| D1 | Google Places (F14) storage terms vs. a persistent lead DB and delivered Sheets | **Researched 2026-10-25, owner to confirm.** The Maps Platform terms bar exporting or scraping Maps content for use outside Google's services (section 3.2.3, "No Scraping"); the Places API policies forbid pre-fetching, caching or storing Places content beyond narrow exceptions (place IDs indefinitely; lat/lng for 30 days) and require a Google map or the Google logo wherever Places data is shown. A lead DB plus client Sheets of names, phones and websites breaks all three. | Recommended: drop F14 as a lead source; never sell "Google Maps leads". At most, store place IDs to link a lead to its Google listing |
+| D1 | Google Places (F14) storage terms vs. a persistent lead DB and delivered Sheets | **Decided 2026-10-25: dropped.** The Maps Platform terms bar exporting or scraping Maps content for use outside Google's services (section 3.2.3, "No Scraping"); the Places API policies forbid pre-fetching, caching or storing Places content beyond narrow exceptions (place IDs indefinitely; lat/lng for 30 days) and require a Google map or the Google logo wherever Places data is shown. A lead DB plus client Sheets of names, phones and websites breaks all three. | F14 is dropped and `GOOGLE_PLACES_API_KEY` removed from `.env.example`; never sell "Google Maps leads". At most, a future feature could store place IDs to link a lead to its Google listing |
 | D2 | ODbL share-alike when delivering OSM-derived lists to paying clients | **Decided 2026-10-25: OSM stays out of client lists** | Client lists use Overture only (D6), which has no share-alike. OSM stays opt-in for the owner's own research; if it is ever used for a client, read the OSMF licence FAQ first. Attribution in every export regardless (built) |
 | D3 | Cloudflare-obfuscated emails | Decided | Not decoded; counted as `protected_emails` |
 | D4 | Rows a client deletes from the Sheet | Decided (2026-10-24) | Not re-appended: `sheet_rows` remembers what was written to each tab (MVP re-appended them) |

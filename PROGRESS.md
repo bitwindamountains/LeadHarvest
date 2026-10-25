@@ -57,7 +57,7 @@
 1. **Demo (7.2):** the owner records the 90-second demo (blueprint section 21). It shows the Google Sheet, so it needs the live Sheets export first.
 2. The owner's other live checks (below).
 
-**Also left:** the demo (7.2, the owner records it), D1 to confirm (researched 2026-10-25, recommendation: drop Google Places), and the weekly monitor for a client. Every Definition of done item is ticked and D2 is decided. See the Roadmap below.
+**Also left:** the demo (7.2, the owner records it), D1 decided (Google Places dropped, 2026-10-25), and the weekly monitor for a client. Every Definition of done item is ticked and D2 is decided. See the Roadmap below.
 
 ## Done (newest first)
 
@@ -313,7 +313,7 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 9. **Publish (7.3), done 2026-10-24:** the repo is public on GitHub (`bitwindamountains/LeadHarvest`), with no secrets or real lead data in its files or history.
 
 ### Before selling
-10. **D1 and D2** (blueprint section 23). **D2 decided 2026-10-25:** OSM stays out of client lists (Overture only, D6). **D1 researched 2026-10-25, owner to confirm:** Google's Maps Platform terms forbid scraping or exporting Maps content for use outside Google's services, and the Places API policies forbid storing Places content beyond place IDs (lat/lng for 30 days) and require a Google map or logo wherever it's shown. A lead database and client Sheets can't comply, so the recommendation is to drop F14 and never sell "Google Maps leads". Sources: the Places API policies page (developers.google.com/maps/documentation/places/web-service/policies, updated 2026-10-23) and the Service Specific Terms; the main Terms page didn't load in the fetch tool, so the 3.2.3 wording is from third-party copies.
+10. **D1 and D2** (blueprint section 23). **D2 decided 2026-10-25:** OSM stays out of client lists (Overture only, D6). **D1 decided 2026-10-25: Google Places dropped (owner confirmed the research).** Google's Maps Platform terms forbid scraping or exporting Maps content for use outside Google's services, and the Places API policies forbid storing Places content beyond place IDs (lat/lng for 30 days) and require a Google map or logo wherever it's shown. A lead database and client Sheets can't comply, so F14 is dropped and "Google Maps leads" are never sold; `GOOGLE_PLACES_API_KEY` is gone from `.env.example`. Sources: the Places API policies page (developers.google.com/maps/documentation/places/web-service/policies, updated 2026-10-23) and the Service Specific Terms; the main Terms page didn't load in the fetch tool, so the 3.2.3 wording is from third-party copies.
 11. **Weekly monitor for a client:**
     - add the secrets `LH_USER_AGENT`, `LH_DB_PASSPHRASE`, `GOOGLE_SHEET_ID` and `GOOGLE_SERVICE_ACCOUNT_JSON`;
     - commit `config/monitor.csv`;
@@ -321,7 +321,6 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 12. **Go to market:** follow blueprint section 22 (platforms, pricing, honesty rule).
 
 ### Backlog (build only when needed)
-- **F14, Google Places source (8.6):** blocked on D1; the 2026-10-25 research recommends dropping it.
 - **F18, more directory adapters:** build per client request. **Researched 2026-10-24, none usable** (checked against the `_template.yaml` checklist):
   - BusinessList.ph: robots.txt allows listing pages, but its terms of use allow automated access for search engines only, content "for your own use only", and no reproducing without written permission (they take requests via their Contact Us page).
   - Kompass PH and Cybo: answer plain requests with 403 (bot protection); using them would need evasion, which is ruled out.
@@ -330,7 +329,7 @@ The sidebar stacks one entry per run, so repeated searches, weekly monitors and 
 
 ## Notes / decisions
 
-- **Open decisions:** D1 (Google Places) awaits the owner's confirmation; the research recommends dropping it. D2 is decided: OSM stays out of client lists. Both are in blueprint section 23.
+- **Decisions:** none open. D1: Google Places dropped. D2: OSM stays out of client lists. Both are in blueprint section 23.
 - **Build order:** V1 and V2 were built ahead of the live Definition of Done run, at the owner's request. The blueprint had said to build V2 only once a client pays for it.
 - **Owner's email:** it identifies the owner only. Never send it in live requests from this environment.
 - **Never commit:** `.env`, `secrets/` and `data/`. These are gitignored.
