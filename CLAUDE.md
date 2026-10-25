@@ -28,7 +28,8 @@ Details, history and the full roadmap are in PROGRESS.md; keep this summary in s
 - Also pushed: reachable leads, slice 3: one export summary (`about_rows`) with reachable and per-opening counts, now also a Sheets summary tab (252 tests).
 - Also pushed: reachable leads, Messenger links: a Messenger column in the leads table (`m.me/<page>`, `clean.normalize.messenger_link`; verified in a browser; 264 tests). Reachable leads is done.
 - **Now (owner, live):**
-  - a real Sheets/HubSpot export, and one live UI run.
+  - a real Sheets/HubSpot export (first Sheets export done 2026-10-25; client-edit check left), and one live UI run.
+- 2026-10-25 deployment review: three blockers fixed (282 tests); the recommended fixes are listed in PROGRESS.
 - Also pushed: Phase 7 slice 1: README screenshots (`docs/images/`, contacts masked), real hit rates and redacted sample rows; repo checked clean of secrets and real data (7.1, 7.3 done).
 - **Then:** the 90-second demo (7.2), recorded by the owner after a live Sheets export.
 - **Before selling:** decide D1, and D2 only if OSM goes into client lists (blueprint section 23), set up the monitor workflow secrets and `config/monitor.csv`, then `gh workflow enable "Weekly monitor"` (disabled 2026-10-24).

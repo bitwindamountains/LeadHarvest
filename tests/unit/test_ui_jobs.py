@@ -55,6 +55,16 @@ def test_stop_cancels_a_running_job() -> None:
     assert outcome == ["cancelled"] and job.stopping and not job.running
 
 
+def test_stop_after_the_job_ended_is_harmless() -> None:
+    async def nothing() -> None:
+        return None
+
+    job = Job()
+    job.run(nothing())  # asyncio.run has closed the job's loop
+    job.stop()  # e.g. a Stop button still on screen when the run ended
+    assert job.stopping
+
+
 def test_stop_before_the_job_begins() -> None:
     job, outcome = Job(), []
     job.stop()  # e.g. clicked before the thread reached its event loop

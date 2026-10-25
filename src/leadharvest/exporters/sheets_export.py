@@ -131,6 +131,9 @@ def plan_upsert(
         row = grid[r]
         if id_col < len(row) and row[id_col].strip():
             existing.setdefault(row[id_col].strip(), r)
+    # None of our rows left means a recreated tab or a renamed lead_id header, not deletions.
+    if not existing:
+        sent_before = frozenset()
 
     n_rows = max(len(grid), 1)
     targets: dict[int, dict[str, object]] = {}

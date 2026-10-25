@@ -48,6 +48,10 @@
 - **Limits:** tabs exported before this change have no memory yet, so a row deleted before it can come back once (then it's remembered). A deleted lead can't be brought back from LeadHarvest; paste the row back, or delete its `sheet_rows` entry. Renaming a tab starts a fresh memory (the key is the tab name).
 - **Tests:** deleted rows stay deleted (skipped count, memory updated), no memory = old behaviour, a failed write remembers nothing, repository per sheet and tab with cleanup on delete. 280 tests pass, lint clean. Not checked against a real Sheet (no `GOOGLE_SHEET_ID` here).
 
+**2026-10-25: deployment review (`/ship`: code review, security audit, test coverage) and its three blockers fixed.** Live first: the Makati run (5e5e7edb) exported to a real Google Sheet, 100 rows, phones as `+63…` text, attribution note and summary tab present; the client-edit check (own column, moved column, 2 deleted rows) is still to do, in the `dentist - Makati` tab, not `Sheet1`.
+- **Fixed:** a real Sheet ID had been typed into `.env.example` (reverted, never committed); Stop clicked as a run ends no longer raises `Event loop is closed` (`Job.stop`); a tab the client recreates, or whose `lead_id` header is renamed, gets every lead again instead of staying empty (`plan_upsert` ignores the deleted-rows memory when the tab holds none of our rows). New limit: a client who deletes every row gets them all back on the next export. 282 tests pass, lint clean.
+- **Recommended, not done yet:** upgrade certifi and filelock (pip-audit); `server.address = "127.0.0.1"` in `.streamlit/config.toml` unless the UI is hosted (the password throttle is per session, so a hosted UI needs a shared lockout); Chromium flag `--force-webrtc-ip-handling-policy=disable_non_proxied_udp`; `trust_env=False` in `make_client`; tests for a real pipeline stopped from another thread, two runs writing at once, the `exporter_factory` D4 wiring, and migration 006 on a v5 DB.
+
 **Next session, in order:**
 1. **Demo (7.2):** the owner records the 90-second demo (blueprint section 21). It shows the Google Sheet, so it needs the live Sheets export first.
 2. The owner's other live checks (below).

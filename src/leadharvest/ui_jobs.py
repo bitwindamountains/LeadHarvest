@@ -5,6 +5,7 @@ server process, shared by every browser tab; the run page reads progress from it
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import threading
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
@@ -60,7 +61,8 @@ class Job:
         already on a worker thread (the Overture query) finishes first."""
         self.stopping = True  # set before reading _task; `run` sets _task before reading this
         if self._loop is not None and self._task is not None:
-            self._loop.call_soon_threadsafe(self._task.cancel)
+            with contextlib.suppress(RuntimeError):  # the run already ended and closed its loop
+                self._loop.call_soon_threadsafe(self._task.cancel)
 
 
 class Jobs:

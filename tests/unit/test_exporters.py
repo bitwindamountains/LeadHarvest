@@ -326,6 +326,18 @@ def test_rows_the_client_deleted_stay_deleted() -> None:
     assert sent.ids[("sheet-1", "dentist - Makati")] == {"L-1", "L-2", "L-3"}
 
 
+def test_a_recreated_or_reheadered_tab_gets_every_lead_again() -> None:
+    ws, sent = FakeWorksheet(), FakeSent()
+    leads = [lead("L-1"), lead("L-2", "Bright")]
+    export_to(ws, leads, sent=sent)
+    fresh = FakeWorksheet()  # the client deleted the whole tab to start over
+    result = export_to(fresh, leads, sent=sent)
+    assert fresh.column("lead_id") == ["L-1", "L-2"] and result.rows_skipped == 0
+    ws.grid[0][0] = "id"  # the client renamed the lead_id header
+    result = export_to(ws, leads, sent=sent)
+    assert result.rows_appended == 2 and result.rows_skipped == 0
+
+
 def test_without_memory_deleted_rows_come_back() -> None:
     ws = FakeWorksheet()
     export_to(ws, [lead("L-1"), lead("L-2", "Bright")])
