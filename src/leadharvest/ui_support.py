@@ -56,6 +56,15 @@ def export_choices(settings: Settings) -> list[str]:
     return choices
 
 
+def setup_hint(choices: list[str]) -> str | None:
+    """Names the export targets not yet set up in .env, if any."""
+    missing = [TARGET_LABELS[t] for t in ("sheets", "hubspot") if t not in choices]
+    if not missing:
+        return None
+    verb = "appears" if len(missing) == 1 else "appear"
+    return f"{' and '.join(missing)} {verb} here once set up in .env."
+
+
 @dataclass
 class RunRequest:
     category: Category

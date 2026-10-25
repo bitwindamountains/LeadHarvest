@@ -15,6 +15,7 @@ from leadharvest.ui_support import (
     SOURCE_LABELS,
     TARGET_LABELS,
     export_choices,
+    setup_hint,
     setup_problems,
     source_choices,
     validate_request,
@@ -88,8 +89,8 @@ def run_form(settings: Settings, repo: Repository, categories: dict[str, Categor
         targets = right.multiselect(
             "Export to", choices, default=["csv", "xlsx"], format_func=TARGET_LABELS.get
         )
-        if len(choices) < len(TARGET_LABELS):
-            right.caption("Google Sheets and HubSpot appear here once set up in .env.")
+        if hint := setup_hint(choices):
+            right.caption(hint)
         with st.expander("Advanced options", icon=":material/tune:"):
             sources = st.multiselect(
                 "Data sources", source_choices(), default=default_source_names(),

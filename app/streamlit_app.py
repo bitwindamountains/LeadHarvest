@@ -10,7 +10,8 @@ import streamlit as st
 
 from leadharvest.categories import load_categories
 from leadharvest.config import ConfigError, load_settings
-from leadharvest.exporters.base import OSM_ATTRIBUTION, attribution
+from leadharvest.exporters.base import attribution, sources_attribution
+from leadharvest.sources.overture import default_source_names
 from leadharvest.storage.db import connect
 from leadharvest.storage.repository import Repository
 
@@ -69,7 +70,12 @@ def main() -> None:
         else:
             st.query_params["run"] = run.id
         st.divider()
-        st.caption(attribution(run, []) if run is not None else OSM_ATTRIBUTION)
+        # No run open: credit the sources a new search would use.
+        st.caption(
+            attribution(run, [])
+            if run is not None
+            else sources_attribution(set(default_source_names()))
+        )
     finally:
         repo.conn.close()
 

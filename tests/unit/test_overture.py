@@ -9,7 +9,12 @@ import httpx
 import pytest
 import respx
 
-from leadharvest.exporters.base import OSM_ATTRIBUTION, OVERTURE_ATTRIBUTION, attribution
+from leadharvest.exporters.base import (
+    OSM_ATTRIBUTION,
+    OVERTURE_ATTRIBUTION,
+    attribution,
+    sources_attribution,
+)
 from leadharvest.geo.nominatim import NominatimClient
 from leadharvest.http import MinIntervalLimiter, make_client
 from leadharvest.models import ResolvedArea, Run, SearchQuery, utcnow_iso
@@ -204,6 +209,8 @@ def test_attribution_follows_sources() -> None:
     assert attribution(run("overture"), []) == OVERTURE_ATTRIBUTION
     assert attribution(run("osm", "overture"), []).splitlines() == [
         OSM_ATTRIBUTION, OVERTURE_ATTRIBUTION]  # fmt: skip
+    assert sources_attribution({"overture"}) == OVERTURE_ATTRIBUTION  # the search page's default
+    assert sources_attribution(set()) == OSM_ATTRIBUTION
     assert attribution(run("directory:x"), []) == OSM_ATTRIBUTION  # as before
 
 

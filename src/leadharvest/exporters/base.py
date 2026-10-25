@@ -22,7 +22,11 @@ OVERTURE_ATTRIBUTION = (
 
 def attribution(run: Run, leads: list[Lead]) -> str:
     """Attribution for the sources behind these leads (earlier runs may have added some)."""
-    used = set(run.sources) | {source for lead in leads for source in lead.sources}
+    return sources_attribution(set(run.sources) | {s for lead in leads for s in lead.sources})
+
+
+def sources_attribution(used: set[str]) -> str:
+    """Attribution for these source names: Overture's, OSM's, or both (OSM when neither)."""
     lines = [OVERTURE_ATTRIBUTION] if "overture" in used else []
     if "osm" in used or not lines:
         lines.insert(0, OSM_ATTRIBUTION)

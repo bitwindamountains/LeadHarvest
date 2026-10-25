@@ -32,6 +32,7 @@ from leadharvest.ui_support import (
     result_rows,
     run_labels,
     score_bands,
+    setup_hint,
     setup_problems,
     short_time,
     shown_leads,
@@ -64,6 +65,11 @@ def test_setup_problems_and_choices(tmp_path) -> None:
                      HUBSPOT_ACCESS_TOKEN="t")  # fmt: skip
     assert export_choices(full) == ["csv", "xlsx", "sheets", "hubspot"]
     assert export_choices(_settings()) == ["csv", "xlsx"]
+    assert setup_hint(export_choices(full)) is None
+    assert setup_hint(["csv", "xlsx", "sheets"]) == "HubSpot appears here once set up in .env."
+    assert (
+        setup_hint(["csv", "xlsx"]) == "Google Sheets and HubSpot appear here once set up in .env."
+    )
 
 
 def test_default_sources_prefer_overture_when_installed(monkeypatch) -> None:
