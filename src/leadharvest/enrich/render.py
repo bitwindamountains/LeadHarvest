@@ -24,6 +24,8 @@ log = get_logger("render")
 
 RENDER_TIMEOUT_S = 20
 _SKIP_RESOURCES = {"image", "media", "font"}
+# WebRTC's UDP doesn't go through the guard proxy; this stops page scripts sending it.
+NO_DIRECT_UDP = "--force-webrtc-ip-handling-policy=disable_non_proxied_udp"
 
 
 class RenderUnavailable(Exception):
@@ -69,7 +71,9 @@ class PlaywrightRenderer:
         try:
             # Playwright also sends loopback addresses through the proxy (<-loopback>).
             self._browser = await self._pw.chromium.launch(
-                headless=True, args=self.launch_args, proxy={"server": self.proxy.url}
+                headless=True,
+                args=[NO_DIRECT_UDP, *self.launch_args],
+                proxy={"server": self.proxy.url},
             )
         except Exception as exc:
             await self._pw.stop()

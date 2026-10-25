@@ -9,6 +9,7 @@ import sys
 import pytest
 from typer.testing import CliRunner
 
+from leadharvest import cli
 from leadharvest.cli import app
 from leadharvest.models import Lead, Run, new_lead_id, utcnow_iso
 from leadharvest.storage.db import connect
@@ -167,3 +168,13 @@ def test_export_segment_writes_extra_files_only(env) -> None:
     assert bad.exit_code != 0 and "no-website" in bad.output
     sheets = runner.invoke(app, ["export", "--segment", "no-website", "--to", "csv,hubspot"])
     assert sheets.exit_code != 0
+
+
+def test_sheets_exporter_remembers_rows_in_the_repository(settings, repo, monkeypatch, tmp_path):
+    key = tmp_path / "service_account.json"
+    key.write_text("{}")
+    update = {"google_sheet_id": "sheet-1", "google_service_account_file": key}
+    s = settings.model_copy(update=update)
+    monkeypatch.setattr(cli, "gspread_opener", lambda path, sheet_id: lambda title: None)
+    exporter = cli.exporter_factory(s, repo)("sheets")
+    assert exporter.sent is repo and exporter.sheet_id == "sheet-1"  # without these, D4 is off

@@ -36,6 +36,7 @@ def make_client(settings: Settings, *, timeout: float | None = None) -> httpx.As
         headers={"User-Agent": settings.user_agent, "Accept-Language": "en,fil;q=0.8"},
         timeout=httpx.Timeout(timeout or settings.request_timeout_seconds),
         follow_redirects=False,
+        trust_env=False,  # an HTTP(S)_PROXY from the environment would skip the connect guard
     )
 
 

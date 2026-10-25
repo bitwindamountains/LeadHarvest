@@ -71,6 +71,22 @@ def test_v1_database_upgrades_and_keeps_data(tmp_path) -> None:
     assert repo.mx_cache_get("clinic.ph") is True
 
 
+def test_v5_database_with_leads_gains_sheet_rows(tmp_path) -> None:
+    path = tmp_path / "v5.db"
+    repo = Repository(connect(path))
+    make_run(repo)
+    lead = make_lead()
+    repo.insert_lead(lead)
+    repo.conn.execute("DROP TABLE sheet_rows")  # 006 only adds this table
+    repo.conn.execute("UPDATE schema_version SET version = 5")
+    repo.conn.close()
+    repo = Repository(connect(path))
+    assert current_version(repo.conn) == MIGRATIONS[-1][0]
+    assert repo.get_lead(lead.lead_id) is not None
+    repo.add_sheet_lead_ids("sheet-1", "dentist - Makati", [lead.lead_id])
+    assert repo.sheet_lead_ids("sheet-1", "dentist - Makati") == {lead.lead_id}
+
+
 def test_run_roundtrip_and_resolve(repo: Repository) -> None:
     run = make_run(repo, export_targets=["csv"], bbox=(14.5, 121.0, 14.6, 121.1))
     loaded = repo.get_run(run.id)

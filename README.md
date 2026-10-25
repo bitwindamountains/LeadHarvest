@@ -115,7 +115,7 @@ uv sync --extra ui
 uv run streamlit run app/streamlit_app.py      # from the repo root; needs LH_UI_PASSWORD in .env
 ```
 
-Run it from the repo root so Streamlit picks up `.streamlit/config.toml`. That file sets the colour theme, hides the developer toolbar and turns off Streamlit's usage statistics.
+Run it from the repo root so Streamlit picks up `.streamlit/config.toml`. That file sets the colour theme, hides the developer toolbar, turns off Streamlit's usage statistics and serves the UI on this computer only (`127.0.0.1`). To open it from another device, put it behind a proxy with its own sign-in first: the password check alone won't stop guessing from many sessions.
 
 If you deploy it (e.g. Streamlit Community Cloud), put the `.env` values in the app's secrets. The SQLite file is lost when the app restarts there, so download exports right away.
 

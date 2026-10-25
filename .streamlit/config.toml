@@ -52,3 +52,8 @@ toolbarMode = "minimal"
 [browser]
 # Don't send Streamlit usage statistics.
 gatherUsageStats = false
+
+[server]
+# Only this computer can open the UI. The password throttle is per session, so before sharing
+# it on a network (--server.address 0.0.0.0) put it behind a proxy that does its own sign-in.
+address = "127.0.0.1"

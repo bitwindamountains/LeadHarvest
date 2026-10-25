@@ -104,6 +104,7 @@ async def test_client_sends_user_agent() -> None:
     async with make_client(s) as client:
         assert client.headers["User-Agent"] == s.user_agent
         assert client.follow_redirects is False
+        assert client.trust_env is False  # no environment proxy around the SSRF guard
 
 
 def test_redaction() -> None:
