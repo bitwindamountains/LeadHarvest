@@ -32,7 +32,7 @@ Details, history and the full roadmap are in PROGRESS.md; keep this summary in s
 - 2026-10-25 deployment review: blockers and recommended fixes done (286 tests). The UI now serves on 127.0.0.1 only, and HTTP clients ignore environment proxies (`trust_env=False`).
 - Also pushed: Phase 7 slice 1: README screenshots (`docs/images/`, contacts masked), real hit rates and redacted sample rows; repo checked clean of secrets and real data (7.1, 7.3 done).
 - **Then:** the 90-second demo (7.2), recorded by the owner after a live Sheets export.
-- **Before selling:** decide D1, and D2 only if OSM goes into client lists (blueprint section 23), set up the monitor workflow secrets and `config/monitor.csv`, then `gh workflow enable "Weekly monitor"` (disabled 2026-10-24).
+- **Before selling:** confirm D1 (researched 2026-10-25: drop Google Places; D2 decided: no OSM in client lists; blueprint section 23), set up the monitor workflow secrets and `config/monitor.csv`, then `gh workflow enable "Weekly monitor"` (disabled 2026-10-24).
 - Also pushed: background runs in the UI (`ui_jobs.JOBS` threads; the run page shows live progress and survives clicks and reloads; 265 tests).
 - Also pushed: a Stop run button (`Job.stop` cancels the run's asyncio task; paused as "stopped", resumable; 268 tests).
 - Also pushed: the SSRF guard also runs at connect time (`netguard.PublicOnlyBackend` in every `make_client` client; 272 tests).

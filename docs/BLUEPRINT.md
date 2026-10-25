@@ -909,8 +909,8 @@ Blur emails and phone numbers in any public video.
 
 | # | Decision | Status | Resolution |
 |---|---|---|---|
-| D1 | Google Places (F14) storage terms vs. a persistent lead DB and delivered Sheets | **Open** — owner to verify current Maps Platform terms | F14 stays out until verified; do not sell "Places leads" |
-| D2 | ODbL share-alike when delivering OSM-derived lists to paying clients | **Open** — owner to read the OSMF licence FAQ before pricing | Attribution in every export regardless (built) |
+| D1 | Google Places (F14) storage terms vs. a persistent lead DB and delivered Sheets | **Researched 2026-10-25, owner to confirm.** The Maps Platform terms bar exporting or scraping Maps content for use outside Google's services (section 3.2.3, "No Scraping"); the Places API policies forbid pre-fetching, caching or storing Places content beyond narrow exceptions (place IDs indefinitely; lat/lng for 30 days) and require a Google map or the Google logo wherever Places data is shown. A lead DB plus client Sheets of names, phones and websites breaks all three. | Recommended: drop F14 as a lead source; never sell "Google Maps leads". At most, store place IDs to link a lead to its Google listing |
+| D2 | ODbL share-alike when delivering OSM-derived lists to paying clients | **Decided 2026-10-25: OSM stays out of client lists** | Client lists use Overture only (D6), which has no share-alike. OSM stays opt-in for the owner's own research; if it is ever used for a client, read the OSMF licence FAQ first. Attribution in every export regardless (built) |
 | D3 | Cloudflare-obfuscated emails | Decided | Not decoded; counted as `protected_emails` |
 | D4 | Rows a client deletes from the Sheet | Decided (2026-10-24) | Not re-appended: `sheet_rows` remembers what was written to each tab (MVP re-appended them) |
 | D5 | Phone-match radius and shared-phone threshold | Decided (tunable) | 250 m, 3 names; tune after the first real Makati run |
